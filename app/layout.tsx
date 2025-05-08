@@ -1,29 +1,22 @@
-import type { Metadata } from "next";
-import React from "react";
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
-import { CssBaseline, ThemeProvider } from "@mui/material";
-import theme from "@/components/theme"
+// Arquivo: app/layout.tsx
+// Local: C:\weg\automacaopmofrontend\app\layout.tsx
+import * as React from 'react';
+import ThemeRegistry from '@/components/ThemeRegistry'; // Importar o ThemeRegistry
 
-export const metadata: Metadata = {
-    title: "automacao-pmo-frontend",
-};
+// Se você tiver metadados, mantenha-os ou adicione-os aqui
+// export const metadata = {
+//   title: 'Meu App',
+//   description: 'Gerado pelo Next.js',
+// };
 
-export default async function RootLayout({
-    children,
-}: Readonly<{
-    children: React.ReactNode;
-}>) {
-    return (
-        <html lang="en">
-            <body>
-                <AppRouterCacheProvider>
-                    <ThemeProvider theme={theme}>
-                        <CssBaseline>
-                            {children}
-                        </CssBaseline>
-                    </ThemeProvider>
-                </AppRouterCacheProvider>
-            </body>
-        </html>
-    );
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR"> { /* Ou a linguagem que preferir */ }
+      <body>
+        <ThemeRegistry>
+          {children}
+        </ThemeRegistry>
+      </body>
+    </html>
+  );
 }

@@ -1,0 +1,67 @@
+/home/ubuntu/frontend_tree_view
+├── Dockerfile
+├── README.md
+├── app
+│   ├── (admin)
+│   │   ├── administracao
+│   │   │   ├── configuracoes
+│   │   │   │   └── page.tsx
+│   │   │   ├── integracao-jira
+│   │   │   │   └── page.tsx
+│   │   │   ├── logs-atividade
+│   │   │   │   └── page.tsx
+│   │   │   └── usuarios
+│   │   │       └── page.tsx
+│   │   ├── apontamentos
+│   │   │   ├── consultar-gerenciar
+│   │   │   │   └── page.tsx
+│   │   │   └── criar-manual
+│   │   │       └── page.tsx
+│   │   ├── dashboard
+│   │   │   └── page.tsx
+│   │   ├── gerenciamento
+│   │   │   ├── equipes
+│   │   │   │   └── page.tsx
+│   │   │   ├── projetos
+│   │   │   │   └── page.tsx
+│   │   │   ├── recursos
+│   │   │   │   └── page.tsx
+│   │   │   ├── secoes
+│   │   │   │   └── page.tsx
+│   │   │   └── status-projetos
+│   │   │       └── page.tsx
+│   │   ├── layout.tsx
+│   │   └── planejamento
+│   │       ├── alocacoes
+│   │       │   └── page.tsx
+│   │       ├── capacidade-rh
+│   │       │   └── page.tsx
+│   │       └── horas-recurso
+│   │           └── page.tsx
+│   ├── api
+│   │   └── auth
+│   │       └── [...nextauth]
+│   │           └── route.ts
+│   ├── auth.ts
+│   ├── dashboard
+│   │   └── page.tsx
+│   ├── layout.tsx
+│   ├── login
+│   │   └── page.tsx
+│   └── page.tsx
+├── components
+│   ├── admin
+│   │   ├── Header.tsx
+│   │   └── Sidebar.tsx
+│   └── theme.ts
+├── k8s
+│   └── configmap.yaml
+├── next-env.d.ts
+├── next.config.mjs
+├── package-lock.json
+├── package.json
+├── public
+│   └── favicon.ico
+└── tsconfig.json
+
+30 directories, 34 files
