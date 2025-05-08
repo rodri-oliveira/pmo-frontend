@@ -16,7 +16,7 @@ export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: ()
       sx={{
         width: { sm: `calc(100% - ${drawerWidth}px)` },
         ml: { sm: `${drawerWidth}px` },
-        zIndex: (theme) => theme.zIndex.drawer + 1 // Para ficar acima do Drawer
+        zIndex: 1200 // Valor fixo em vez de função
       }}
     >
       <Toolbar>
