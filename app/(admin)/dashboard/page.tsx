@@ -26,8 +26,8 @@ export default function DashboardPage() {
       </Typography>
       <Grid container spacing={3}>
         {/* Status da Integração Jira */}
-        <Grid item xs={12} md={6} lg={4}>
-          <Paper sx={{ p: 2 }}>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2, height: '100%' }}>
             <Typography variant="h6" gutterBottom>Status da Integração Jira</Typography>
             <Typography>Status: <span style={{ color: jiraStatus.status === 'Verde' ? 'green' : jiraStatus.status === 'Amarelo' ? 'orange' : 'red' }}>{jiraStatus.status}</span></Typography>
             <Typography>Última Sincronização: {jiraStatus.lastSync}</Typography>
@@ -39,8 +39,8 @@ export default function DashboardPage() {
         </Grid>
 
         {/* Alertas de Capacidade */}
-        <Grid item xs={12} md={6} lg={8}>
-          <Paper sx={{ p: 2 }}>
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 2, height: '100%' }}>
             <Typography variant="h6" gutterBottom>Alertas de Capacidade</Typography>
             {capacityAlerts.length > 0 ? (
               capacityAlerts.map(alert => (
@@ -57,17 +57,107 @@ export default function DashboardPage() {
           </Paper>
         </Grid>
 
-        {/* Atalhos Rápidos */}
+        {/* Atalhos Rápidos - Agora em formato de cards */}
         <Grid item xs={12}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>Atalhos Rápidos</Typography>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <NextLink href="/apontamentos/criar-manual" passHref legacyBehavior><Button variant="contained" component="a">Criar Apontamento Manual</Button></NextLink>
-              <NextLink href="/planejamento/horas-recurso" passHref legacyBehavior><Button variant="contained" component="a">Planejar Horas</Button></NextLink>
-              <NextLink href="/gerenciamento/recursos" passHref legacyBehavior><Button variant="contained" component="a">Gerenciar Recursos</Button></NextLink>
-              <NextLink href="/gerenciamento/projetos" passHref legacyBehavior><Button variant="contained" component="a">Gerenciar Projetos</Button></NextLink>
-              <NextLink href="/apontamentos/consultar-gerenciar" passHref legacyBehavior><Button variant="contained" component="a">Consultar Apontamentos</Button></NextLink>
-            </Box>
+            <Grid container spacing={2}>
+              <Grid item xs={6} sm={4} md={2.4}>
+                <Button 
+                  variant="contained" 
+                  component={NextLink} 
+                  href="/apontamentos/criar-manual"
+                  sx={{ 
+                    width: '100%', 
+                    height: '100px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    backgroundColor: '#00579d',
+                    '&:hover': {
+                      backgroundColor: '#004'
+                    }
+                  }}
+                >
+                  Criar Apontamento Manual
+                </Button>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2.4}>
+                <Button 
+                  variant="contained" 
+                  component={NextLink} 
+                  href="/planejamento/horas-recurso"
+                  sx={{ 
+                    width: '100%', 
+                    height: '100px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    backgroundColor: '#00579d',
+                    '&:hover': {
+                      backgroundColor: '#004'
+                    }
+                  }}
+                >
+                  Planejar Horas
+                </Button>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2.4}>
+                <Button 
+                  variant="contained" 
+                  component={NextLink} 
+                  href="/gerenciamento/recursos"
+                  sx={{ 
+                    width: '100%', 
+                    height: '100px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    backgroundColor: '#00579d',
+                    '&:hover': {
+                      backgroundColor: '#004'
+                    }
+                  }}
+                >
+                  Gerenciar Recursos
+                </Button>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2.4}>
+                <Button 
+                  variant="contained" 
+                  component={NextLink} 
+                  href="/gerenciamento/projetos"
+                  sx={{ 
+                    width: '100%', 
+                    height: '100px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    backgroundColor: '#00579d',
+                    '&:hover': {
+                      backgroundColor: '#004'
+                    }
+                  }}
+                >
+                  Gerenciar Projetos
+                </Button>
+              </Grid>
+              <Grid item xs={6} sm={4} md={2.4}>
+                <Button 
+                  variant="contained" 
+                  component={NextLink} 
+                  href="/apontamentos/consultar-gerenciar"
+                  sx={{ 
+                    width: '100%', 
+                    height: '100px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    backgroundColor: '#00579d',
+                    '&:hover': {
+                      backgroundColor: '#004'
+                    }
+                  }}
+                >
+                  Consultar Apontamentos
+                </Button>
+              </Grid>
+            </Grid>
           </Paper>
         </Grid>
 

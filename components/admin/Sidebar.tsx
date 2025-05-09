@@ -23,10 +23,6 @@ import TocIcon from '@mui/icons-material/Toc';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import HistoryIcon from '@mui/icons-material/History';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import WarningIcon from '@mui/icons-material/Warning';
-import ErrorIcon from '@mui/icons-material/Error';
-import SyncIcon from '@mui/icons-material/Sync';
 
 interface MenuItemType {
   text: string;
@@ -83,16 +79,6 @@ const menuItems: MenuItemType[] = [
   },
 ];
 
-const StatusIndicator = ({ status }) => {
-  if (status === 'Verde') {
-    return <CheckCircleIcon sx={{ color: 'green', вертикальныйAlign: 'middle', mr: 0.5 }} />;
-  }
-  if (status === 'Amarelo') {
-    return <WarningIcon sx={{ color: 'orange', вертикальныйAlign: 'middle', mr: 0.5 }} />;
-  }
-  return <ErrorIcon sx={{ color: 'red', вертикальныйAlign: 'middle', mr: 0.5 }} />;
-};
-
 export default function Sidebar() {
   const pathname = usePathname();
   const [openMenus, setOpenMenus] = useState<{[key: string]: boolean}>({});
@@ -121,22 +107,23 @@ export default function Sidebar() {
   };
 
   const renderListItem = (item: MenuItemType, isSubItem: boolean = false) => {
-    const currentPath = `/(admin)${item.href}`;
-    const isActive = pathname === currentPath;
-
+    const currentPath = item.href ? `/(admin)${item.href}` : '#'; // Adicionado fallback para href
+    const isActive = item.href ? pathname === currentPath : false;
+  
     return (
       <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
         <ListItemButton
           component={Link}
-          href={currentPath}
+          href={currentPath} 
+          disabled={!item.href} // Desabilita se não tiver href
           selected={isActive}
           sx={{
-            minHeight: isSubItem ? 38 : 48, // Altura menor para subitens
-            px: isSubItem ? 3.5 : 2.5, // Maior indentação para subitens
+            minHeight: isSubItem ? 38 : 48, 
+            px: isSubItem ? 3.5 : 2.5, 
             py: isSubItem ? 0.6 : 1,
-            mb: 0.5, // Pequeno espaço entre itens
-            borderRadius: '4px', // Bordas arredondadas
-            margin: '0 8px', // Margem lateral
+            mb: 0.5, 
+            borderRadius: '4px', 
+            margin: '0 8px', 
             backgroundColor: isActive ? wegLightBlue : 'transparent',
             color: isActive ? wegBlue : textColorPrimary,
             '&:hover': {
@@ -157,7 +144,7 @@ export default function Sidebar() {
             minWidth: 0,
             mr: isSubItem ? 1.5 : 2,
             justifyContent: 'center',
-            color: isActive ? wegBlue : wegBlue, // Ícone sempre azul WEG
+            color: wegBlue, 
           }}>
             {item.icon}
           </ListItemIcon>
@@ -212,7 +199,7 @@ export default function Sidebar() {
         <List component="nav" disablePadding>
           {menuItems.map((item) => {
             if (item.subItems) {
-              const isParentActive = item.subItems.some(subItem => pathname === `/(admin)${subItem.href}`);
+              const isParentActive = item.subItems.some(subItem => subItem.href && pathname === `/(admin)${subItem.href}`);
               const isOpen = openMenus[item.text] || isParentActive;
 
               return (
@@ -239,7 +226,7 @@ export default function Sidebar() {
                         minWidth: 0,
                         mr: 2,
                         justifyContent: 'center',
-                        color: wegBlue, // Ícone sempre azul WEG
+                        color: wegBlue, 
                       }}>
                         {item.icon}
                       </ListItemIcon>
@@ -254,7 +241,7 @@ export default function Sidebar() {
                     </ListItemButton>
                   </ListItem>
                   <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                    <List component="div" disablePadding sx={{ pl: 1 }}> {/* Leve indentação para o grupo de submenus */}
+                    <List component="div" disablePadding sx={{ pl: 1 }}>
                       {item.subItems.map((subItem) => renderListItem(subItem, true))}
                     </List>
                   </Collapse>
