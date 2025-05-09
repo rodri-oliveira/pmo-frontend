@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -6,10 +8,18 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu'; // Exemplo de ícone, pode ser ajustado
+import { useSession, signOut } from "next-auth/react"; // Importar useSession e signOut
+import LogoutIcon from '@mui/icons-material/Logout'; // Ícone para o botão de logout
 
 const drawerWidth = 240;
 
 export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: () => void }) {
+  const { data: session } = useSession(); // Hook para obter a sessão
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: "/login" }); // Redireciona para /login após o logout
+  };
+
   return (
     <AppBar
       position="fixed"
@@ -32,12 +42,22 @@ export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: ()
           </IconButton>
         )}
         <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-          Painel Administrativo
+          Gestão de Projetos e Melhorias 
         </Typography>
-        <Typography variant="subtitle1" sx={{ mr: 2 }}>
-          Admin User (Exemplo)
-        </Typography>
-        <Button color="inherit">Logout</Button>
+        
+        {session?.user?.name && (
+          <Typography variant="subtitle1" sx={{ mr: 2 }}>
+            {session.user.name} 
+          </Typography>
+        )}
+        
+        <Button 
+          color="inherit" 
+          onClick={handleSignOut}
+          startIcon={<LogoutIcon />}
+        >
+          Logout
+        </Button>
       </Toolbar>
     </AppBar>
   );

@@ -1,5 +1,9 @@
+"use client";
+
+import React from 'react';
 import Link from 'next/link';
-import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar } from '@mui/material';
+import { usePathname } from 'next/navigation';
+import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import AssessmentIcon from '@mui/icons-material/Assessment';
@@ -60,57 +64,152 @@ const menuItems = [
 ];
 
 export default function Sidebar() {
+  const pathname = usePathname();
+
+  const корпоративCorPrincipal = '#00579d';
+  const активнаяCorФона = '#e3f2fd';
+  const активнаяCorТекстаИИконки = корпоративCorPrincipal;
+
   return (
     <Drawer
       variant="permanent"
       sx={{
         width: drawerWidth,
         flexShrink: 0,
-        [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+        [`& .MuiDrawer-paper`]: { 
+          width: drawerWidth, 
+          boxSizing: 'border-box',
+        },
       }}
     >
       <Toolbar />
-      <Box sx={{ overflow: 'auto' }}>
-        <List>
-          {menuItems.map((item, index) => (
-            <div key={item.text}>
-              {item.subItems ? (
-                <ListItem disablePadding sx={{ display: 'block' }}>
-                  <ListItemButton sx={{ minHeight: 48, justifyContent: 'initial', px: 2.5 }}>
-                    <ListItemIcon sx={{ minWidth: 0, mr: 3, justifyContent: 'center' }}>
-                      {item.icon}
-                    </ListItemIcon>
-                    <ListItemText primary={item.text} sx={{ opacity: 1 }} />
-                  </ListItemButton>
-                  <List sx={{ pl: 2 }}>
-                    {item.subItems.map((subItem) => (
-                      <ListItem key={subItem.text} disablePadding sx={{ display: 'block' }}>
-                        <Link href={`/(admin)${subItem.href}`} passHref legacyBehavior>
-                          <ListItemButton component="a" sx={{ py: 0, minHeight: 32 }}>
-                            <ListItemIcon sx={{ minWidth: 0, mr: 3, justifyContent: 'center' }}>
-                              {subItem.icon || <div style={{ width: 24 }} />}
-                            </ListItemIcon>
-                            <ListItemText primary={subItem.text} primaryTypographyProps={{ fontSize: 14, fontWeight: 'medium' }} />
-                          </ListItemButton>
-                        </Link>
-                      </ListItem>
-                    ))}
-                  </List>
-                </ListItem>
-              ) : (
-                <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
-                  <Link href={`/(admin)${item.href}`} passHref legacyBehavior>
-                    <ListItemButton component="a" sx={{ minHeight: 48, justifyContent: 'initial', px: 2.5 }}>
-                      <ListItemIcon sx={{ minWidth: 0, mr: 3, justifyContent: 'center' }}>
+      <Box sx={{ overflow: 'auto', py: 1 }}>
+        <List disablePadding>
+          {menuItems.map((item) => {
+            const isParentActive = item.subItems 
+              ? item.subItems.some(subItem => pathname === `/(admin)${subItem.href}`) 
+              : pathname === `/(admin)${item.href}`;
+
+            return (
+              <div key={item.text}>
+                {item.subItems ? (
+                  <React.Fragment>
+                    <ListItemButton
+                      sx={{
+                        minHeight: 48,
+                        justifyContent: 'initial',
+                        px: 2.5,
+                        py: 1.25,
+                      }}
+                    >
+                      <ListItemIcon sx={{ 
+                        minWidth: 0, 
+                        mr: 2,
+                        justifyContent: 'center',
+                        color: корпоративCorPrincipal,
+                      }}>
                         {item.icon}
                       </ListItemIcon>
-                      <ListItemText primary={item.text} sx={{ opacity: 1 }} />
+                      <ListItemText 
+                        primary={item.text} 
+                        primaryTypographyProps={{ 
+                          fontWeight: 500,
+                        }} 
+                      />
                     </ListItemButton>
-                  </Link>
-                </ListItem>
-              )}
-            </div>
-          ))}
+                    <List disablePadding sx={{ pl: 2.5 }}>
+                      {item.subItems.map((subItem) => {
+                        const isActive = pathname === `/(admin)${subItem.href}`;
+                        return (
+                          <ListItem key={subItem.text} disablePadding sx={{ display: 'block' }}>
+                            <ListItemButton
+                              component={Link}
+                              href={`/(admin)${subItem.href}`}
+                              selected={isActive}
+                              sx={{
+                                py: 0.75,
+                                pl: 4.5,
+                                minHeight: 32,
+                                bgcolor: isActive ? активнаяCorФона : 'transparent',
+                                '&.Mui-selected': {
+                                  backgroundColor: активнаяCorФона,
+                                  '&:hover': {
+                                    backgroundColor: активнаяCorФона,
+                                  }
+                                },
+                                '&:hover': {
+                                   bgcolor: isActive ? активнаяCorФона : 'action.hover',
+                                },
+                              }}
+                            >
+                              <ListItemIcon sx={{
+                                minWidth: 0,
+                                mr: 1.5,
+                                justifyContent: 'center',
+                                color: isActive ? активнаяCorТекстаИИконки : 'text.secondary',
+                                transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                                transition: 'transform 0.2s ease-in-out',
+                              }}>
+                                {subItem.icon || <Box sx={{ width: 24, height: 24 }} />}
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={subItem.text}
+                                primaryTypographyProps={{
+                                  fontSize: '0.875rem',
+                                  fontWeight: isActive ? 'fontWeightMedium' : 'fontWeightRegular',
+                                  color: isActive ? активнаяCorТекстаИИконки : 'inherit',
+                                }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        );
+                      })}
+                    </List>
+                  </React.Fragment>
+                ) : (
+                  <ListItem disablePadding sx={{ display: 'block' }}>
+                    <ListItemButton
+                      component={Link}
+                      href={`/(admin)${item.href}`}
+                      selected={pathname === `/(admin)${item.href}`}
+                      sx={{
+                        minHeight: 48,
+                        justifyContent: 'initial',
+                        px: 2.5,
+                        py: 1.25,
+                        bgcolor: pathname === `/(admin)${item.href}` ? активнаяCorФона : 'transparent',
+                        '&.Mui-selected': {
+                          backgroundColor: активнаяCorФона,
+                          '&:hover': {
+                            backgroundColor: активнаяCorФона,
+                          }
+                        },
+                         '&:hover': {
+                           bgcolor: pathname === `/(admin)${item.href}` ? активнаяCorФона : 'action.hover',
+                        },
+                      }}
+                    >
+                      <ListItemIcon sx={{
+                        minWidth: 0,
+                        mr: 2,
+                        justifyContent: 'center',
+                        color: pathname === `/(admin)${item.href}` ? активнаяCorТекстаИИконки : корпоративCorPrincipal,
+                      }}>
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={item.text}
+                        primaryTypographyProps={{ 
+                          fontWeight: pathname === `/(admin)${item.href}` ? 'fontWeightBold' : 500,
+                          color: pathname === `/(admin)${item.href}` ? активнаяCorТекстаИИконки : 'inherit',
+                        }} 
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                )}
+              </div>
+            );
+          })}
         </List>
       </Box>
     </Drawer>
