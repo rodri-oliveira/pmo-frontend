@@ -9,7 +9,7 @@ export default function LoginPage() {
 
     const handleSignIn = async () => {
         setIsLoading(true);
-        await signIn("keycloak", { callbackUrl: "/" });
+        await signIn("keycloak", { callbackUrl: "/dashboard" });
     };
 
     return (
