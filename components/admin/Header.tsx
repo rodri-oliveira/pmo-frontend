@@ -6,26 +6,36 @@ import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useSession, signOut } from "next-auth/react";
 import LogoutIcon from '@mui/icons-material/Logout';
-import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import Avatar from '@mui/material/Avatar';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Tooltip from '@mui/material/Tooltip';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import Link from 'next/link';
-import { useTheme } from '@mui/material/styles';
+import { usePathname } from 'next/navigation';
 
-const drawerWidth = 260; // Deve ser o mesmo valor usado no Sidebar
+const drawerWidth = 240;
 
 export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: () => void }) {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
-  const theme = useTheme();
-
+  
+  // Determinar qual tab está ativa com base no pathname
+  const getActiveTab = () => {
+    if (pathname?.includes('/planejamento')) return 0;
+    if (pathname?.includes('/apontamentos')) return 1;
+    if (pathname?.includes('/gerenciamento')) return 2;
+    if (pathname?.includes('/administracao')) return 3;
+    return -1; // Nenhuma tab ativa
+  };
+  
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElUser(event.currentTarget);
   };
@@ -43,61 +53,99 @@ export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: ()
     <AppBar
       position="fixed"
       sx={{
-        width: { md: `calc(100% - ${drawerWidth}px)` }, // Ajustado para md em vez de sm para melhor responsividade
-        ml: { md: `${drawerWidth}px` },
-        // zIndex já é gerenciado pelo theme.components.MuiAppBar.styleOverrides
-        // backgroundColor e color também são gerenciados pelo tema
-        // boxShadow também é gerenciado pelo tema
+        width: { sm: `calc(100% - ${drawerWidth}px)` },
+        ml: { sm: `${drawerWidth}px` },
+        zIndex: 1200,
+        backgroundColor: '#fff',
+        color: '#333',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}
     >
-      <Toolbar sx={{ justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {handleDrawerToggle && (
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { md: 'none' } }} // Mostrar apenas em telas menores que md
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
-          <Typography 
-            variant="h6" 
-            noWrap 
-            component="div" 
-            sx={{ 
-              display: { xs: 'none', sm: 'flex' }, // Mostrar a partir de sm
-              fontWeight: 600,
-              color: theme.palette.primary.main, // Usar cor primária do tema para destaque
-            }}
+      <Toolbar>
+        {handleDrawerToggle && (
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { sm: 'none' } }}
           >
-            Gestão PMO Corporativo {/* Nome mais genérico ou título da página atual */}
-          </Typography>
-        </Box>
+            <MenuIcon />
+          </IconButton>
+        )}
+        
+        <Typography 
+          variant="h6" 
+          noWrap 
+          component="div" 
+          sx={{ 
+            display: { xs: 'none', md: 'flex' }, 
+            mr: 4,
+            color: '#00579d',
+            fontWeight: 600
+          }}
+        >
+          Automação PMO
+        </Typography>
+        
+        {/* Menu de navegação principal no topo */}
+        <Tabs 
+          value={getActiveTab()} 
+          sx={{ 
+            flexGrow: 1,
+            '& .MuiTab-root': {
+              color: '#555',
+              '&.Mui-selected': {
+                color: '#00579d',
+                fontWeight: 600
+              }
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: '#00579d'
+            }
+          }}
+        >
+          <Tab 
+            label="Planejamento" 
+            component={Link}
+            href="/planejamento/horas-recurso"
+          />
+          <Tab 
+            label="Apontamentos" 
+            component={Link}
+            href="/apontamentos/consultar-gerenciar"
+          />
+          <Tab 
+            label="Gerenciamento" 
+            component={Link}
+            href="/gerenciamento/projetos"
+          />
+          <Tab 
+            label="Administração" 
+            component={Link}
+            href="/administracao/configuracoes"
+          />
+        </Tabs>
         
         {/* Menu do usuário */}
-        <Box sx={{ flexGrow: 0 }}>
+        <Box sx={{ flexGrow: 0, ml: 2 }}>
           <Tooltip title="Opções do usuário">
             <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
               <Avatar 
                 alt={session?.user?.name || "Usuário"} 
-                // src="/images/avatar.png" // Pode ser uma imagem padrão ou vinda do usuário
                 sx={{ 
-                  bgcolor: theme.palette.secondary.main, // Usar cor secundária para o Avatar
+                  bgcolor: '#00579d',
                   width: 40,
-                  height: 40,
-                  fontSize: '1.1rem'
+                  height: 40
                 }}
               >
-                {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : "U"}
+                {session?.user?.name ? session.user.name.charAt(0) : "U"}
               </Avatar>
             </IconButton>
           </Tooltip>
           <Menu
             sx={{ mt: '45px' }}
-            id="menu-appbar-user"
+            id="menu-appbar"
             anchorEl={anchorElUser}
             anchorOrigin={{
               vertical: 'top',
@@ -110,51 +158,20 @@ export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: ()
             }}
             open={Boolean(anchorElUser)}
             onClose={handleCloseUserMenu}
-            PaperProps={{
-              elevation: 0,
-              sx: {
-                overflow: 'visible',
-                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.15))',
-                mt: 1.5,
-                '& .MuiAvatar-root': {
-                  width: 32,
-                  height: 32,
-                  ml: -0.5,
-                  mr: 1,
-                },
-                '&:before': {
-                  content: '""',
-                  display: 'block',
-                  position: 'absolute',
-                  top: 0,
-                  right: 14,
-                  width: 10,
-                  height: 10,
-                  bgcolor: 'background.paper',
-                  transform: 'translateY(-50%) rotate(45deg)',
-                  zIndex: 0,
-                },
-              },
-            }}
           >
             {session?.user?.name && (
-              <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${theme.palette.divider}` }}>
-                 <Typography variant="subtitle1" fontWeight="600">{session.user.name}</Typography>
-                 <Typography variant="body2" color="text.secondary">{session.user.email}</Typography>
-              </Box>
+              <MenuItem disabled>
+                <Typography textAlign="center">{session.user.name}</Typography>
+              </MenuItem>
             )}
-            <MenuItem onClick={handleCloseUserMenu} component={Link} href="/(admin)/perfil">
-              <AccountCircleOutlinedIcon sx={{ mr: 1.5, color: 'text.secondary' }} />
-              Meu Perfil
+            <MenuItem onClick={handleCloseUserMenu} component={Link} href="/perfil">
+              <Typography textAlign="center">Meu Perfil</Typography>
             </MenuItem>
-            <MenuItem onClick={handleCloseUserMenu} component={Link} href="/(admin)/administracao/configuracoes"> {/* Exemplo de link para configurações */}
-              <SettingsOutlinedIcon sx={{ mr: 1.5, color: 'text.secondary' }} />
-              Configurações
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleSignOut} sx={{ color: theme.palette.error.main }}>
-              <LogoutIcon sx={{ mr: 1.5 }} />
-              Sair
+            <MenuItem onClick={handleSignOut}>
+              <Typography textAlign="center" sx={{ display: 'flex', alignItems: 'center' }}>
+                <LogoutIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
+                Sair
+              </Typography>
             </MenuItem>
           </Menu>
         </Box>

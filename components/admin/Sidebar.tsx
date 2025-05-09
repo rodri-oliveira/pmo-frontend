@@ -3,105 +3,95 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  Box, Drawer, List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText, Toolbar, Typography, Collapse, Divider, SvgIcon
+import { 
+  Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, 
+  ListItemText, Toolbar, Typography, Collapse, Divider
 } from '@mui/material';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
-import DashboardCustomizeOutlinedIcon from '@mui/icons-material/DashboardCustomizeOutlined'; // Dashboard
-import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined'; // Relatórios e Análises
-import QueryStatsOutlinedIcon from '@mui/icons-material/QueryStatsOutlined'; // Subitem Relatório
-import GroupWorkOutlinedIcon from '@mui/icons-material/GroupWorkOutlined'; // Subitem Relatório
-import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined'; // Planejamento
-import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'; // Subitem Planejamento
-import SupervisorAccountOutlinedIcon from '@mui/icons-material/SupervisorAccountOutlined'; // Gerenciamento
-import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined'; // Subitem Gerenciamento
-import PeopleOutlineOutlinedIcon from '@mui/icons-material/PeopleOutlineOutlined'; // Subitem Gerenciamento
-import EditCalendarOutlinedIcon from '@mui/icons-material/EditCalendarOutlined'; // Apontamentos
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'; // Administração
-import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined'; // Subitem Admin
-import SyncProblemOutlinedIcon from '@mui/icons-material/SyncProblemOutlined'; // Subitem Admin
-import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'; // Subitem Admin
-import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
-import TocOutlinedIcon from '@mui/icons-material/TocOutlined';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import GroupIcon from '@mui/icons-material/Group';
+import SettingsIcon from '@mui/icons-material/Settings';
+import FolderIcon from '@mui/icons-material/Folder';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import BusinessIcon from '@mui/icons-material/Business';
+import TocIcon from '@mui/icons-material/Toc';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import SyncAltIcon from '@mui/icons-material/SyncAlt';
+import HistoryIcon from '@mui/icons-material/History';
 
 interface MenuItemType {
   text: string;
-  href?: string;
-  icon: React.ReactElement<typeof SvgIcon>; // Tipo mais específico para ícones MUI
-  subItems?: MenuItemType[];
-  adminOnly?: boolean; // Para controlar visibilidade
+  href?: string; // href é opcional para itens pais que só abrem submenus
+  icon: React.ReactNode;
+  subItems?: MenuItemType[]; // subItems é um array opcional de MenuItemType
 }
 
-const drawerWidth = 260; // Aumentar um pouco a largura para melhor espaçamento
+const drawerWidth = 240;
+const wegBlue = '#00579d'; // Azul WEG
+const wegLightBlue = '#e3f2fd'; // Azul claro WEG para fundos ativos/hover
+const textColorPrimary = 'rgba(0, 0, 0, 0.87)';
+const textColorSecondary = 'rgba(0, 0, 0, 0.6)';
 
-// Estrutura de menu conforme design_plan.md
 const menuItems: MenuItemType[] = [
-  { text: 'Dashboard', href: '/dashboard', icon: <DashboardCustomizeOutlinedIcon /> },
-  {
-    text: 'Relatórios e Análises',
-    icon: <AssessmentOutlinedIcon />,
-    subItems: [
-      { text: 'Horas por Projeto', href: '/relatorios/horas-projeto', icon: <QueryStatsOutlinedIcon /> },
-      { text: 'Alocação de Recursos', href: '/relatorios/alocacao-recursos', icon: <GroupWorkOutlinedIcon /> },
-      { text: 'Visão Geral de Projetos', href: '/relatorios/dashboard-detalhado', icon: <DashboardCustomizeOutlinedIcon /> },
-      { text: 'Consultar Apontamentos', href: '/apontamentos/consultar-gerenciar', icon: <TocOutlinedIcon /> }, // Reutilizado de apontamentos
-    ],
-  },
+  { text: 'Dashboard', href: '/dashboard', icon: <DashboardIcon sx={{ color: wegBlue }} /> },
   {
     text: 'Planejamento',
-    icon: <EventNoteOutlinedIcon />,
+    icon: <EventNoteIcon sx={{ color: wegBlue }} />,
     subItems: [
-      { text: 'Alocações de Recursos', href: '/planejamento/alocacoes', icon: <AssignmentOutlinedIcon /> },
-      { text: 'Capacidade RH', href: '/planejamento/capacidade-rh', icon: <PeopleOutlineOutlinedIcon /> },
-      { text: 'Horas por Recurso', href: '/planejamento/horas-recurso', icon: <QueryStatsOutlinedIcon /> },
-    ],
-  },
-  {
-    text: 'Gerenciamento',
-    icon: <SupervisorAccountOutlinedIcon />,
-    subItems: [
-      { text: 'Projetos', href: '/gerenciamento/projetos', icon: <FolderOpenOutlinedIcon /> },
-      { text: 'Recursos', href: '/gerenciamento/recursos', icon: <PeopleOutlineOutlinedIcon /> },
-      { text: 'Equipes', href: '/gerenciamento/equipes', icon: <GroupWorkOutlinedIcon /> },
-      { text: 'Seções', href: '/gerenciamento/secoes', icon: <BusinessOutlinedIcon /> },
-      { text: 'Status de Projetos', href: '/gerenciamento/status-projetos', icon: <TocOutlinedIcon /> },
+      { text: 'Planejar Horas por Recurso', href: '/planejamento/horas-recurso', icon: <BarChartIcon sx={{ color: wegBlue }} /> },
+      { text: 'Gerenciar Alocações', href: '/planejamento/alocacoes', icon: <AssignmentIcon sx={{ color: wegBlue }} /> },
+      { text: 'Capacidade RH', href: '/planejamento/capacidade-rh', icon: <PeopleAltIcon sx={{ color: wegBlue }} /> },
     ],
   },
   {
     text: 'Apontamentos',
-    icon: <EditCalendarOutlinedIcon />,
+    icon: <AssessmentIcon sx={{ color: wegBlue }} />,
     subItems: [
-      { text: 'Registrar Apontamento', href: '/apontamentos/criar-manual', icon: <AssignmentOutlinedIcon /> },
-      { text: 'Meus Apontamentos', href: '/apontamentos/meus-apontamentos', icon: <TocOutlinedIcon /> }, // Ajustado
+      { text: 'Consultar/Gerenciar', href: '/apontamentos/consultar-gerenciar', icon: <TocIcon sx={{ color: wegBlue }} /> },
+      { text: 'Criar Apontamento Manual', href: '/apontamentos/criar-manual', icon: <AssignmentIcon sx={{ color: wegBlue }} /> },
+    ],
+  },
+  {
+    text: 'Gerenciamento',
+    icon: <FolderIcon sx={{ color: wegBlue }} />,
+    subItems: [
+      { text: 'Projetos / Melhorias', href: '/gerenciamento/projetos', icon: <FolderIcon sx={{ color: wegBlue }} /> },
+      { text: 'Recursos', href: '/gerenciamento/recursos', icon: <GroupIcon sx={{ color: wegBlue }} /> },
+      { text: 'Equipes', href: '/gerenciamento/equipes', icon: <PeopleAltIcon sx={{ color: wegBlue }} /> },
+      { text: 'Seções', href: '/gerenciamento/secoes', icon: <BusinessIcon sx={{ color: wegBlue }} /> },
+      { text: 'Status de Projetos', href: '/gerenciamento/status-projetos', icon: <TocIcon sx={{ color: wegBlue }} /> },
     ],
   },
   {
     text: 'Administração',
-    icon: <SettingsOutlinedIcon />,
-    adminOnly: true, // Exemplo, lógica de role seria necessária
+    icon: <AdminPanelSettingsIcon sx={{ color: wegBlue }} />,
     subItems: [
-      { text: 'Usuários', href: '/administracao/usuarios', icon: <PeopleOutlineOutlinedIcon /> },
-      { text: 'Configurações do Sistema', href: '/administracao/configuracoes', icon: <SettingsOutlinedIcon /> },
-      { text: 'Integração JIRA', href: '/administracao/integracao-jira', icon: <SyncProblemOutlinedIcon /> },
-      { text: 'Logs de Atividade', href: '/administracao/logs-atividade', icon: <HistoryOutlinedIcon /> },
+      { text: 'Usuários do Sistema', href: '/administracao/usuarios', icon: <GroupIcon sx={{ color: wegBlue }} /> },
+      { text: 'Configurações Gerais', href: '/administracao/configuracoes', icon: <SettingsIcon sx={{ color: wegBlue }} /> },
+      { text: 'Integração Jira', href: '/administracao/integracao-jira', icon: <SyncAltIcon sx={{ color: wegBlue }} /> },
+      { text: 'Logs de Atividade', href: '/administracao/logs-atividade', icon: <HistoryIcon sx={{ color: wegBlue }} /> },
     ],
   },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
+  const [openMenus, setOpenMenus] = useState<{[key: string]: boolean}>({});
 
+  // Abre submenus que contêm o link ativo na montagem inicial
   React.useEffect(() => {
-    const newOpenState: { [key: string]: boolean } = {};
+    const newOpenState: {[key: string]: boolean} = {};
     menuItems.forEach(item => {
       if (item.subItems) {
-        const isActiveParent = item.subItems.some(subItem =>
-          subItem.href && pathname === `/(admin)${subItem.href}`
+        const isActive = item.subItems.some(subItem => 
+          pathname === `/(admin)${subItem.href}`
         );
-        if (isActiveParent) {
+        if (isActive) {
           newOpenState[item.text] = true;
         }
       }
@@ -116,70 +106,56 @@ export default function Sidebar() {
     }));
   };
 
-  const renderListItem = (item: MenuItemType, isSubItem: boolean = false, parentIsActive: boolean = false) => {
-    const currentPath = item.href ? `/(admin)${item.href}` : '#';
+  const renderListItem = (item: MenuItemType, isSubItem: boolean = false) => {
+    const currentPath = item.href ? `/(admin)${item.href}` : '#'; // Adicionado fallback para href
     const isActive = item.href ? pathname === currentPath : false;
-
-    // Lógica para adminOnly - em um cenário real, viria do estado do usuário/contexto
-    // if (item.adminOnly && userRole !== 'admin') return null;
-
+  
     return (
       <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
         <ListItemButton
-          component={item.href ? Link : 'div'} // 'div' se não houver href para evitar erro de Link
-          href={item.href ? currentPath: undefined}
-          onClick={!item.href && item.subItems ? () => handleToggle(item.text) : undefined}
+          component={Link}
+          href={currentPath} 
+          disabled={!item.href} // Desabilita se não tiver href
           selected={isActive}
           sx={{
-            minHeight: isSubItem ? 40 : 48,
-            px: isSubItem ? 4 : 2.5, // Aumentar padding para subitens
-            py: isSubItem ? 0.8 : 1.2,
-            mb: 0.5,
-            borderRadius: '6px',
-            margin: '0 12px',
-            color: isActive ? 'primary.contrastText' : 'inherit', // Cor do texto no item ativo
-            backgroundColor: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+            minHeight: isSubItem ? 38 : 48, 
+            px: isSubItem ? 3.5 : 2.5, 
+            py: isSubItem ? 0.6 : 1,
+            mb: 0.5, 
+            borderRadius: '4px', 
+            margin: '0 8px', 
+            backgroundColor: isActive ? wegLightBlue : 'transparent',
+            color: isActive ? wegBlue : textColorPrimary,
             '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: wegLightBlue,
+              color: wegBlue,
             },
             '&.Mui-selected': {
-              backgroundColor: 'rgba(255, 255, 255, 0.15)', // Destaque mais sutil para item ativo
+              backgroundColor: wegLightBlue,
+              color: wegBlue,
+              fontWeight: 'fontWeightBold',
               '& .MuiListItemIcon-root': {
-                color: 'inherit', // Ícone herda cor do texto (branco)
+                color: wegBlue,
               },
-              '& .MuiListItemText-primary': {
-                fontWeight: 'fontWeightBold',
-              }
             },
           }}
         >
           <ListItemIcon sx={{
             minWidth: 0,
-            mr: 1.5, // Reduzir margem do ícone
+            mr: isSubItem ? 1.5 : 2,
             justifyContent: 'center',
-            color: 'inherit', // Ícones herdam a cor do texto (branco)
+            color: wegBlue, 
           }}>
-            {React.cloneElement(item.icon, { sx: { fontSize: isSubItem ? 20 : 22 } })}
+            {item.icon}
           </ListItemIcon>
           <ListItemText
             primary={item.text}
             primaryTypographyProps={{
-              fontSize: isSubItem ? '0.85rem' : '0.9rem',
-              fontWeight: isActive ? '600' : '500',
-              color: 'inherit',
+              fontSize: isSubItem ? '0.875rem' : '0.95rem',
+              fontWeight: isActive ? 'fontWeightBold' : 'fontWeightMedium',
             }}
           />
-          {item.subItems && (
-            isOpen ? <ExpandLess sx={{ color: 'rgba(255,255,255,0.7)' }} /> : <ExpandMore sx={{ color: 'rgba(255,255,255,0.7)' }} />
-          )}
         </ListItemButton>
-        {item.subItems && (
-          <Collapse in={openMenus[item.text]} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding sx={{ pt: 0.5 }}>
-              {item.subItems.map((subItem) => renderListItem(subItem, true, isActive))}
-            </List>
-          </Collapse>
-        )}
       </ListItem>
     );
   };
@@ -193,8 +169,9 @@ export default function Sidebar() {
         [`& .MuiDrawer-paper`]: {
           width: drawerWidth,
           boxSizing: 'border-box',
-          borderRight: 'none',
-          // backgroundColor set by theme.components.MuiDrawer.styleOverrides.paper
+          borderRight: 'none', // Remover borda padrão
+          boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)', // Sombra sutil
+          backgroundColor: '#f8f9fa' // Fundo levemente acinzentado para o Drawer
         },
       }}
     >
@@ -203,23 +180,22 @@ export default function Sidebar() {
         alignItems: 'center',
         justifyContent: 'center',
         px: [1],
-        // borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
-        // mb: 1, // Removido para melhor integração visual
-        height: 64, // Altura padrão do Toolbar Material UI
-        backgroundColor: 'background.paper', // Fundo branco para o logo, conforme design
-        borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+        borderBottom: '1px solid #dee2e6',
+        mb: 1,
+        height: 64,
       }}>
         <Box
           component="img"
           sx={{
-            height: 36, // Ajustar altura do logo
+            height: 40,
             width: 'auto',
           }}
-          alt="Logo da Empresa"
-          src="/images/weg-logo.png" // Manter o logo WEG por enquanto
+          alt="Logo WEG"
+          src="/images/weg-logo.png"
         />
       </Toolbar>
-      <Box sx={{ overflowY: 'auto', overflowX: 'hidden', pt: 1, flexGrow: 1 }}>
+      
+      <Box sx={{ overflow: 'auto' }}>
         <List component="nav" disablePadding>
           {menuItems.map((item) => {
             if (item.subItems) {
@@ -234,52 +210,53 @@ export default function Sidebar() {
                       sx={{
                         minHeight: 48,
                         px: 2.5,
-                        py: 1.2,
+                        py: 1,
                         mb: 0.5,
-                        borderRadius: '6px',
-                        margin: '0 12px',
-                        color: isParentActive ? 'primary.contrastText' : 'inherit',
-                        backgroundColor: isParentActive && !isOpen ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                        borderRadius: '4px',
+                        margin: '0 8px',
+                        backgroundColor: isParentActive && !isOpen ? wegLightBlue : 'transparent',
+                        color: isParentActive ? wegBlue : textColorPrimary,
                         '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          backgroundColor: wegLightBlue,
+                          color: wegBlue,
                         },
                       }}
                     >
                       <ListItemIcon sx={{
                         minWidth: 0,
-                        mr: 1.5,
+                        mr: 2,
                         justifyContent: 'center',
-                        color: 'inherit',
+                        color: wegBlue, 
                       }}>
-                        {React.cloneElement(item.icon, { sx: { fontSize: 22 } })}
+                        {item.icon}
                       </ListItemIcon>
                       <ListItemText
                         primary={item.text}
                         primaryTypographyProps={{
-                          fontSize: '0.9rem',
-                          fontWeight: '500',
-                          color: 'inherit',
+                          fontSize: '0.95rem',
+                          fontWeight: 'fontWeightMedium',
                         }}
                       />
-                      {isOpen ? <ExpandLess sx={{ color: 'rgba(255,255,255,0.7)' }} /> : <ExpandMore sx={{ color: 'rgba(255,255,255,0.7)' }} />}
+                      {isOpen ? <ExpandLess sx={{ color: isParentActive ? wegBlue : textColorSecondary }} /> : <ExpandMore sx={{ color: textColorSecondary }}/>}
                     </ListItemButton>
                   </ListItem>
                   <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                    <List component="div" disablePadding sx={{ pt: 0.5 }}>
-                      {item.subItems.map((subItem) => renderListItem(subItem, true, isParentActive))}
+                    <List component="div" disablePadding sx={{ pl: 1 }}>
+                      {item.subItems.map((subItem) => renderListItem(subItem, true))}
                     </List>
                   </Collapse>
                 </React.Fragment>
               );
             }
-            return renderListItem(item, false);
+            return renderListItem(item);
           })}
         </List>
       </Box>
-      <Divider sx={{ mt: 'auto', backgroundColor: 'rgba(255,255,255,0.12)' }} />
+      
+      <Divider sx={{ mt: 'auto', mb: 0, backgroundColor: '#dee2e6' }} />
       <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-          © {new Date().getFullYear()} Empresa X S.A.
+        <Typography variant="caption" sx={{ color: textColorSecondary }}>
+          © {new Date().getFullYear()} WEG S.A.
         </Typography>
       </Box>
     </Drawer>
