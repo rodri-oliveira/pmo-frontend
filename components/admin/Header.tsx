@@ -108,22 +108,22 @@ export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: ()
           <Tab 
             label="Planejamento" 
             component={Link}
-            href="/planejamento/horas-recurso"
+            href="/admin/planejamento/horas-recurso"
           />
           <Tab 
             label="Apontamentos" 
             component={Link}
-            href="/admin/apontamentos/consultar-gerenciar"
+            href="/apontamentos/consultar-gerenciar"
           />
           <Tab 
             label="Gerenciamento" 
             component={Link}
-            href="/admin/gerenciamento/projetos"
+            href="/gerenciamento/projetos"
           />
           <Tab 
             label="Administração" 
             component={Link}
-            href="/admin/administracao/configuracoes"
+            href="/administracao/configuracoes"
           />
         </Tabs>
         

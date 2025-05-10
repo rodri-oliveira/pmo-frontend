@@ -1,5 +1,6 @@
 // Base do serviço de API
-const API_BASE_URL = 'http://localhost:8000/backend/v1';
+// const API_BASE_URL = 'http://localhost:8000/backend/v1';
+const API_BASE_URL = '/backend/v1';
 
 // Função para obter o token de autenticação (pode ser adaptada conforme sua implementação)
 const getAuthToken = () => {
