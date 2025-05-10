@@ -33,7 +33,7 @@ export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: ()
     if (pathname?.includes('/apontamentos')) return 1;
     if (pathname?.includes('/gerenciamento')) return 2;
     if (pathname?.includes('/administracao')) return 3;
-    return -1; // Nenhuma tab ativa
+    return 0; // CORREÇÃO: Retornando 0 (primeira tab) em vez de -1
   };
   
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -113,17 +113,17 @@ export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: ()
           <Tab 
             label="Apontamentos" 
             component={Link}
-            href="/apontamentos/consultar-gerenciar"
+            href="/admin/apontamentos/consultar-gerenciar"
           />
           <Tab 
             label="Gerenciamento" 
             component={Link}
-            href="/gerenciamento/projetos"
+            href="/admin/gerenciamento/projetos"
           />
           <Tab 
             label="Administração" 
             component={Link}
-            href="/administracao/configuracoes"
+            href="/admin/administracao/configuracoes"
           />
         </Tabs>
         
@@ -171,7 +171,7 @@ export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: ()
               <Typography textAlign="center" sx={{ display: 'flex', alignItems: 'center' }}>
                 <LogoutIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
                 Sair
-              </Typography>
+        </Typography>
             </MenuItem>
           </Menu>
         </Box>

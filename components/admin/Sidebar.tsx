@@ -89,7 +89,7 @@ export default function Sidebar() {
     menuItems.forEach(item => {
       if (item.subItems) {
         const isActive = item.subItems.some(subItem => 
-          pathname === `/(admin)${subItem.href}`
+          pathname === `${subItem.href}`
         );
         if (isActive) {
           newOpenState[item.text] = true;
@@ -107,7 +107,7 @@ export default function Sidebar() {
   };
 
   const renderListItem = (item: MenuItemType, isSubItem: boolean = false) => {
-    const currentPath = item.href ? `/(admin)${item.href}` : '#'; // Adicionado fallback para href
+    const currentPath = item.href ? `${item.href}` : '#';
     const isActive = item.href ? pathname === currentPath : false;
   
     return (
@@ -199,7 +199,9 @@ export default function Sidebar() {
         <List component="nav" disablePadding>
           {menuItems.map((item) => {
             if (item.subItems) {
-              const isParentActive = item.subItems.some(subItem => subItem.href && pathname === `/(admin)${subItem.href}`);
+              const isParentActive = item.subItems.some(subItem => 
+                subItem.href && pathname === `${subItem.href}`
+              );
               const isOpen = openMenus[item.text] || isParentActive;
 
               return (

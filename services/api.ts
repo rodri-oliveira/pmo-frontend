@@ -3,11 +3,8 @@ const API_BASE_URL = 'http://localhost:8000/backend/v1';
 
 // Função para obter o token de autenticação (pode ser adaptada conforme sua implementação)
 const getAuthToken = () => {
-  if (typeof window !== 'undefined') {
-    // Implementar lógica para obter o token JWT armazenado
-    return localStorage.getItem('auth_token') || '';
-  }
-  return '';
+  // Obtenha o token do localStorage ou de outro local de armazenamento
+  return localStorage.getItem('authToken');
 };
 
 // Interface para parâmetros de consulta genéricos
@@ -97,4 +94,18 @@ export const apiDelete = async <T>(endpoint: string): Promise<T> => {
   }
   
   return response.json();
-}; 
+};
+
+async function apiRequest(endpoint: string, options: RequestInit = {}) {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const token = getAuthToken();
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+
+  // Restante da função permanece o mesmo
+  // ...
+} 

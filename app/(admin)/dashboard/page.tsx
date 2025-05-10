@@ -46,7 +46,7 @@ export default function DashboardPage() {
               capacityAlerts.map(alert => (
                 <Box key={alert.id} sx={{ mb: 1 }}>
                   <Typography>Recurso: {alert.nome} | Apontadas: {alert.horasApontadas}h | Disponíveis: {alert.horasDisponiveis}h | <span style={{ color: 'red' }}>Excesso: {alert.excesso}h</span></Typography>
-                  <NextLink href={`/apontamentos/consultar-gerenciar?recurso=${alert.id}`} passHref legacyBehavior>
+                  <NextLink href={`/admin/apontamentos/consultar-gerenciar?recurso=${alert.id}`} passHref legacyBehavior>
                     <MuiLink>Consultar Apontamentos</MuiLink>
                   </NextLink>
                 </Box>
@@ -66,7 +66,7 @@ export default function DashboardPage() {
                 <Button 
                   variant="contained" 
                   component={NextLink} 
-                  href="/apontamentos/criar-manual"
+                  href="/admin/apontamentos/criar-manual"
                   sx={{ 
                     width: '100%', 
                     height: '100px',
@@ -104,7 +104,7 @@ export default function DashboardPage() {
                 <Button 
                   variant="contained" 
                   component={NextLink} 
-                  href="/gerenciamento/recursos"
+                  href="/admin/gerenciamento/recursos"
                   sx={{ 
                     width: '100%', 
                     height: '100px',
@@ -123,7 +123,7 @@ export default function DashboardPage() {
                 <Button 
                   variant="contained" 
                   component={NextLink} 
-                  href="/gerenciamento/projetos"
+                  href="/admin/gerenciamento/projetos"
                   sx={{ 
                     width: '100%', 
                     height: '100px',
@@ -169,7 +169,7 @@ export default function DashboardPage() {
               recentProjects.map(project => (
                 <Box key={project.id} sx={{ mb: 1, display: 'flex', justifyContent: 'space-between' }}>
                   <Typography>{project.nome} ({project.status}) - Modificado em: {project.dataModificacao}</Typography>
-                  <NextLink href={`/gerenciamento/projetos?id=${project.id}`} passHref legacyBehavior>
+                  <NextLink href={`/admin/gerenciamento/projetos?id=${project.id}`} passHref legacyBehavior>
                     <MuiLink>Ver Projeto</MuiLink>
                   </NextLink>
                 </Box>

@@ -12,7 +12,7 @@ import { NextAuthSessionProvider } from "./providers"; // Importar o provedor de
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR"> { /* Ou a linguagem que preferir */ }
+    <html lang="pt-BR">{/* Ou a linguagem que preferir */}
       <body>
         <NextAuthSessionProvider>
           <ThemeRegistry>
