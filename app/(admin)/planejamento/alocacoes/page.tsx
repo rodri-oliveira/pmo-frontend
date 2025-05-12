@@ -100,11 +100,70 @@ export default function AlocacoesPage() {
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error'
+    severity: 'success' as 'success' | 'error' | 'warning' | 'info'
   });
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
+  const [apiDisponivel, setApiDisponivel] = useState<boolean>(true);
+
+  // Dados mockados para desenvolvimento (quando a API não estiver disponível)
+  const dadosMockAlocacoes: Alocacao[] = [
+    {
+      id: 1,
+      projeto_id: 1,
+      projeto: {
+        id: 1,
+        nome: 'Projeto Exemplo 1',
+        codigo_empresa: 'PRJ001'
+      },
+      recurso_id: 1,
+      recurso: {
+        id: 1,
+        nome: 'João Silva',
+        email: 'joao.silva@exemplo.com'
+      },
+      data_inicio_alocacao: '2025-01-01T00:00:00',
+      data_fim_alocacao: '2025-12-31T00:00:00',
+      data_criacao: '2025-01-01T00:00:00'
+    },
+    {
+      id: 2,
+      projeto_id: 2,
+      projeto: {
+        id: 2,
+        nome: 'Projeto Exemplo 2',
+        codigo_empresa: 'PRJ002'
+      },
+      recurso_id: 2,
+      recurso: {
+        id: 2,
+        nome: 'Maria Oliveira',
+        email: 'maria.oliveira@exemplo.com'
+      },
+      data_inicio_alocacao: '2025-02-01T00:00:00',
+      data_fim_alocacao: null,
+      data_criacao: '2025-01-15T00:00:00'
+    },
+    {
+      id: 3,
+      projeto_id: 1,
+      projeto: {
+        id: 1,
+        nome: 'Projeto Exemplo 1',
+        codigo_empresa: 'PRJ001'
+      },
+      recurso_id: 3,
+      recurso: {
+        id: 3,
+        nome: 'Pedro Santos',
+        email: 'pedro.santos@exemplo.com'
+      },
+      data_inicio_alocacao: '2025-03-01T00:00:00',
+      data_fim_alocacao: '2025-06-30T00:00:00',
+      data_criacao: '2025-02-15T00:00:00'
+    }
+  ];
 
   // Função para buscar alocações
   const fetchAlocacoes = async () => {
@@ -118,15 +177,22 @@ export default function AlocacoesPage() {
         searchTerm
       }) as { items: Alocacao[], total: number };
       
-      setAlocacoes(data.items);
-      setTotalItems(data.total);
+      setAlocacoes(data.items || []); // Aplicando operador || [] para garantir que sempre seja um array
+      setTotalItems(data.total || 0);
+      setApiDisponivel(true);
       setLoading(false);
     } catch (error) {
       console.error('Erro ao buscar alocações:', error);
+      
+      // Usando dados mockados em caso de erro
+      setAlocacoes(dadosMockAlocacoes);
+      setTotalItems(dadosMockAlocacoes.length);
+      setApiDisponivel(false);
+      
       setSnackbar({
         open: true,
-        message: 'Erro ao carregar alocações. Tente novamente.',
-        severity: 'error'
+        message: 'Erro ao carregar alocações. Usando dados de exemplo.',
+        severity: 'warning'
       });
       setLoading(false);
     }
@@ -135,16 +201,23 @@ export default function AlocacoesPage() {
   // Função para buscar recursos
   const fetchRecursos = async () => {
     try {
-      const data = await getRecursos() as { items: Recurso[] };
-      setRecursos(data.items || []);
+      const data = await getRecursos(searchTerm) as { items: Recurso[], total: number };
+      setRecursos(data.items || []); // Aplicando operador || [] para garantir que sempre seja um array
     } catch (error) {
       console.error('Erro ao buscar recursos:', error);
-      // Garantir que recursos seja um array vazio em caso de erro
-      setRecursos([]);
+      
+      // Dados mockados para recursos
+      const recursosMock: Recurso[] = [
+        { id: 1, nome: 'João Silva', email: 'joao.silva@exemplo.com', matricula: '12345', equipe_principal_id: 1 },
+        { id: 2, nome: 'Maria Oliveira', email: 'maria.oliveira@exemplo.com', matricula: '23456', equipe_principal_id: 1 },
+        { id: 3, nome: 'Pedro Santos', email: 'pedro.santos@exemplo.com', matricula: '34567', equipe_principal_id: 2 }
+      ];
+      
+      setRecursos(recursosMock);
       setSnackbar({
         open: true,
-        message: 'Erro ao carregar recursos. Usando dados vazios.',
-        severity: 'error'
+        message: 'Erro ao carregar recursos. Usando dados de exemplo.',
+        severity: 'warning'
       });
     }
   };
@@ -152,16 +225,23 @@ export default function AlocacoesPage() {
   // Função para buscar projetos
   const fetchProjetos = async () => {
     try {
-      const data = await getProjetos() as { items: Projeto[] };
-      setProjetos(data.items || []);
+      const data = await getProjetos(searchTerm) as { items: Projeto[], total: number };
+      setProjetos(data.items || []); // Aplicando operador || [] para garantir que sempre seja um array
     } catch (error) {
       console.error('Erro ao buscar projetos:', error);
-      // Garantir que projetos seja um array vazio em caso de erro
-      setProjetos([]);
+      
+      // Dados mockados para projetos
+      const projetosMock: Projeto[] = [
+        { id: 1, nome: 'Projeto Exemplo 1', codigo_empresa: 'PRJ001' },
+        { id: 2, nome: 'Projeto Exemplo 2', codigo_empresa: 'PRJ002' },
+        { id: 3, nome: 'Projeto Exemplo 3', codigo_empresa: 'PRJ003' }
+      ];
+      
+      setProjetos(projetosMock);
       setSnackbar({
         open: true,
-        message: 'Erro ao carregar projetos. Usando dados vazios.',
-        severity: 'error'
+        message: 'Erro ao carregar projetos. Usando dados de exemplo.',
+        severity: 'warning'
       });
     }
   };
