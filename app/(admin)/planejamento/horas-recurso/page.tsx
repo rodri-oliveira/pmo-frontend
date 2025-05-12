@@ -97,7 +97,7 @@ export default function HorasRecursoPage() {
       if (searchTerm) params.nome = searchTerm;
       
       const data = await apiGet<{ items: Recurso[], total: number }>('/recursos', params);
-      setRecursos(data.items);
+      setRecursos(data.items || []);
       setApiDisponivel(true);
     } catch (error) {
       console.error('Erro ao buscar recursos:', error);
@@ -114,6 +114,10 @@ export default function HorasRecursoPage() {
           severity: 'warning'
         });
       } else {
+        // Garantir que recursos seja um array vazio em caso de erro
+        setRecursos([]);
+        setApiDisponivel(false);
+        
         setSnackbar({
           open: true,
           message: 'Erro ao carregar recursos. Tente novamente.',

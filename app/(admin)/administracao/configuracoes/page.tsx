@@ -20,6 +20,25 @@ interface Configuracao {
   data_atualizacao?: string;
 }
 
+// Dados mockados para usar em caso de erro na API
+const configuracoesMock: Configuracao[] = [
+  {
+    chave: 'app.nome',
+    valor: 'Automação PMO',
+    descricao: 'Nome da aplicação'
+  },
+  {
+    chave: 'notificacoes.ativas',
+    valor: 'true',
+    descricao: 'Define se as notificações estão ativas'
+  },
+  {
+    chave: 'sistema.versao',
+    valor: '1.0.0',
+    descricao: 'Versão atual do sistema'
+  }
+];
+
 export default function ConfiguracoesPage() {
   const [configuracoes, setConfiguracoes] = useState<Configuracao[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,13 +55,15 @@ export default function ConfiguracoesPage() {
     setLoading(true);
     try {
       const data = await apiGet<{ items: Configuracao[] }>('/configuracoes');
-      setConfiguracoes(data.items);
+      setConfiguracoes(data.items || []); // Aplicando operador || [] para garantir que sempre seja um array
       setLoading(false);
     } catch (error) {
       console.error('Erro ao buscar configurações:', error);
+      // Usando dados mockados em caso de erro
+      setConfiguracoes(configuracoesMock);
       setSnackbar({
         open: true,
-        message: 'Erro ao carregar configurações. Tente novamente.',
+        message: 'Erro ao carregar configurações. Usando dados de exemplo.',
         severity: 'error'
       });
       setLoading(false);
@@ -133,27 +154,27 @@ export default function ConfiguracoesPage() {
       
       <Paper sx={{ p: 2, mb: 3 }}>
         <Typography variant="body1" paragraph>
-          Aqui você pode configurar os parâmetros do sistema. Modifique as configurações com cuidado, pois elas afetam o funcionamento global da aplicação.
+          Gerencie as configurações do sistema. Estas configurações afetam o comportamento global da aplicação.
         </Typography>
       </Paper>
       
-      {loading && configuracoes.length === 0 ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />
         </Box>
       ) : (
         <TableContainer component={Paper}>
           <Table>
-            <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
+            <TableHead>
               <TableRow>
-                <TableCell><strong>Chave</strong></TableCell>
-                <TableCell><strong>Valor</strong></TableCell>
-                <TableCell><strong>Descrição</strong></TableCell>
-                <TableCell width={100}><strong>Ações</strong></TableCell>
+                <TableCell>Chave</TableCell>
+                <TableCell>Valor</TableCell>
+                <TableCell>Descrição</TableCell>
+                <TableCell>Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {configuracoes.map((configuracao) => (
+              {(configuracoes || []).map((configuracao) => (
                 <TableRow key={configuracao.chave} hover>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>

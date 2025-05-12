@@ -59,25 +59,73 @@ export default function EquipesPage() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
 
+  // Dados mockados para desenvolvimento (quando a API não estiver disponível)
+  const dadosMockSecoes: Secao[] = [
+    { id: 1, nome: 'Desenvolvimento' },
+    { id: 2, nome: 'Infraestrutura' },
+    { id: 3, nome: 'Produto' }
+  ];
+
+  const dadosMockEquipes: Equipe[] = [
+    {
+      id: 1,
+      nome: 'Equipe Frontend',
+      descricao: 'Equipe responsável pelo frontend',
+      secao_id: 1,
+      secao: { id: 1, nome: 'Desenvolvimento' },
+      data_criacao: '2025-01-15T10:00:00',
+      ativo: true
+    },
+    {
+      id: 2,
+      nome: 'Equipe Backend',
+      descricao: 'Equipe responsável pelo backend',
+      secao_id: 1,
+      secao: { id: 1, nome: 'Desenvolvimento' },
+      data_criacao: '2025-01-15T10:00:00',
+      ativo: true
+    },
+    {
+      id: 3,
+      nome: 'DevOps',
+      descricao: 'Equipe responsável pela infraestrutura e CI/CD',
+      secao_id: 2,
+      secao: { id: 2, nome: 'Infraestrutura' },
+      data_criacao: '2025-01-15T10:00:00',
+      ativo: true
+    },
+    {
+      id: 4,
+      nome: 'Produto Digital',
+      descricao: 'Equipe de gestão de produto',
+      secao_id: 3,
+      secao: { id: 3, nome: 'Produto' },
+      data_criacao: '2025-01-15T10:00:00',
+      ativo: false
+    }
+  ];
+
   // Função para buscar os dados de seções
   const fetchSecoes = async () => {
     try {
       // Em ambiente de produção, descomente:
       // const response = await fetch('http://localhost:8000/backend/v1/secoes?ativo=true');
       // const data = await response.json();
-      // setSecoes(data.items);
+      // setSecoes(data.items || []);
       
       // Simulação para desenvolvimento
       setTimeout(() => {
-        const mockSecoes: Secao[] = [
-          { id: 1, nome: 'Desenvolvimento' },
-          { id: 2, nome: 'Infraestrutura' },
-          { id: 3, nome: 'Produto' }
-        ];
-        setSecoes(mockSecoes);
+        setSecoes(dadosMockSecoes);
       }, 300);
     } catch (error) {
       console.error('Erro ao buscar seções:', error);
+      // Garantir que secoes seja um array vazio em caso de erro
+      setSecoes([]);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar seções. Usando dados de exemplo.',
+        severity: 'error'
+      });
     }
   };
 
@@ -100,49 +148,12 @@ export default function EquipesPage() {
       // Em ambiente de produção, descomente:
       // const response = await fetch(`http://localhost:8000/backend/v1/equipes?${params}`);
       // const data = await response.json();
-      // setEquipes(data.items);
-      // setTotalItems(data.total);
+      // setEquipes(data.items || []);
+      // setTotalItems(data.total || 0);
       
       // Simulação para desenvolvimento
       setTimeout(() => {
-        const mockEquipes: Equipe[] = [
-          {
-            id: 1,
-            nome: 'Equipe Frontend',
-            descricao: 'Equipe responsável pelo frontend',
-            secao_id: 1,
-            secao: { id: 1, nome: 'Desenvolvimento' },
-            data_criacao: '2025-01-15T10:00:00',
-            ativo: true
-          },
-          {
-            id: 2,
-            nome: 'Equipe Backend',
-            descricao: 'Equipe responsável pelo backend',
-            secao_id: 1,
-            secao: { id: 1, nome: 'Desenvolvimento' },
-            data_criacao: '2025-01-15T10:00:00',
-            ativo: true
-          },
-          {
-            id: 3,
-            nome: 'DevOps',
-            descricao: 'Equipe responsável pela infraestrutura e CI/CD',
-            secao_id: 2,
-            secao: { id: 2, nome: 'Infraestrutura' },
-            data_criacao: '2025-01-15T10:00:00',
-            ativo: true
-          },
-          {
-            id: 4,
-            nome: 'Produto Digital',
-            descricao: 'Equipe de gestão de produto',
-            secao_id: 3,
-            secao: { id: 3, nome: 'Produto' },
-            data_criacao: '2025-01-15T10:00:00',
-            ativo: false
-          }
-        ].filter(equipe => {
+        const filteredEquipes = dadosMockEquipes.filter(equipe => {
           let match = true;
           if (searchTerm) {
             match = match && equipe.nome.toLowerCase().includes(searchTerm.toLowerCase());
@@ -153,15 +164,29 @@ export default function EquipesPage() {
           return match;
         });
         
-        setEquipes(mockEquipes);
-        setTotalItems(mockEquipes.length);
+        setEquipes(filteredEquipes);
+        setTotalItems(filteredEquipes.length);
         setLoading(false);
       }, 500);
     } catch (error) {
       console.error('Erro ao buscar equipes:', error);
+      // Garantir que equipes seja um array vazio em caso de erro
+      const filteredEquipes = dadosMockEquipes.filter(equipe => {
+        let match = true;
+        if (searchTerm) {
+          match = match && equipe.nome.toLowerCase().includes(searchTerm.toLowerCase());
+        }
+        if (secaoFilter > 0) {
+          match = match && equipe.secao_id === secaoFilter;
+        }
+        return match;
+      });
+      
+      setEquipes(filteredEquipes);
+      setTotalItems(filteredEquipes.length);
       setSnackbar({
         open: true,
-        message: 'Erro ao carregar equipes. Tente novamente.',
+        message: 'Erro ao carregar equipes. Usando dados de exemplo.',
         severity: 'error'
       });
       setLoading(false);
@@ -347,7 +372,7 @@ export default function EquipesPage() {
                 onChange={handleFilterChange}
               >
                 <MenuItem value={0}>Todas as Seções</MenuItem>
-                {secoes.map((secao) => (
+                {(secoes || []).map((secao) => (
                   <MenuItem key={secao.id} value={secao.id}>{secao.nome}</MenuItem>
                 ))}
               </Select>
@@ -394,17 +419,17 @@ export default function EquipesPage() {
                   <Typography variant="body2" sx={{ mt: 1 }}>Carregando equipes...</Typography>
                 </TableCell>
               </TableRow>
-            ) : equipes.length === 0 ? (
+            ) : (equipes || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center">Nenhuma equipe encontrada</TableCell>
               </TableRow>
             ) : (
-              equipes.map((equipe) => (
+              (equipes || []).map((equipe) => (
                 <TableRow key={equipe.id} hover>
                   <TableCell>{equipe.id}</TableCell>
                   <TableCell>{equipe.nome}</TableCell>
                   <TableCell>{equipe.descricao}</TableCell>
-                  <TableCell>{equipe.secao?.nome}</TableCell>
+                  <TableCell>{equipe.secao?.nome || 'N/A'}</TableCell>
                   <TableCell>
                     <Chip 
                       label={equipe.ativo ? "Ativo" : "Inativo"} 
@@ -490,7 +515,7 @@ export default function EquipesPage() {
               required
             >
               <MenuItem value={0} disabled>Selecione uma seção</MenuItem>
-              {secoes.map((secao) => (
+              {(secoes || []).map((secao) => (
                 <MenuItem key={secao.id} value={secao.id}>{secao.nome}</MenuItem>
               ))}
             </Select>

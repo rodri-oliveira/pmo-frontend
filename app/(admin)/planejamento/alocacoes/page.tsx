@@ -136,9 +136,16 @@ export default function AlocacoesPage() {
   const fetchRecursos = async () => {
     try {
       const data = await getRecursos() as { items: Recurso[] };
-      setRecursos(data.items);
+      setRecursos(data.items || []);
     } catch (error) {
       console.error('Erro ao buscar recursos:', error);
+      // Garantir que recursos seja um array vazio em caso de erro
+      setRecursos([]);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar recursos. Usando dados vazios.',
+        severity: 'error'
+      });
     }
   };
 
@@ -146,9 +153,16 @@ export default function AlocacoesPage() {
   const fetchProjetos = async () => {
     try {
       const data = await getProjetos() as { items: Projeto[] };
-      setProjetos(data.items);
+      setProjetos(data.items || []);
     } catch (error) {
       console.error('Erro ao buscar projetos:', error);
+      // Garantir que projetos seja um array vazio em caso de erro
+      setProjetos([]);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar projetos. Usando dados vazios.',
+        severity: 'error'
+      });
     }
   };
 

@@ -28,9 +28,27 @@ export class ApiError extends Error {
 
 // Função para construir URL com parâmetros de consulta
 const buildUrl = (endpoint: string, params?: QueryParams) => {
-  // Garantimos que sempre retornamos um caminho relativo
-  let path = endpoint.startsWith('/') ? `${API_BASE_URL}${endpoint}` : `${API_BASE_URL}/${endpoint}`;
+  // Remover qualquer domínio completo (http:// ou https://)
+  let path = endpoint;
+  if (path.includes('://')) {
+    const url = new URL(path);
+    path = url.pathname + url.search;
+  }
   
+  // Garantir que o caminho é relativo e começa com /backend/
+  if (!path.startsWith('/backend/')) {
+    // Se não começa com uma barra, adicionar
+    if (!path.startsWith('/')) {
+      path = '/' + path;
+    }
+    
+    // Se não começa com /backend/v1, adicionar
+    if (!path.startsWith('/backend/v1')) {
+      path = '/backend/v1' + path;
+    }
+  }
+  
+  // Adicionar parâmetros de consulta
   if (params) {
     const queryParams = Object.entries(params)
       .filter(([_, value]) => value !== undefined)
@@ -41,6 +59,8 @@ const buildUrl = (endpoint: string, params?: QueryParams) => {
       path += path.includes('?') ? `&${queryParams}` : `?${queryParams}`;
     }
   }
+  
+  console.log('URL construída:', path); // Log para debug
   
   return path;
 };
@@ -90,7 +110,8 @@ export const apiGet = async <T>(endpoint: string, params?: QueryParams): Promise
     const response = await fetch(url, {
       method: 'GET',
       headers: authHeaders(),
-      credentials: 'same-origin' // Usar same-origin para garantir que os cookies sejam enviados apenas para o mesmo domínio
+      credentials: 'include', // Alterado para 'include' para permitir cookies cross-origin quando necessário
+      mode: 'cors' // Explicitamente definindo o modo como 'cors'
     });
     
     await handleResponseError(response, endpoint);
@@ -113,7 +134,8 @@ export const apiPost = async <T>(endpoint: string, data: any): Promise<T> => {
     const response = await fetch(url, {
       method: 'POST',
       headers: authHeaders(),
-      credentials: 'same-origin',
+      credentials: 'include', // Alterado para 'include'
+      mode: 'cors', // Explicitamente definindo o modo como 'cors'
       body: JSON.stringify(data),
     });
     
@@ -137,7 +159,8 @@ export const apiPut = async <T>(endpoint: string, data: any): Promise<T> => {
     const response = await fetch(url, {
       method: 'PUT',
       headers: authHeaders(),
-      credentials: 'same-origin',
+      credentials: 'include', // Alterado para 'include'
+      mode: 'cors', // Explicitamente definindo o modo como 'cors'
       body: JSON.stringify(data),
     });
     
@@ -161,7 +184,8 @@ export const apiDelete = async <T>(endpoint: string): Promise<T> => {
     const response = await fetch(url, {
       method: 'DELETE',
       headers: authHeaders(),
-      credentials: 'same-origin',
+      credentials: 'include', // Alterado para 'include'
+      mode: 'cors', // Explicitamente definindo o modo como 'cors'
     });
     
     await handleResponseError(response, endpoint);

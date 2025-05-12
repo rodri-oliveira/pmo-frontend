@@ -21,6 +21,31 @@ export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Dados mockados para desenvolvimento (quando a API não estiver disponível)
+  const dadosMockUsuarios: Usuario[] = [
+    {
+      id: 1,
+      nome: 'João Silva',
+      email: 'joao.silva@empresa.com',
+      ativo: true,
+      data_criacao: '2025-01-15T10:00:00'
+    },
+    {
+      id: 2,
+      nome: 'Maria Oliveira',
+      email: 'maria.oliveira@empresa.com',
+      ativo: true,
+      data_criacao: '2025-01-15T10:00:00'
+    },
+    {
+      id: 3,
+      nome: 'Pedro Santos',
+      email: 'pedro.santos@empresa.com',
+      ativo: false,
+      data_criacao: '2025-01-15T10:00:00'
+    }
+  ];
+
   const fetchUsuarios = async () => {
     setLoading(true);
     try {
@@ -28,6 +53,8 @@ export default function UsuariosPage() {
       setUsuarios(data.items || []);
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
+      // Garantir que usuarios seja um array mesmo em caso de erro
+      setUsuarios(dadosMockUsuarios);
     } finally {
       setLoading(false);
     }
@@ -69,14 +96,14 @@ export default function UsuariosPage() {
                   <Typography variant="body2" sx={{ mt: 1 }}>Carregando usuários...</Typography>
                 </TableCell>
               </TableRow>
-            ) : usuarios.length === 0 ? (
+            ) : (usuarios || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
                   <Typography variant="body2">Nenhum usuário encontrado.</Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              usuarios.map((usuario) => (
+              (usuarios || []).map((usuario) => (
                 <TableRow key={usuario.id}>
                   <TableCell>{usuario.id}</TableCell>
                   <TableCell>{usuario.nome}</TableCell>

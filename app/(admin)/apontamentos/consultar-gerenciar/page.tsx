@@ -132,6 +132,19 @@ export default function ConsultarApontamentosPage() {
   });
   const [logSincronizacao, setLogSincronizacao] = useState<string[]>([]);
 
+  // Dados mockados para desenvolvimento (quando a API não estiver disponível)
+  const dadosMockRecursos: Recurso[] = [
+    { id: 1, nome: 'Ana Silva', email: 'ana.silva@example.com', matricula: '12345' },
+    { id: 2, nome: 'Bruno Costa', email: 'bruno.costa@example.com', matricula: '23456' },
+    { id: 3, nome: 'Carla Oliveira', email: 'carla.oliveira@example.com', matricula: '34567' }
+  ];
+
+  const dadosMockProjetos: Projeto[] = [
+    { id: 1, nome: 'Projeto A', codigo_empresa: 'PROJ-001' },
+    { id: 2, nome: 'Projeto B', codigo_empresa: 'PROJ-002' },
+    { id: 3, nome: 'Projeto C', codigo_empresa: 'PROJ-003' }
+  ];
+
   // Função para buscar apontamentos
   const fetchApontamentos = async () => {
     setLoading(true);
@@ -162,16 +175,19 @@ export default function ConsultarApontamentosPage() {
       }
       
       const data = await getApontamentos(params);
-      setApontamentos(data.items);
-      setTotalItems(data.total);
-      setLoading(false);
+      setApontamentos(data.items || []);
+      setTotalItems(data.total || 0);
     } catch (error) {
       console.error('Erro ao buscar apontamentos:', error);
+      // Usar dados vazios em caso de erro
+      setApontamentos([]);
+      setTotalItems(0);
       setSnackbar({
         open: true,
         message: 'Erro ao carregar apontamentos. Tente novamente.',
         severity: 'error'
       });
+    } finally {
       setLoading(false);
     }
   };
@@ -180,9 +196,16 @@ export default function ConsultarApontamentosPage() {
   const fetchProjetos = async () => {
     try {
       const data = await getProjetos({ ativo: true });
-      setProjetos(data.items);
+      setProjetos(data.items || []);
     } catch (error) {
       console.error('Erro ao buscar projetos:', error);
+      // Usar dados mockados em caso de erro
+      setProjetos(dadosMockProjetos);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar projetos. Usando dados de exemplo.',
+        severity: 'error'
+      });
     }
   };
 
@@ -190,9 +213,16 @@ export default function ConsultarApontamentosPage() {
   const fetchRecursos = async () => {
     try {
       const data = await getRecursos({ ativo: true });
-      setRecursos(data.items);
+      setRecursos(data.items || []);
     } catch (error) {
       console.error('Erro ao buscar recursos:', error);
+      // Usar dados mockados em caso de erro
+      setRecursos(dadosMockRecursos);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar recursos. Usando dados de exemplo.',
+        severity: 'error'
+      });
     }
   };
 
@@ -481,7 +511,7 @@ export default function ConsultarApontamentosPage() {
                   onChange={(e) => setRecursoFilter(e.target.value as number | '')}
                 >
                   <MenuItem value="">Todos</MenuItem>
-                  {recursos.map((recurso) => (
+                  {(recursos || []).map((recurso) => (
                     <MenuItem key={recurso.id} value={recurso.id}>
                       {recurso.nome}
                     </MenuItem>

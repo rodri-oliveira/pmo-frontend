@@ -103,6 +103,50 @@ export default function StatusProjetosPage() {
   const [searchRecurso, setSearchRecurso] = useState('');
   const [searchProjeto, setSearchProjeto] = useState('');
 
+  // Dados mockados para desenvolvimento (quando a API não estiver disponível)
+  const dadosMockStatusProjetos: StatusProjeto[] = [
+    { 
+      id: 1, 
+      nome: 'Não Iniciado', 
+      descricao: 'Projeto ainda não iniciado', 
+      is_final: false, 
+      ordem_exibicao: 1, 
+      data_criacao: '2025-01-15T10:00:00'
+    },
+    { 
+      id: 2, 
+      nome: 'Em Andamento', 
+      descricao: 'Projeto em execução', 
+      is_final: false, 
+      ordem_exibicao: 2, 
+      data_criacao: '2025-01-15T10:00:00'
+    },
+    { 
+      id: 3, 
+      nome: 'Pausado', 
+      descricao: 'Projeto temporariamente pausado', 
+      is_final: false, 
+      ordem_exibicao: 3, 
+      data_criacao: '2025-01-15T10:00:00'
+    },
+    { 
+      id: 4, 
+      nome: 'Concluído', 
+      descricao: 'Projeto finalizado com sucesso', 
+      is_final: true, 
+      ordem_exibicao: 4, 
+      data_criacao: '2025-01-15T10:00:00'
+    },
+    { 
+      id: 5, 
+      nome: 'Cancelado', 
+      descricao: 'Projeto cancelado', 
+      is_final: true, 
+      ordem_exibicao: 5, 
+      data_criacao: '2025-01-15T10:00:00'
+    }
+  ];
+
   // Função para buscar os status de projeto
   const fetchStatusProjetos = async () => {
     setLoading(true);
@@ -110,68 +154,37 @@ export default function StatusProjetosPage() {
       // Em ambiente de produção, descomente:
       // const response = await fetch('http://localhost:8000/backend/v1/status-projetos');
       // const data = await response.json();
-      // setStatusProjetos(data.items);
-      // setTotalItems(data.total);
+      // setStatusProjetos(data.items || []);
+      // setTotalItems(data.total || 0);
       
       // Simulação para desenvolvimento
       setTimeout(() => {
-        const mockStatusProjetos: StatusProjeto[] = [
-          { 
-            id: 1, 
-            nome: 'Não Iniciado', 
-            descricao: 'Projeto ainda não iniciado', 
-            is_final: false, 
-            ordem_exibicao: 1, 
-            data_criacao: '2025-01-15T10:00:00'
-          },
-          { 
-            id: 2, 
-            nome: 'Em Andamento', 
-            descricao: 'Projeto em execução', 
-            is_final: false, 
-            ordem_exibicao: 2, 
-            data_criacao: '2025-01-15T10:00:00'
-          },
-          { 
-            id: 3, 
-            nome: 'Pausado', 
-            descricao: 'Projeto temporariamente pausado', 
-            is_final: false, 
-            ordem_exibicao: 3, 
-            data_criacao: '2025-01-15T10:00:00'
-          },
-          { 
-            id: 4, 
-            nome: 'Concluído', 
-            descricao: 'Projeto finalizado com sucesso', 
-            is_final: true, 
-            ordem_exibicao: 4, 
-            data_criacao: '2025-01-15T10:00:00'
-          },
-          { 
-            id: 5, 
-            nome: 'Cancelado', 
-            descricao: 'Projeto cancelado', 
-            is_final: true, 
-            ordem_exibicao: 5, 
-            data_criacao: '2025-01-15T10:00:00'
-          }
-        ].filter(status => {
+        const filteredStatusProjetos = dadosMockStatusProjetos.filter(status => {
           if (searchTerm) {
             return status.nome.toLowerCase().includes(searchTerm.toLowerCase());
           }
           return true;
         });
         
-        setStatusProjetos(mockStatusProjetos);
-        setTotalItems(mockStatusProjetos.length);
+        setStatusProjetos(filteredStatusProjetos);
+        setTotalItems(filteredStatusProjetos.length);
         setLoading(false);
       }, 500);
     } catch (error) {
       console.error('Erro ao buscar status de projeto:', error);
+      // Garantir que statusProjetos seja um array mesmo em caso de erro
+      const filteredStatusProjetos = dadosMockStatusProjetos.filter(status => {
+        if (searchTerm) {
+          return status.nome.toLowerCase().includes(searchTerm.toLowerCase());
+        }
+        return true;
+      });
+      
+      setStatusProjetos(filteredStatusProjetos);
+      setTotalItems(filteredStatusProjetos.length);
       setSnackbar({
         open: true,
-        message: 'Erro ao carregar status de projeto. Tente novamente.',
+        message: 'Erro ao carregar status de projeto. Usando dados de exemplo.',
         severity: 'error'
       });
       setLoading(false);
@@ -523,12 +536,12 @@ export default function StatusProjetosPage() {
                   <Typography variant="body2" sx={{ mt: 1 }}>Carregando status...</Typography>
                 </TableCell>
               </TableRow>
-            ) : statusProjetos.length === 0 ? (
+            ) : (statusProjetos || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center">Nenhum status encontrado</TableCell>
               </TableRow>
             ) : (
-              statusProjetos.map((status) => (
+              (statusProjetos || []).map((status) => (
                 <TableRow key={status.id} hover>
                   <TableCell>{status.id}</TableCell>
                   <TableCell align="center">
