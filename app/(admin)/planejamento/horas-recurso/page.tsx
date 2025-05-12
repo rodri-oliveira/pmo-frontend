@@ -20,7 +20,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import { apiGet } from '@/services/api';
+import { apiGet, ApiError, QueryParams } from '@/services/api';
 
 // Interface para o tipo de dados que vamos trabalhar
 interface RecursoDisponibilidade {
@@ -43,6 +43,26 @@ interface Recurso {
   matricula?: string;
 }
 
+// Dados mockados para desenvolvimento (quando a API não estiver disponível)
+const dadosMockRecursos: Recurso[] = [
+  { id: 1, nome: 'Ana Silva', email: 'ana.silva@example.com', matricula: '12345' },
+  { id: 2, nome: 'Bruno Costa', email: 'bruno.costa@example.com', matricula: '23456' },
+  { id: 3, nome: 'Carla Oliveira', email: 'carla.oliveira@example.com', matricula: '34567' },
+  { id: 4, nome: 'Daniel Santos', email: 'daniel.santos@example.com', matricula: '45678' },
+  { id: 5, nome: 'Elena Martins', email: 'elena.martins@example.com', matricula: '56789' },
+];
+
+const dadosMockDisponibilidade: RecursoDisponibilidade = {
+  recurso_id: 1,
+  nome_recurso: 'Ana Silva',
+  disponibilidade: [
+    { ano: 2023, mes: 1, horas_disponiveis: 160, horas_planejadas: 120, horas_apontadas: 110, saldo: 40 },
+    { ano: 2023, mes: 2, horas_disponiveis: 160, horas_planejadas: 140, horas_apontadas: 130, saldo: 20 },
+    { ano: 2023, mes: 3, horas_disponiveis: 160, horas_planejadas: 150, horas_apontadas: 145, saldo: 10 },
+    { ano: 2023, mes: 4, horas_disponiveis: 160, horas_planejadas: 130, horas_apontadas: 125, saldo: 30 },
+  ]
+};
+
 // Função auxiliar para obter o nome do mês
 const getNomeMes = (numeroMes: number) => {
   const meses = [
@@ -64,27 +84,43 @@ export default function HorasRecursoPage() {
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'info' as 'info' | 'success' | 'error'
+    severity: 'info' as 'info' | 'success' | 'error' | 'warning'
   });
+  const [apiDisponivel, setApiDisponivel] = useState<boolean>(true);
 
   // Função para buscar recursos
   const fetchRecursos = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.append('ativo', 'true');
-      if (searchTerm) params.append('nome', searchTerm);
+      // Tenta buscar dados da API
+      const params: QueryParams = { ativo: true };
+      if (searchTerm) params.nome = searchTerm;
       
-      const data = await apiGet<{ items: Recurso[], total: number }>(`/recursos?${params.toString()}`);
+      const data = await apiGet<{ items: Recurso[], total: number }>('/recursos', params);
       setRecursos(data.items);
-      setLoading(false);
+      setApiDisponivel(true);
     } catch (error) {
       console.error('Erro ao buscar recursos:', error);
-      setSnackbar({
-        open: true,
-        message: 'Erro ao carregar recursos. Tente novamente.',
-        severity: 'error'
-      });
+      
+      // Verifica se é um erro de CORS ou conexão
+      if (error instanceof ApiError && (error.message.includes('CORS') || error.status === 0)) {
+        console.warn('Usando dados mockados devido a problemas de conexão com a API');
+        setRecursos(dadosMockRecursos);
+        setApiDisponivel(false);
+        
+        setSnackbar({
+          open: true,
+          message: 'Usando dados de exemplo devido a problemas de conexão com o servidor.',
+          severity: 'warning'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'Erro ao carregar recursos. Tente novamente.',
+          severity: 'error'
+        });
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -98,20 +134,43 @@ export default function HorasRecursoPage() {
     
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.append('ano', anoSelecionado.toString());
-      if (mesSelecionado !== '') params.append('mes', mesSelecionado.toString());
+      // Tenta buscar dados da API
+      const params: QueryParams = { ano: anoSelecionado };
+      if (mesSelecionado !== '') params.mes = mesSelecionado;
       
-      const data = await apiGet<RecursoDisponibilidade>(`/recursos/${recursoSelecionado}/disponibilidade?${params.toString()}`);
+      const data = await apiGet<RecursoDisponibilidade>(`/recursos/${recursoSelecionado}/disponibilidade`, params);
       setDadosDisponibilidade(data);
-      setLoading(false);
+      setApiDisponivel(true);
     } catch (error) {
       console.error('Erro ao buscar disponibilidade:', error);
-      setSnackbar({
-        open: true,
-        message: 'Erro ao carregar dados de disponibilidade. Tente novamente.',
-        severity: 'error'
-      });
+      
+      // Verifica se é um erro de CORS ou conexão
+      if (error instanceof ApiError && (error.message.includes('CORS') || error.status === 0)) {
+        console.warn('Usando dados mockados devido a problemas de conexão com a API');
+        
+        // Ajusta os dados mockados para o recurso selecionado
+        const mockData = {
+          ...dadosMockDisponibilidade,
+          recurso_id: Number(recursoSelecionado),
+          nome_recurso: recursos.find(r => r.id === Number(recursoSelecionado))?.nome || 'Recurso'
+        };
+        
+        setDadosDisponibilidade(mockData);
+        setApiDisponivel(false);
+        
+        setSnackbar({
+          open: true,
+          message: 'Usando dados de exemplo devido a problemas de conexão com o servidor.',
+          severity: 'warning'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'Erro ao carregar dados de disponibilidade. Tente novamente.',
+          severity: 'error'
+        });
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -174,6 +233,12 @@ export default function HorasRecursoPage() {
           <TimerIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
           Disponibilidade de Horas por Recurso
         </Typography>
+        
+        {!apiDisponivel && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Atenção: Usando dados de exemplo para visualização. Alguns recursos da aplicação podem estar limitados.
+          </Alert>
+        )}
         
         <Paper sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
@@ -463,9 +528,9 @@ export default function HorasRecursoPage() {
           open={snackbar.open}
           autoHideDuration={6000}
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
-          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
             {snackbar.message}
           </Alert>
         </Snackbar>
