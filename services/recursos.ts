@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from './api';
+import { apiGet, apiPost, apiPut, apiDelete, QueryParams } from './api';
 
 // Interfaces
 export interface Recurso {
@@ -38,7 +38,7 @@ export interface RecursoListResponse {
 }
 
 // Parâmetros para busca de recursos
-export interface RecursoQueryParams {
+export interface RecursoQueryParams extends QueryParams {
   skip?: number;
   limit?: number;
   ativo?: boolean;

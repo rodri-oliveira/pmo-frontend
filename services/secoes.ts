@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from './api';
+import { apiGet, apiPost, apiPut, apiDelete, QueryParams } from './api';
 
 // Interfaces
 export interface Secao {
@@ -24,7 +24,7 @@ export interface SecaoListResponse {
 }
 
 // Parâmetros para busca de seções
-export interface SecaoQueryParams {
+export interface SecaoQueryParams extends QueryParams {
   skip?: number;
   limit?: number;
   ativo?: boolean;

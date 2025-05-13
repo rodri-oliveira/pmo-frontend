@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete } from './api';
+import { apiGet, apiPost, apiPut, apiDelete, QueryParams } from './api';
 
 // Interfaces
 export interface Equipe {
@@ -30,7 +30,7 @@ export interface EquipeListResponse {
 }
 
 // Parâmetros para busca de equipes
-export interface EquipeQueryParams {
+export interface EquipeQueryParams extends QueryParams {
   skip?: number;
   limit?: number;
   ativo?: boolean;

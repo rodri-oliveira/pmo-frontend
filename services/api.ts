@@ -69,7 +69,7 @@ const buildUrl = (endpoint: string, params?: QueryParams) => {
 const handleResponseError = async (response: Response, endpoint: string) => {
   if (!response.ok) {
     // Tentar obter detalhes do erro da resposta JSON, se disponível
-    let errorMessage = `Erro na requisição: ${response.status}`;
+    let errorMessage = '';
     let errorData = null;
     
     try {
@@ -78,7 +78,28 @@ const handleResponseError = async (response: Response, endpoint: string) => {
         errorMessage = errorData.message;
       }
     } catch (e) {
-      // Se não conseguir ler o JSON, usa a mensagem padrão
+      // Se não conseguir ler o JSON, usa a mensagem baseada no status
+      switch (response.status) {
+        case 404:
+          errorMessage = `Recurso não encontrado: ${endpoint}`;
+          break;
+        case 401:
+          errorMessage = 'Não autorizado. Faça login novamente.';
+          break;
+        case 403:
+          errorMessage = 'Acesso negado. Você não tem permissão para acessar este recurso.';
+          break;
+        case 400:
+          errorMessage = 'Requisição inválida. Verifique os dados enviados.';
+          break;
+        case 500:
+        case 502:
+        case 503:
+          errorMessage = 'Erro interno do servidor. Tente novamente mais tarde.';
+          break;
+        default:
+          errorMessage = `Erro na requisição: ${response.status}`;
+      }
     }
     
     // Verificar se é um erro de CORS
@@ -87,6 +108,7 @@ const handleResponseError = async (response: Response, endpoint: string) => {
       throw new ApiError('Erro de conexão com o servidor. Possível problema de CORS.', response.status);
     }
     
+    console.error(`Erro ${response.status} ao acessar ${endpoint}: ${errorMessage}`);
     throw new ApiError(errorMessage, response.status);
   }
 };
@@ -119,10 +141,11 @@ export const apiGet = async <T>(endpoint: string, params?: QueryParams): Promise
     return response.json();
   } catch (error) {
     if (error instanceof ApiError) {
-      throw error;
+      throw error; // Preserva o erro original com seu status HTTP
     }
     console.error(`Erro ao fazer requisição GET para ${endpoint}:`, error);
-    throw new ApiError(`Falha ao obter dados de ${endpoint}`, 500);
+    // Erro genérico de rede ou outro erro não relacionado à resposta HTTP
+    throw new ApiError(`Falha na conexão ao tentar acessar ${endpoint}. Verifique sua conexão de rede.`, 0);
   }
 };
 
@@ -144,10 +167,11 @@ export const apiPost = async <T>(endpoint: string, data: any): Promise<T> => {
     return response.json();
   } catch (error) {
     if (error instanceof ApiError) {
-      throw error;
+      throw error; // Preserva o erro original com seu status HTTP
     }
     console.error(`Erro ao fazer requisição POST para ${endpoint}:`, error);
-    throw new ApiError(`Falha ao enviar dados para ${endpoint}`, 500);
+    // Erro genérico de rede ou outro erro não relacionado à resposta HTTP
+    throw new ApiError(`Falha na conexão ao tentar enviar dados para ${endpoint}. Verifique sua conexão de rede.`, 0);
   }
 };
 
@@ -169,10 +193,11 @@ export const apiPut = async <T>(endpoint: string, data: any): Promise<T> => {
     return response.json();
   } catch (error) {
     if (error instanceof ApiError) {
-      throw error;
+      throw error; // Preserva o erro original com seu status HTTP
     }
     console.error(`Erro ao fazer requisição PUT para ${endpoint}:`, error);
-    throw new ApiError(`Falha ao atualizar dados em ${endpoint}`, 500);
+    // Erro genérico de rede ou outro erro não relacionado à resposta HTTP
+    throw new ApiError(`Falha na conexão ao tentar atualizar dados em ${endpoint}. Verifique sua conexão de rede.`, 0);
   }
 };
 
@@ -193,10 +218,11 @@ export const apiDelete = async <T>(endpoint: string): Promise<T> => {
     return response.json();
   } catch (error) {
     if (error instanceof ApiError) {
-      throw error;
+      throw error; // Preserva o erro original com seu status HTTP
     }
     console.error(`Erro ao fazer requisição DELETE para ${endpoint}:`, error);
-    throw new ApiError(`Falha ao excluir dados em ${endpoint}`, 500);
+    // Erro genérico de rede ou outro erro não relacionado à resposta HTTP
+    throw new ApiError(`Falha na conexão ao tentar excluir dados em ${endpoint}. Verifique sua conexão de rede.`, 0);
   }
 };
 
