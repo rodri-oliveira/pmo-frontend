@@ -43,25 +43,12 @@ interface Recurso {
   matricula?: string;
 }
 
-// Dados mockados para desenvolvimento (quando a API não estiver disponível)
-const dadosMockRecursos: Recurso[] = [
-  { id: 1, nome: 'Ana Silva', email: 'ana.silva@example.com', matricula: '12345' },
-  { id: 2, nome: 'Bruno Costa', email: 'bruno.costa@example.com', matricula: '23456' },
-  { id: 3, nome: 'Carla Oliveira', email: 'carla.oliveira@example.com', matricula: '34567' },
-  { id: 4, nome: 'Daniel Santos', email: 'daniel.santos@example.com', matricula: '45678' },
-  { id: 5, nome: 'Elena Martins', email: 'elena.martins@example.com', matricula: '56789' },
-];
-
-const dadosMockDisponibilidade: RecursoDisponibilidade = {
-  recurso_id: 1,
-  nome_recurso: 'Ana Silva',
-  disponibilidade: [
-    { ano: 2023, mes: 1, horas_disponiveis: 160, horas_planejadas: 120, horas_apontadas: 110, saldo: 40 },
-    { ano: 2023, mes: 2, horas_disponiveis: 160, horas_planejadas: 140, horas_apontadas: 130, saldo: 20 },
-    { ano: 2023, mes: 3, horas_disponiveis: 160, horas_planejadas: 150, horas_apontadas: 145, saldo: 10 },
-    { ano: 2023, mes: 4, horas_disponiveis: 160, horas_planejadas: 130, horas_apontadas: 125, saldo: 30 },
-  ]
-};
+// Função para criar um objeto de disponibilidade vazio para um recurso
+const createEmptyDisponibilidade = (recursoId: number, nomeRecurso: string): RecursoDisponibilidade => ({
+  recurso_id: recursoId,
+  nome_recurso: nomeRecurso,
+  disponibilidade: []
+});
 
 // Função auxiliar para obter o nome do mês
 const getNomeMes = (numeroMes: number) => {
@@ -86,7 +73,6 @@ export default function HorasRecursoPage() {
     message: '',
     severity: 'info' as 'info' | 'success' | 'error' | 'warning'
   });
-  const [apiDisponivel, setApiDisponivel] = useState<boolean>(true);
 
   // Função para buscar recursos
   const fetchRecursos = async () => {
@@ -97,33 +83,16 @@ export default function HorasRecursoPage() {
       if (searchTerm) params.nome = searchTerm;
       
       const data = await apiGet<{ items: Recurso[], total: number }>('/recursos', params);
-      setRecursos(data.items || []);
-      setApiDisponivel(true);
+      setRecursos(data?.items || []);
     } catch (error) {
       console.error('Erro ao buscar recursos:', error);
+      setRecursos([]);
       
-      // Verifica se é um erro de CORS ou conexão
-      if (error instanceof ApiError && (error.message.includes('CORS') || error.status === 0)) {
-        console.warn('Usando dados mockados devido a problemas de conexão com a API');
-        setRecursos(dadosMockRecursos);
-        setApiDisponivel(false);
-        
-        setSnackbar({
-          open: true,
-          message: 'Usando dados de exemplo devido a problemas de conexão com o servidor.',
-          severity: 'warning'
-        });
-      } else {
-        // Garantir que recursos seja um array vazio em caso de erro
-        setRecursos([]);
-        setApiDisponivel(false);
-        
-        setSnackbar({
-          open: true,
-          message: 'Erro ao carregar recursos. Tente novamente.',
-          severity: 'error'
-        });
-      }
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar recursos. Tente novamente.',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -143,37 +112,32 @@ export default function HorasRecursoPage() {
       if (mesSelecionado !== '') params.mes = mesSelecionado;
       
       const data = await apiGet<RecursoDisponibilidade>(`/recursos/${recursoSelecionado}/disponibilidade`, params);
+      
+      // Garantir que a disponibilidade seja um array
+      if (data && !data.disponibilidade) {
+        data.disponibilidade = [];
+      }
+      
       setDadosDisponibilidade(data);
-      setApiDisponivel(true);
     } catch (error) {
       console.error('Erro ao buscar disponibilidade:', error);
       
-      // Verifica se é um erro de CORS ou conexão
-      if (error instanceof ApiError && (error.message.includes('CORS') || error.status === 0)) {
-        console.warn('Usando dados mockados devido a problemas de conexão com a API');
-        
-        // Ajusta os dados mockados para o recurso selecionado
-        const mockData = {
-          ...dadosMockDisponibilidade,
-          recurso_id: Number(recursoSelecionado),
-          nome_recurso: recursos.find(r => r.id === Number(recursoSelecionado))?.nome || 'Recurso'
-        };
-        
-        setDadosDisponibilidade(mockData);
-        setApiDisponivel(false);
-        
-        setSnackbar({
-          open: true,
-          message: 'Usando dados de exemplo devido a problemas de conexão com o servidor.',
-          severity: 'warning'
-        });
+      // Criar um objeto de disponibilidade vazio para o recurso selecionado
+      const recursoSelecionadoObj = recursos.find(r => r.id === Number(recursoSelecionado));
+      if (recursoSelecionadoObj) {
+        setDadosDisponibilidade(createEmptyDisponibilidade(
+          Number(recursoSelecionado),
+          recursoSelecionadoObj.nome
+        ));
       } else {
-        setSnackbar({
-          open: true,
-          message: 'Erro ao carregar dados de disponibilidade. Tente novamente.',
-          severity: 'error'
-        });
+        setDadosDisponibilidade(null);
       }
+      
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar dados de disponibilidade. Tente novamente.',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -237,12 +201,6 @@ export default function HorasRecursoPage() {
           <TimerIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
           Disponibilidade de Horas por Recurso
         </Typography>
-        
-        {!apiDisponivel && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            Atenção: Usando dados de exemplo para visualização. Alguns recursos da aplicação podem estar limitados.
-          </Alert>
-        )}
         
         <Paper sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
@@ -463,7 +421,7 @@ export default function HorasRecursoPage() {
               </Typography>
               
               <Grid container spacing={2} sx={{ mt: 1 }}>
-                {dadosDisponibilidade.disponibilidade.length > 0 && (
+              {dadosDisponibilidade && (dadosDisponibilidade.disponibilidade || []).length > 0 ? (
                   <>
                     <Grid item xs={12} sm={6} md={3}>
                       <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'rgba(0, 87, 157, 0.05)' }}>

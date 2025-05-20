@@ -1,744 +1,494 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Box, Typography, Paper, Button, TextField, Table, TableBody, 
-  TableCell, TableContainer, TableHead, TableRow, IconButton, 
-  Dialog, DialogActions, DialogContent, DialogTitle, Grid,
-  Snackbar, Alert, TablePagination, Chip, CircularProgress, 
-  FormControl, InputLabel, Select, MenuItem, SelectChangeEvent,
-  InputAdornment, Tabs, Tab, Divider, Link, Avatar
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  Box, Typography, Paper, Button, TextField, IconButton, Grid,
+  Snackbar, Alert, CircularProgress, FormControl, InputLabel, Select,
+  MenuItem, SelectChangeEvent, InputAdornment, Switch, FormControlLabel, Tooltip, Chip
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { ptBR } from 'date-fns/locale/pt-BR';
-import { format, parseISO } from 'date-fns';
+import {
+  DataGrid, GridColDef, GridActionsCellItem, GridPaginationModel, GridRowParams, GridValueGetter
+} from '@mui/x-data-grid';
+import {
+  getRecursos, createRecurso, updateRecurso, deleteRecurso, getEquipes,
+  Recurso, RecursoFormData, Equipe, RecursoListResponse, EquipeListResponse
+} from '../../../../services/recursos'; // Ajuste o caminho se necessário
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import FolderIcon from '@mui/icons-material/Folder';
-import CodeIcon from '@mui/icons-material/Code';
-import DescriptionIcon from '@mui/icons-material/Description';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import GroupAddIcon from '@mui/icons-material/GroupAdd';
-import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
-import AssessmentIcon from '@mui/icons-material/Assessment';
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt'; // Ícone para Recursos
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 
-interface StatusProjeto {
-  id: number;
-  nome: string;
-  is_final: boolean;
-}
+const initialFormData: RecursoFormData = {
+  nome: '',
+  email: '',
+  equipe_id: 0,
+  horas_diarias: 8,
+  jira_account_id: '',
+  ativo: true,
+};
 
-interface Projeto {
-  id: number;
-  nome: string;
-  codigo_empresa: string;
-  descricao: string;
-  jira_project_key?: string;
-  status_projeto_id: number;
-  status_projeto?: {
-    id: number;
-    nome: string;
-  };
-  data_inicio_prevista: string;
-  data_fim_prevista: string;
-  ativo: boolean;
-}
-
-interface ProjetoFormData {
-  nome: string;
-  codigo_empresa: string;
-  descricao: string;
-  jira_project_key?: string;
-  status_projeto_id: number;
-  data_inicio_prevista: Date | null;
-  data_fim_prevista: Date | null;
-  ativo?: boolean;
-}
-
-export default function ProjetosPage() {
-  const [projetos, setProjetos] = useState<Projeto[]>([]);
-  const [statusProjetos, setStatusProjetos] = useState<StatusProjeto[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function RecursosPage() {
+  const [recursos, setRecursos] = useState<Recurso[]>([]);
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
-  const [formData, setFormData] = useState<ProjetoFormData>({
-    nome: '',
-    codigo_empresa: '',
-    descricao: '',
-    jira_project_key: '',
-    status_projeto_id: 0,
-    data_inicio_prevista: null,
-    data_fim_prevista: null
-  });
+  const [formData, setFormData] = useState<RecursoFormData>(initialFormData);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<number>(0);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error'
-  });
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalItems, setTotalItems] = useState(0);
-  const [tabValue, setTabValue] = useState(0);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [equipeFilter, setEquipeFilter] = useState<number>(0); // 0 para 'Todas'
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 10 });
+  const [rowCount, setRowCount] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Função para buscar os status de projeto
-  const fetchStatusProjetos = async () => {
-    try {
-      // Em ambiente de produção, descomente:
-      // const response = await fetch('http://localhost:8000/backend/v1/status-projetos');
-      // const data = await response.json();
-      // setStatusProjetos(data.items);
-      
-      // Simulação para desenvolvimento
-      setTimeout(() => {
-        const mockStatusProjetos: StatusProjeto[] = [
-          { id: 1, nome: 'Não Iniciado', is_final: false },
-          { id: 2, nome: 'Em Andamento', is_final: false },
-          { id: 3, nome: 'Pausado', is_final: false },
-          { id: 4, nome: 'Concluído', is_final: true },
-          { id: 5, nome: 'Cancelado', is_final: true }
-        ];
-        setStatusProjetos(mockStatusProjetos);
-      }, 300);
-    } catch (error) {
-      console.error('Erro ao buscar status de projetos:', error);
+  const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') {
+      return;
     }
+    setSnackbar(prevSnackbar => ({ ...prevSnackbar, open: false }));
   };
 
-  // Função para buscar os projetos
-  const fetchProjetos = async () => {
-    setLoading(true);
+  const loadEquipes = useCallback(async () => {
     try {
-      const params = new URLSearchParams();
-      params.append('skip', String(page * rowsPerPage));
-      params.append('limit', String(rowsPerPage));
-      
-      if (searchTerm) {
-        params.append('nome', searchTerm);
+      const response = await getEquipes();
+      if (Array.isArray(response)) {
+        setEquipes(response || []);
+      } else {
+        setEquipes((response as EquipeListResponse).items || []);
       }
-      
-      if (statusFilter > 0) {
-        params.append('status_id', String(statusFilter));
-      }
-      
-      // Em ambiente de produção, descomente:
-      // const response = await fetch(`http://localhost:8000/backend/v1/projetos?${params}`);
-      // const data = await response.json();
-      // setProjetos(data.items);
-      // setTotalItems(data.total);
-      
-      // Simulação para desenvolvimento
-      setTimeout(() => {
-        const mockProjetos: Projeto[] = [
-          {
-            id: 1,
-            nome: 'Projeto A',
-            codigo_empresa: 'PRJ001',
-            descricao: 'Descrição do projeto A',
-            jira_project_key: 'PRJA',
-            status_projeto_id: 2,
-            status_projeto: {
-              id: 2,
-              nome: 'Em Andamento'
-            },
-            data_inicio_prevista: '2025-01-01',
-            data_fim_prevista: '2025-06-30',
-            ativo: true
-          },
-          {
-            id: 2,
-            nome: 'Projeto B',
-            codigo_empresa: 'PRJ002',
-            descricao: 'Descrição do projeto B',
-            jira_project_key: 'PRJB',
-            status_projeto_id: 1,
-            status_projeto: {
-              id: 1,
-              nome: 'Não Iniciado'
-            },
-            data_inicio_prevista: '2025-07-01',
-            data_fim_prevista: '2025-12-31',
-            ativo: true
-          },
-          {
-            id: 3,
-            nome: 'Projeto C',
-            codigo_empresa: 'PRJ003',
-            descricao: 'Descrição do projeto C',
-            jira_project_key: 'PRJC',
-            status_projeto_id: 4,
-            status_projeto: {
-              id: 4,
-              nome: 'Concluído'
-            },
-            data_inicio_prevista: '2024-10-01',
-            data_fim_prevista: '2025-03-31',
-            ativo: true
-          },
-          {
-            id: 4,
-            nome: 'Projeto D',
-            codigo_empresa: 'PRJ004',
-            descricao: 'Descrição do projeto D',
-            jira_project_key: 'PRJD',
-            status_projeto_id: 5,
-            status_projeto: {
-              id: 5,
-              nome: 'Cancelado'
-            },
-            data_inicio_prevista: '2024-11-01',
-            data_fim_prevista: '2025-04-30',
-            ativo: false
-          }
-        ].filter(projeto => {
-          let match = true;
-          if (searchTerm) {
-            match = match && (
-              projeto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              projeto.codigo_empresa.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-          }
-          if (statusFilter > 0) {
-            match = match && projeto.status_projeto_id === statusFilter;
-          }
-          return match;
-        });
-        
-        setProjetos(mockProjetos);
-        setTotalItems(mockProjetos.length);
-        setLoading(false);
-      }, 500);
     } catch (error) {
-      console.error('Erro ao buscar projetos:', error);
-      setSnackbar({
-        open: true,
-        message: 'Erro ao carregar projetos. Tente novamente.',
-        severity: 'error'
-      });
-      setLoading(false);
+      console.error('Erro ao buscar equipes:', error);
+      setEquipes([]); // Fallback para array vazio
+      setSnackbar({ open: true, message: 'Erro ao carregar equipes. Verifique a conexão ou tente mais tarde.', severity: 'error' });
     }
-  };
-
-  useEffect(() => {
-    fetchStatusProjetos();
   }, []);
 
-  useEffect(() => {
-    fetchProjetos();
-  }, [page, rowsPerPage, statusFilter]);
+  const loadRecursos = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {
+        skip: paginationModel.page * paginationModel.pageSize,
+        limit: paginationModel.pageSize,
+        nome: debouncedSearchTerm || undefined,
+        equipe_id: equipeFilter > 0 ? equipeFilter : undefined,
+      };
+      const data = await getRecursos(params);
+      setRecursos(data.items || []);
+      setRowCount(data.total || 0);
+    } catch (error) {
+      console.error('Erro ao buscar recursos:', error);
+      setRecursos([]); // Fallback para array vazio
+      setRowCount(0);
+      setSnackbar({ open: true, message: 'Erro ao carregar recursos. Verifique a conexão ou tente mais tarde.', severity: 'error' });
+    }
+    setLoading(false);
+  }, [paginationModel, debouncedSearchTerm, equipeFilter]);
 
-  // Efeito para buscar quando o termo de pesquisa muda (com debounce)
+  useEffect(() => {
+    loadEquipes();
+  }, [loadEquipes]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchProjetos();
+      setDebouncedSearchTerm(searchTerm);
     }, 500);
-    
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const handleOpenDialog = (projeto?: Projeto) => {
-    if (projeto) {
-      setFormData({
-        nome: projeto.nome,
-        codigo_empresa: projeto.codigo_empresa,
-        descricao: projeto.descricao,
-        jira_project_key: projeto.jira_project_key || '',
-        status_projeto_id: projeto.status_projeto_id,
-        data_inicio_prevista: parseISO(projeto.data_inicio_prevista),
-        data_fim_prevista: parseISO(projeto.data_fim_prevista),
-        ativo: projeto.ativo
-      });
-      setEditingId(projeto.id);
+  useEffect(() => {
+    loadRecursos();
+  }, [loadRecursos]); // paginationModel, debouncedSearchTerm, equipeFilter são dependências de loadRecursos
+
+  const handleOpenDialog = (id?: number) => {
+    if (id) {
+      const recurso = recursos.find(r => r.id === id);
+      if (recurso) {
+        setFormData({
+          nome: recurso.nome,
+          email: recurso.email,
+          equipe_id: recurso.equipe_id,
+          horas_diarias: recurso.horas_diarias,
+          jira_account_id: recurso.jira_account_id || '',
+          ativo: recurso.ativo,
+        });
+        setEditingId(id);
+      }
     } else {
-      setFormData({
-        nome: '',
-        codigo_empresa: '',
-        descricao: '',
-        jira_project_key: '',
-        status_projeto_id: 0,
-        data_inicio_prevista: null,
-        data_fim_prevista: null
-      });
+      setFormData(initialFormData);
       setEditingId(null);
     }
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
+    if (isSubmitting) return; // Impede fechar durante o submit
     setOpenDialog(false);
+    setEditingId(null);
+    setFormData(initialFormData);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<number | string>) => {
+    const target = event.target;
+    const name = (target as { name?: string }).name;
+    const value = (target as { value?: unknown }).value;
 
-  const handleSelectChange = (e: SelectChangeEvent<number>) => {
-    setFormData({
-      ...formData,
-      status_projeto_id: e.target.value as number
-    });
-  };
+    if (!name) {
+      return; // Segurança: nome deve estar presente
+    }
 
-  const handleFilterChange = (e: SelectChangeEvent<number>) => {
-    setStatusFilter(e.target.value as number);
-    setPage(0);
-  };
-
-  const handleStartDateChange = (date: Date | null) => {
-    setFormData({
-      ...formData,
-      data_inicio_prevista: date
-    });
-  };
-
-  const handleEndDateChange = (date: Date | null) => {
-    setFormData({
-      ...formData,
-      data_fim_prevista: date
-    });
-  };
-
-  const handleSubmit = async () => {
-    try {
-      // Preparar os dados para envio
-      const dataToSend = {
-        ...formData,
-        data_inicio_prevista: formData.data_inicio_prevista ? format(formData.data_inicio_prevista, 'yyyy-MM-dd') : undefined,
-        data_fim_prevista: formData.data_fim_prevista ? format(formData.data_fim_prevista, 'yyyy-MM-dd') : undefined
-      };
-      
-      if (editingId) {
-        // Editar projeto existente
-        // Em produção, descomente:
-        // await fetch(`http://localhost:8000/backend/v1/projetos/${editingId}`, {
-        //   method: 'PUT',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify(dataToSend)
-        // });
-        
-        // Simulação de sucesso
-        setSnackbar({
-          open: true,
-          message: 'Projeto atualizado com sucesso!',
-          severity: 'success'
-        });
+    if (target instanceof HTMLInputElement) {
+      if (target.type === 'checkbox') {
+        setFormData(prev => ({ ...prev, [name]: target.checked }));
+      } else if (name === 'horas_diarias') { // Campo de horas pode ser input number
+        setFormData(prev => ({ ...prev, [name]: Number(target.value) }));
       } else {
-        // Criar novo projeto
-        // Em produção, descomente:
-        // await fetch('http://localhost:8000/backend/v1/projetos', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify(dataToSend)
-        // });
-        
-        // Simulação de sucesso
-        setSnackbar({
-          open: true,
-          message: 'Projeto criado com sucesso!',
-          severity: 'success'
-        });
+        setFormData(prev => ({ ...prev, [name]: target.value }));
       }
-      
-      handleCloseDialog();
-      fetchProjetos();
-    } catch (error) {
-      console.error('Erro ao salvar projeto:', error);
-      setSnackbar({
-        open: true,
-        message: 'Erro ao salvar projeto. Tente novamente.',
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleDeleteProjeto = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja desativar este projeto?')) {
-      try {
-        // Em produção, descomente:
-        // await fetch(`http://localhost:8000/backend/v1/projetos/${id}`, {
-        //   method: 'DELETE'
-        // });
-        
-        // Simulação de sucesso
-        setSnackbar({
-          open: true,
-          message: 'Projeto desativado com sucesso!',
-          severity: 'success'
-        });
-        fetchProjetos();
-      } catch (error) {
-        console.error('Erro ao desativar projeto:', error);
-        setSnackbar({
-          open: true,
-          message: 'Erro ao desativar projeto. Tente novamente.',
-          severity: 'error'
-        });
+    } else if (target instanceof HTMLTextAreaElement) {
+      setFormData(prev => ({ ...prev, [name]: target.value }));
+    } else {
+      // Assume SelectChangeEvent para os demais casos na união de tipos
+      // O target de SelectChangeEvent é { name: string, value: unknown }
+      // O tipo de `value` aqui é `number | string` (do SelectChangeEvent<number | string>)
+      if (name === 'equipe_id') { // equipe_id é um Select
+        setFormData(prev => ({ ...prev, [name]: Number(value) }));
+      } else {
+        setFormData(prev => ({ ...prev, [name]: value as string | number }));
       }
     }
-  };
-
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  const handleChangeTab = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
   };
 
   const isFormValid = () => {
-    return (
-      formData.nome.trim() !== '' && 
-      formData.codigo_empresa.trim() !== '' && 
-      formData.status_projeto_id > 0 &&
-      formData.data_inicio_prevista !== null &&
-      formData.data_fim_prevista !== null
-    );
+    return formData.nome.trim() !== '' && formData.email.trim() !== '' && formData.equipe_id > 0 && formData.horas_diarias > 0;
   };
 
-  // Renderiza a cor baseada no status do projeto
-  const getStatusColor = (statusId: number) => {
-    switch (statusId) {
-      case 1: return 'info'; // Não Iniciado
-      case 2: return 'primary'; // Em Andamento
-      case 3: return 'warning'; // Pausado
-      case 4: return 'success'; // Concluído
-      case 5: return 'error'; // Cancelado
-      default: return 'default';
+  const handleSubmit = async () => {
+    if (!isFormValid()) {
+      setSnackbar({ open: true, message: 'Preencha todos os campos obrigatórios (Nome, Email, Equipe, Horas Diárias).', severity: 'error' });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      if (editingId) {
+        await updateRecurso(editingId, formData);
+        setSnackbar({ open: true, message: 'Recurso atualizado com sucesso!', severity: 'success' });
+      } else {
+        await createRecurso(formData);
+        setSnackbar({ open: true, message: 'Recurso criado com sucesso!', severity: 'success' });
+      }
+      handleCloseDialog();
+      loadRecursos(); // Recarrega para refletir mudanças e nova paginação/ordenação do backend
+    } catch (error: any) {
+      console.error('Erro ao salvar recurso:', error);
+      const errorMessage = error.response?.data?.detail || 'Erro ao salvar recurso!';
+      setSnackbar({ open: true, message: errorMessage, severity: 'error' });
+    }
+    setIsSubmitting(false);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Tem certeza que deseja excluir este recurso?')) {
+      setIsSubmitting(true);
+      try {
+        await deleteRecurso(id);
+        setSnackbar({ open: true, message: 'Recurso excluído com sucesso!', severity: 'success' });
+        // Ajustar rowCount e recarregar. Se a última linha da página for excluída, pode ser preciso voltar uma página.
+        const newRowCount = rowCount - 1;
+        if (recursos.length === 1 && paginationModel.page > 0 && newRowCount > 0) {
+            setPaginationModel(prev => ({ ...prev, page: prev.page -1}));
+        } else {
+            loadRecursos(); 
+        }
+        setRowCount(newRowCount); // Otimisticamente atualiza o rowCount
+      } catch (error: any) {
+        console.error('Erro ao excluir recurso:', error);
+        const errorMessage = error.response?.data?.detail || 'Erro ao excluir recurso!';
+        setSnackbar({ open: true, message: errorMessage, severity: 'error' });
+      }
+      setIsSubmitting(false);
     }
   };
 
+  const columns = useMemo<GridColDef<Recurso>[]>(() => [
+    { 
+      field: 'nome', 
+      headerName: 'Nome do Recurso', 
+      flex: 1.5, 
+      minWidth: 200,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <PeopleAltIcon sx={{ mr: 1, color: 'primary.main' }} />
+          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{params.value}</Typography>
+        </Box>
+      )
+    },
+    { field: 'email', headerName: 'Email', flex: 1.5, minWidth: 200 },
+    {
+      field: 'equipe_id',
+      headerName: 'Equipe',
+      flex: 1,
+      minWidth: 150,
+      valueGetter: (params) => params.row?.equipe_id,
+      renderCell: (params) => {
+        const equipe = equipes.find(e => e.id === params.value);
+        return equipe ? equipe.nome : 'N/A';
+      }
+    },
+    { field: 'horas_diarias', headerName: 'Horas/Dia', type: 'number', width: 120, align: 'center', headerAlign: 'center' },
+    {
+      field: 'ativo',
+      headerName: 'Ativo',
+      type: 'boolean',
+      width: 100,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => (
+        <Chip 
+            label={params.value ? 'Sim' : 'Não'} 
+            size="small" 
+            color={params.value ? 'success' : 'error'} 
+            variant='outlined'
+        />
+      )
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Ações',
+      width: 120,
+      align: 'center',
+      headerAlign: 'center',
+      getActions: (params: GridRowParams<Recurso>) => [
+        <GridActionsCellItem
+          icon={<Tooltip title="Editar"><EditIcon /></Tooltip>}
+          label="Editar"
+          onClick={() => handleOpenDialog(params.row.id)}
+          showInMenu={false}
+        />,
+        <GridActionsCellItem
+          icon={<Tooltip title="Excluir"><DeleteIcon sx={{ color: 'error.main' }} /></Tooltip>}
+          label="Excluir"
+          onClick={() => handleDelete(params.row.id)}
+          showInMenu={false}
+        />,
+      ],
+    },
+  ], [equipes, handleOpenDialog, handleDelete]); // Adicionado handleOpenDialog e handleDelete como dependências
+
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        <FolderIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-        Gerenciamento de Projetos
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 2, fontWeight: 'bold', color: 'primary.main' }}>
+        Gerenciamento de Recursos
       </Typography>
-      
-      <Paper sx={{ p: 2, mb: 2 }}>
+
+      <Paper sx={{ mb: 2, p: 2, borderRadius: 2, boxShadow: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4} md={5}>
+          <Grid item xs={12} sm={6} md={4}>
             <TextField
               fullWidth
-              label="Pesquisar projetos"
+              label="Buscar Recurso por Nome"
               variant="outlined"
-              size="small"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Nome ou código do projeto"
               InputProps={{
-                startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} />,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
               }}
+              size="small"
             />
           </Grid>
-          <Grid item xs={12} sm={4} md={3}>
-            <FormControl fullWidth size="small">
-              <InputLabel id="status-filter-label">Filtrar por Status</InputLabel>
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth variant="outlined" size="small">
+              <InputLabel>Equipe</InputLabel>
               <Select
-                labelId="status-filter-label"
-                value={statusFilter}
-                label="Filtrar por Status"
-                onChange={handleFilterChange}
+                name="equipeFilter"
+                value={equipeFilter}
+                onChange={(e) => setEquipeFilter(e.target.value as number)}
+                label="Equipe"
               >
-                <MenuItem value={0}>Todos os Status</MenuItem>
-                {statusProjetos.map((status) => (
-                  <MenuItem key={status.id} value={status.id}>{status.nome}</MenuItem>
+                <MenuItem value={0}><em>Todas</em></MenuItem>
+                {(equipes || []).map((eq) => (
+                  <MenuItem key={eq.id} value={eq.id}>{eq.nome}</MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={4} md={4} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
+          <Grid item xs={12} md={5} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: 1, mt: { xs: 1, md: 0 } }}>
             <Button
               variant="outlined"
               startIcon={<RefreshIcon />}
-              onClick={() => fetchProjetos()}
-              sx={{ mr: 1 }}
+              onClick={() => {
+                setSearchTerm('');
+                setEquipeFilter(0);
+                setPaginationModel({ page: 0, pageSize: paginationModel.pageSize }); // Mantém pageSize
+                // loadRecursos(); // Será chamado pelo useEffect devido à mudança de estado
+              }}
+              sx={{ height: '40px' }}
             >
-              Atualizar
+              Limpar Filtros
             </Button>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => handleOpenDialog()}
-              sx={{ backgroundColor: '#00579d' }}
+              sx={{ height: '40px' }}
             >
-              Novo Projeto
+              Novo Recurso
             </Button>
           </Grid>
         </Grid>
       </Paper>
-      
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-            <TableRow>
-              <TableCell width={50}><strong>ID</strong></TableCell>
-              <TableCell><strong>Nome</strong></TableCell>
-              <TableCell><strong>Código</strong></TableCell>
-              <TableCell><strong>Status</strong></TableCell>
-              <TableCell><strong>Início</strong></TableCell>
-              <TableCell><strong>Término</strong></TableCell>
-              <TableCell width={120} align="center"><strong>Ações</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                  <CircularProgress size={30} sx={{ color: '#00579d' }} />
-                  <Typography variant="body2" sx={{ mt: 1 }}>Carregando projetos...</Typography>
-                </TableCell>
-              </TableRow>
-            ) : projetos.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">Nenhum projeto encontrado</TableCell>
-              </TableRow>
-            ) : (
-              projetos.map((projeto) => (
-                <TableRow key={projeto.id} hover>
-                  <TableCell>{projeto.id}</TableCell>
-                  <TableCell>{projeto.nome}</TableCell>
-                  <TableCell>{projeto.codigo_empresa}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={projeto.status_projeto?.nome} 
-                      color={getStatusColor(projeto.status_projeto_id) as any}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>{new Date(projeto.data_inicio_prevista).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell>{new Date(projeto.data_fim_prevista).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell align="center">
-                    <IconButton 
-                      size="small" 
-                      color="primary" 
-                      onClick={() => handleOpenDialog(projeto)}
-                      sx={{ color: '#00579d' }}
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    {projeto.ativo && !statusProjetos.find(s => s.id === projeto.status_projeto_id)?.is_final && (
-                      <IconButton 
-                        size="small" 
-                        color="error" 
-                        onClick={() => handleDeleteProjeto(projeto.id)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={totalItems}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Linhas por página:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+
+      <Paper sx={{ height: 600, width: '100%', borderRadius: 2, boxShadow: 3 }}>
+        <DataGrid
+          rows={recursos || []} // Garantindo que seja sempre um array
+          columns={columns}
+          pagination
+          paginationMode="server"
+          pageSizeOptions={[5, 10, 25, 50]}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          rowCount={rowCount}
+          loading={loading}
+          disableRowSelectionOnClick
+          sx={{
+            border: 0,
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: 'primary.main',
+              color: 'common.white',
+              fontWeight: 'bold',
+            },
+            '& .MuiDataGrid-cell': {
+              borderBottom: '1px solid #e0e0e0',
+            },
+             '& .MuiDataGrid-footerContainer': {
+              borderTop: '1px solid #e0e0e0',
+            }
+          }}
+          localeText={{
+            noRowsLabel: 'Nenhum recurso encontrado.',
+            footerRowSelected: (count) => count !== 1 ? `${count} linhas selecionadas` : `${count} linha selecionada`,
+            // Traduções para paginação
+            footerPaginationRowsPerPage: 'Itens por página:',
+            footerPaginationFrom: 'de',
+            footerPaginationTo: 'até',
+            footerPaginationTotal: 'total',
+            footerPaginationOf: 'de',
+            // Adicione outras traduções de localeText aqui se necessário, por exemplo:
+            // filterOperatorContains: 'Contém',
+            // filterOperatorEquals: 'Igual a',
+            // filterOperatorStartsWith: 'Começa com',
+            // filterOperatorEndsWith: 'Termina com',
+            // filterOperatorIsEmpty: 'Está vazio',
+            // filterOperatorIsNotEmpty: 'Não está vazio',
+            // filterOperatorIsAnyOf: 'É qualquer um de',
+            // columnMenuLabel: 'Menu',
+            // columnMenuShowColumns: 'Mostrar colunas',
+            // columnMenuFilter: 'Filtrar',
+            // columnMenuHideColumn: 'Ocultar',
+            // columnMenuUnsort: 'Não classificar',
+            // columnMenuSortAsc: 'Classificar crescente',
+            // columnMenuSortDesc: 'Classificar decrescente',
+          }}
         />
-      </TableContainer>
-      
-      {/* Dialog para criar/editar projeto */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{editingId ? 'Editar Projeto' : 'Novo Projeto'}</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            name="nome"
-            label="Nome do Projeto"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={formData.nome}
-            onChange={handleInputChange}
-            required
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <FolderIcon />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ mb: 2, mt: 1 }}
-          />
-          
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+      </Paper>
+
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth disableEscapeKeyDown={isSubmitting}>
+        <DialogTitle sx={{ backgroundColor: 'primary.main', color: 'common.white' }}>
+          {editingId ? 'Editar Recurso' : 'Novo Recurso'}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Grid container spacing={2.5}>
+            <Grid item xs={12}>
               <TextField
-                margin="dense"
-                name="codigo_empresa"
-                label="Código do Projeto"
-                type="text"
+                autoFocus
+                name="nome"
+                label="Nome do Recurso"
                 fullWidth
                 variant="outlined"
-                value={formData.codigo_empresa}
-                onChange={handleInputChange}
+                value={formData.nome}
+                onChange={handleChange}
+                required
+                error={!formData.nome.trim()}
+                helperText={!formData.nome.trim() ? "Nome é obrigatório" : ""}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                name="email"
+                label="Email"
+                type="email"
+                fullWidth
+                variant="outlined"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                error={!formData.email.trim() || !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/g.test(formData.email)}
+                helperText={!formData.email.trim() ? "Email é obrigatório" : (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/g.test(formData.email) ? "Email inválido" : "")}
+              />
+            </Grid>
+            <Grid item xs={12} sm={8}>
+              <FormControl fullWidth variant="outlined" required error={formData.equipe_id === 0}>
+                <InputLabel>Equipe</InputLabel>
+                <Select
+                  name="equipe_id"
+                  value={formData.equipe_id || ''}
+                  onChange={handleChange}
+                  label="Equipe"
+                >
+                  <MenuItem value={0}><em>Nenhuma / Todas</em></MenuItem>
+                  {(equipes || []).map((equipe) => (
+                    <MenuItem key={equipe.id} value={equipe.id}>
+                      {equipe.nome}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                name="horas_diarias"
+                label="Horas/Dia"
+                type="number"
+                fullWidth
+                variant="outlined"
+                value={formData.horas_diarias}
+                onChange={handleChange}
                 required
                 InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <CodeIcon />
-                    </InputAdornment>
-                  ),
+                  inputProps: { min: 0.5, step: 0.5 }
                 }}
-                sx={{ mb: 2 }}
+                error={formData.horas_diarias <= 0}
+                helperText={formData.horas_diarias <= 0 ? "Horas devem ser > 0" : ""}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} sm={8}>
               <TextField
-                margin="dense"
-                name="jira_project_key"
-                label="Chave do Projeto no Jira (opcional)"
-                type="text"
+                name="jira_account_id"
+                label="Jira Account ID (Opcional)"
                 fullWidth
                 variant="outlined"
-                value={formData.jira_project_key}
-                onChange={handleInputChange}
-                sx={{ mb: 2 }}
+                value={formData.jira_account_id}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={<Switch checked={formData.ativo} onChange={(e) => setFormData({...formData, ativo: e.target.checked})} name="ativo" />}
+                label={formData.ativo ? "Recurso Ativo" : "Recurso Inativo"}
               />
             </Grid>
           </Grid>
-          
-          <TextField
-            margin="dense"
-            name="descricao"
-            label="Descrição do Projeto"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={formData.descricao}
-            onChange={handleInputChange}
-            multiline
-            rows={3}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <DescriptionIcon />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ mb: 2 }}
-          />
-          
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel id="status-select-label">Status do Projeto</InputLabel>
-            <Select
-              labelId="status-select-label"
-              name="status_projeto_id"
-              value={formData.status_projeto_id}
-              label="Status do Projeto"
-              onChange={handleSelectChange}
-              required
-            >
-              <MenuItem value={0} disabled>Selecione um status</MenuItem>
-              {statusProjetos.map((status) => (
-                <MenuItem key={status.id} value={status.id}>{status.nome}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
-                <DatePicker 
-                  label="Data de Início Prevista"
-                  value={formData.data_inicio_prevista}
-                  onChange={handleStartDateChange}
-                  format="dd/MM/yyyy"
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      margin: 'dense',
-                      required: true,
-                      InputProps: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <CalendarMonthIcon />
-                          </InputAdornment>
-                        ),
-                      }
-                    }
-                  }}
-                />
-              </LocalizationProvider>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
-                <DatePicker 
-                  label="Data de Término Prevista"
-                  value={formData.data_fim_prevista}
-                  onChange={handleEndDateChange}
-                  format="dd/MM/yyyy"
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      margin: 'dense',
-                      required: true,
-                      InputProps: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <CalendarMonthIcon />
-                          </InputAdornment>
-                        ),
-                      }
-                    }
-                  }}
-                />
-              </LocalizationProvider>
-            </Grid>
-          </Grid>
-          
-          {editingId && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                Status:
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                <Button 
-                  variant={formData.ativo === true ? "contained" : "outlined"}
-                  color="success"
-                  onClick={() => setFormData({...formData, ativo: true})}
-                  size="small"
-                >
-                  Ativo
-                </Button>
-                <Button 
-                  variant={formData.ativo === false ? "contained" : "outlined"}
-                  color="error"
-                  onClick={() => setFormData({...formData, ativo: false})}
-                  size="small"
-                >
-                  Inativo
-                </Button>
-              </Box>
-            </Box>
-          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancelar</Button>

@@ -8,6 +8,23 @@ export interface AlocacaoParams {
   searchTerm?: string;
 }
 
+export interface RecursoResponse {
+  items: {
+    id: number;
+    nome: string;
+    email?: string;
+    matricula?: string;
+  }[];
+}
+
+export interface ProjetoResponse {
+  items: {
+    id: number;
+    nome: string;
+    codigo_empresa: string;
+  }[];
+}
+
 export const getAlocacoes = (params: AlocacaoParams = {}) => {
   const queryParams = new URLSearchParams();
   if (params.projeto_id) queryParams.append('projeto_id', params.projeto_id.toString());
@@ -33,7 +50,7 @@ export const getRecursos = (searchTerm = '') => {
   queryParams.append('ativo', 'true');
   if (searchTerm) queryParams.append('nome', searchTerm);
   
-  return apiGet(`/recursos?${queryParams.toString()}`);
+  return apiGet<RecursoResponse>(`/recursos?${queryParams.toString()}`);
 };
 
 export const getProjetos = (searchTerm = '') => {
@@ -41,5 +58,5 @@ export const getProjetos = (searchTerm = '') => {
   queryParams.append('ativo', 'true');
   if (searchTerm) queryParams.append('nome', searchTerm);
   
-  return apiGet(`/projetos?${queryParams.toString()}`);
+  return apiGet<ProjetoResponse>(`/projetos?${queryParams.toString()}`);
 }; 
