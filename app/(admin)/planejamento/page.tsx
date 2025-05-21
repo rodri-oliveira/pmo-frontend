@@ -1,27 +1,46 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Box, Typography, Paper, Button, TextField, Table, TableBody, 
-  TableCell, TableContainer, TableHead, TableRow, IconButton, 
-  Grid, Snackbar, Alert, CircularProgress, FormControl, 
-  InputLabel, Select, MenuItem, Chip, Divider, Autocomplete,
-  SelectChangeEvent
-} from '@mui/material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { ptBR } from 'date-fns/locale/pt-BR';
-import SaveIcon from '@mui/icons-material/Save';
-import SearchIcon from '@mui/icons-material/Search';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import PersonIcon from '@mui/icons-material/Person';
-import FolderIcon from '@mui/icons-material/Folder';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import EventAvailableIcon from '@mui/icons-material/EventAvailable';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import { apiGet, ApiError, QueryParams } from '@/services/api';
-import { getRecursos, getProjetos } from '@/services/alocacoes';
-import { planejamentoHoras } from '@/services/projetos';
+import React, { useState, useEffect } from "react";
+import {
+  Box,
+  Typography,
+  Paper,
+  Button,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Grid,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
+  Divider,
+  Autocomplete,
+  SelectChangeEvent,
+} from "@mui/material";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { ptBR } from "date-fns/locale/pt-BR";
+import SaveIcon from "@mui/icons-material/Save";
+import SearchIcon from "@mui/icons-material/Search";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import PersonIcon from "@mui/icons-material/Person";
+import FolderIcon from "@mui/icons-material/Folder";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import { apiGet, ApiError, QueryParams } from "@/services/api";
+import { getRecursos, getProjetos } from "@/services/alocacoes";
+import { planejamentoHoras } from "@/services/projetos";
 
 // Interfaces
 interface Recurso {

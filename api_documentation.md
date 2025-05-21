@@ -1,205 +1,335 @@
-﻿# Guia de Integração Front-end com API PMO
+﻿# Guia Consolidado de Integração Front-end com API PMO (Revisado)
 
-Este guia descreve como as telas do front-end podem interagir com os endpoints da API do Sistema de Gestão de Projetos PMO, com foco nos campos de dados e requisitos. A **URL Base** da API é `/backend/v1`.
+## Visão Geral
+
+Este documento descreve como as telas do front-end devem interagir com os endpoints da API do Sistema de Gestão de Projetos e Melhorias da WEG (PMO). Ele consolida informações da especificação da API e de um guia de integração anterior, com correções baseadas na estrutura final do banco de dados.
+
+**URL Base da API**: `/backend/v1` [cite: 1]
 
 ## Autenticação 🔑
 
-* **Tela de Login:**
-    * **Rota Sugerida:** `/login`
-    * **Objetivo:** Autenticar o usuário no sistema.
-    * **Endpoint da API:** `POST /token`
-    * **Dados para Enviar (Front-end -> Back-end):**
-        * `username` (string, **obrigatório**)
-        * `password` (string, **obrigatório**)
-    * **Dados a Receber (Back-end -> Front-end em caso de sucesso):**
-        * `access_token` (string)
-        * `token_type` (string, ex: "bearer")
-    * **Lógica Front-end:**
-        * Coletar `username` e `password`.
-        * Enviar para `POST /token`.
-        * Em caso de sucesso (200 OK), armazenar o `access_token` de forma segura (ex: LocalStorage, Vuex, Redux state) e incluí-lo nos cabeçalhos das requisições subsequentes como `Authorization: Bearer <access_token>`.
-        * Em caso de falha (401 Unauthorized), exibir mensagem de erro apropriada.
+A API utiliza autenticação via token OAuth2. Todos os endpoints (exceto o webhook do Jira, se aplicável) requerem autenticação[cite: 1].
+
+### Tela de Login
+
+* **Rota Sugerida no Front-end:** `/login`
+* **Objetivo:** Autenticar o usuário no sistema.
+* **Endpoint da API Principal:** `POST /auth/token` (ou `POST /token` - verificar a implementação final) [cite: 1]
+* **Corpo da Requisição (application/x-www-form-urlencoded):**
+    * `username` (string, **obrigatório**): O e-mail do usuário[cite: 1].
+    * `password` (string, **obrigatório**)[cite: 1].
+* **Resposta de Sucesso (200 OK):** [cite: 1]
+    ```json
+    {
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "token_type": "bearer"
+    }
+    ```
+* **Lógica Front-end:**
+    * Coletar `username` (e-mail) e `password`.
+    * Enviar para o endpoint de autenticação.
+    * Em caso de sucesso (200 OK), armazenar o `access_token` de forma segura e incluí-lo nos cabeçalhos `Authorization: Bearer <access_token>` das requisições subsequentes.
+    * Tratar respostas de erro (ex: 401 Unauthorized para credenciais inválidas ou usuário inativo)[cite: 1].
+
+### Tela de Criação de Usuário (Administração)
+
+* **Rota Sugerida no Front-end:** `/admin/usuarios/criar`
+* **Objetivo:** Permitir que um administrador crie novas contas de usuário.
+* **Endpoint da API Principal:** `POST /usuarios` [cite: 1]
+* **Autenticação:** Requer Bearer Token JWT de um usuário com `role` "ADMIN"[cite: 1].
+* **Corpo da Requisição (application/json - Schema: `UserCreate`):** [cite: 1]
+    ```json
+    {
+      "email": "novo.usuario@example.com",
+      "nome": "Novo Usuário de Teste",
+      "password": "senhaSegura123",
+      "role": "RECURSO",
+      "recurso_id": 10,
+      "ativo": true
+    }
+    ```
+* **Campos da Requisição:**
+    * `email` (string, formato de email, **obrigatório**)[cite: 1].
+    * `nome` (string, **obrigatório**)[cite: 1].
+    * `password` (string, mínimo 8 caracteres, **obrigatório**)[cite: 1].
+    * `role` (string enum: "ADMIN", "GESTOR", "RECURSO" - *conforme seu ENUM `userrole`*, **obrigatório**)[cite: 1].
+    * `recurso_id` (integer, opcional): ID do `recurso` associado (se aplicável)[cite: 1].
+    * `ativo` (boolean, opcional, default: `true`)[cite: 1].
+* **Resposta de Sucesso (200 OK - Schema: `UserBase`):** [cite: 1]
+    ```json
+    {
+      "email": "novo.usuario@example.com",
+      "nome": "Novo Usuário de Teste",
+      "role": "RECURSO",
+      "recurso_id": 10,
+      "ativo": true
+    }
+    ```
+* **Respostas de Erro:**
+    * `400 Bad Request`: E-mail já em uso ou dados inválidos (ex: senha curta)[cite: 1].
+    * `401 Unauthorized`: Token JWT ausente, inválido ou expirado[cite: 1].
+    * `403 Forbidden`: Usuário autenticado não é administrador[cite: 1].
+
+---
+## Gerenciamento de Seções (Entidade `secao`)
+
+* **Rota Sugerida no Front-end:** `/secoes`
+* **Endpoints da API:**
+    * Listar: `GET /secoes/`[cite: 1].
+    * Criar: `POST /secoes/`[cite: 1].
+    * Obter por ID: `GET /secoes/{secao_id}`[cite: 1].
+    * Atualizar: `PUT /secoes/{secao_id}`[cite: 1].
+    * Excluir: `DELETE /secoes/{secao_id}`[cite: 1].
+* **Corpo da Requisição para Criar (Schema `SecaoCreateDTO`):** [cite: 1]
+    * `nome` (string, **obrigatório**).
+    * `descricao` (string, opcional).
+* **Corpo da Requisição para Atualizar (Schema `SecaoUpdateDTO`):** [cite: 1]
+    * `nome` (string, opcional).
+    * `descricao` (string, opcional).
+    * `ativo` (boolean, opcional).
+* **Resposta (Schema `SecaoDTO`):** [cite: 1]
+    * `id` (integer).
+    * `nome` (string).
+    * `descricao` (string, opcional).
+    * `ativo` (boolean).
+    * `data_criacao` (datetime).
+    * `data_atualizacao` (datetime).
+* **Lógica Front-end (Listagem):** Permitir filtros por `apenas_ativos` e paginação (`skip`, `limit`)[cite: 1].
+
+---
+## Gerenciamento de Equipes (Entidade `equipe`)
+
+* **Rota Sugerida no Front-end:** `/equipes`
+* **Endpoints da API:**
+    * Listar: `GET /equipes/`[cite: 1].
+    * Criar: `POST /equipes/`[cite: 1].
+    * Obter por ID: `GET /equipes/{equipe_id}`[cite: 1].
+    * Atualizar: `PUT /equipes/{equipe_id}`[cite: 1].
+    * Excluir: `DELETE /equipes/{equipe_id}`[cite: 1].
+* **Corpo da Requisição para Criar (Schema `EquipeCreateDTO`):** [cite: 1]
+    * `nome` (string, **obrigatório**).
+    * `secao_id` (integer, **obrigatório**) - *Dropdown populado por `GET /secoes/`*.
+    * `descricao` (string, opcional).
+* **Corpo da Requisição para Atualizar (Schema `EquipeUpdateDTO`):** [cite: 1]
+    * `nome` (string, opcional).
+    * `descricao` (string, opcional).
+    * `secao_id` (integer, opcional).
+    * `ativo` (boolean, opcional).
+* **Resposta (Schema `EquipeDTO`):** [cite: 1]
+    * `id` (integer).
+    * `nome` (string).
+    * `descricao` (string, opcional).
+    * `secao_id` (integer).
+    * `ativo` (boolean).
+    * `data_criacao` (datetime).
+    * `data_atualizacao` (datetime).
+* **Lógica Front-end (Listagem):** Permitir filtros por `apenas_ativos`, `secao_id` e paginação (`skip`, `limit`)[cite: 1].
 
 ---
 ## Gerenciamento de Recursos 🧑‍💼 (Entidade `recurso`)
 
-* **Tela de Listagem/Cadastro de Recursos:**
-    * **Rota Sugerida:** `/recursos`
-    * **Objetivo:** Listar, criar e (potencialmente) editar/visualizar recursos.
-    * **Endpoints da API:**
-        * Listar: `GET /recursos/`
-        * Criar: `POST /recursos/`
-        * Obter por ID: `GET /recursos/{recurso_id}` (para visualizar/editar)
-        * Atualizar: `PUT /recursos/{recurso_id}` (para salvar edições)
-    * **Dados para Criar Novo Recurso (Front-end -> Back-end via `POST /recursos/`):**
-        * `nome` (string, **obrigatório**)
-        * `email` (string, **obrigatório**)
-        * `equipe_id` (integer, **obrigatório**) - *Front-end deve permitir selecionar de uma lista de equipes (`GET /equipes/`)*.
-        * `horas_diarias` (number, **obrigatório**)
-        * `jira_account_id` (string, opcional)
-        * `ativo` (boolean, opcional, default: `true`)
-        * *(Outros campos do modelo `Recurso` da API podem ser incluídos conforme necessidade, como `usuario_id`, `custo_hora`)*
-    * **Lógica Front-end (Criação/Edição):**
-        * Formulário com os campos acima.
-        * Validação dos campos obrigatórios.
-        * Dropdown para `equipe_id` populado via `GET /equipes/`.
-        * Ao submeter, enviar para `POST /recursos/` (criar) ou `PUT /recursos/{recurso_id}` (atualizar).
-    * **Lógica Front-end (Listagem):**
-        * Chamar `GET /recursos/`.
-        * Exibir a lista de recursos em uma tabela/cards.
-        * Permitir filtros (ex: por `nome`, `equipe_id`, `ativo`) conforme os parâmetros da API.
-    * **Campos a Exibir na Listagem (exemplos):** `nome`, `email`, `equipe_nome` (se a API retornar), `ativo`.
+* **Rota Sugerida no Front-end:** `/recursos`
+* **Endpoints da API:**
+    * Listar: `GET /recursos/`[cite: 1].
+    * Criar: `POST /recursos/`[cite: 1].
+    * Obter por ID: `GET /recursos/{recurso_id}`[cite: 1].
+    * Atualizar: `PUT /recursos/{recurso_id}`[cite: 1].
+    * Excluir: `DELETE /recursos/{recurso_id}`[cite: 1].
+* **Corpo da Requisição para Criar (Schema `RecursoCreateDTO` - campos conforme DB):**
+    * `nome` (string, **obrigatório**).
+    * `email` (string, formato email, **obrigatório**).
+    * `equipe_principal_id` (integer, opcional) - *Dropdown populado por `GET /equipes/`*.
+    * `matricula` (string, opcional).
+    * `cargo` (string, opcional).
+    * `jira_user_id` (string, opcional).
+    * `data_admissao` (date, opcional, formato "YYYY-MM-DD").
+    * `ativo` (boolean, **obrigatório** - *pois `NOT NULL` no DB, a API deve ter um default ou exigir*).
+* **Corpo da Requisição para Atualizar (Schema `RecursoUpdateDTO` - campos conforme DB):**
+    * Todos os campos acima são opcionais para atualização.
+* **Resposta (Schema `RecursoDTO` - campos conforme DB):**
+    * `id` (integer).
+    * `nome` (string).
+    * `email` (string).
+    * `equipe_principal_id` (integer, opcional).
+    * `matricula` (string, opcional).
+    * `cargo` (string, opcional).
+    * `jira_user_id` (string, opcional).
+    * `data_admissao` (date, opcional).
+    * `ativo` (boolean).
+    * `data_criacao` (datetime).
+    * `data_atualizacao` (datetime).
+* **Lógica Front-end (Listagem):** Permitir filtros por `apenas_ativos`, `equipe_id` e paginação (`skip`, `limit`)[cite: 1].
+
+---
+## Gerenciamento de Status de Projetos (Entidade `status_projeto`)
+
+* **Rota Sugerida no Front-end:** `/admin/status-projetos`
+* **Endpoints da API:**
+    * Listar: `GET /status-projetos/`[cite: 1].
+    * Criar: `POST /status-projetos/`[cite: 1].
+    * Obter por ID: `GET /status-projetos/{status_id}`[cite: 1].
+    * Atualizar: `PUT /status-projetos/{status_id}`[cite: 1].
+    * Excluir: `DELETE /status-projetos/{status_id}`[cite: 1].
+* **Corpo da Requisição para Criar (Schema `StatusProjetoCreateDTO`):** [cite: 1]
+    * `nome` (string, **obrigatório**).
+    * `descricao` (string, opcional).
+    * `is_final` (boolean, opcional, default: `false`).
+    * `ordem_exibicao` (integer, opcional).
+* **Resposta (Schema `StatusProjetoDTO`):** [cite: 1]
+    * `id` (integer).
+    * `nome` (string).
+    * `descricao` (string, opcional).
+    * `is_final` (boolean).
+    * `ordem_exibicao` (integer, opcional).
+    * `data_criacao` (datetime).
+    * `data_atualizacao` (datetime).
+* **Lógica Front-end (Listagem):** Permitir paginação (`skip`, `limit`)[cite: 1].
 
 ---
 ## Gerenciamento de Projetos 🏗️ (Entidade `projeto`)
 
-* **Tela de Listagem/Cadastro de Projetos:**
-    * **Rota Sugerida:** `/projetos`
-    * **Objetivo:** Listar, criar e (potencialmente) editar/visualizar projetos.
-    * **Endpoints da API:**
-        * Listar: `GET /projetos/`
-        * Criar: `POST /projetos/`
-        * Obter por ID: `GET /projetos/{projeto_id}`
-        * Atualizar: `PUT /projetos/{projeto_id}`
-    * **Dados para Criar/Atualizar Projeto (Front-end -> Back-end via `POST` ou `PUT`):**
-        * `nome` (string, **obrigatório** para criar, opcional para atualizar)
-        * `status_projeto_id` (integer, **obrigatório** para criar, opcional para atualizar) - *Dropdown populado por `GET /status-projetos/`*.
-        * `jira_project_key` (string, opcional)
-        * `codigo_empresa` (string, opcional)
-        * `descricao` (string, opcional)
-        * `data_inicio` (date, "YYYY-MM-DD", opcional)
-        * `data_fim` (date, "YYYY-MM-DD", opcional)
-        * *(Outros campos do modelo `Projeto` da API, como `ativo`, `orcamento_total`, etc., podem ser incluídos)*
-    * **Lógica Front-end (Criação/Edição):**
-        * Formulário com os campos acima.
-        * Dropdown para `status_projeto_id` populado via `GET /status-projetos/`.
-        * Calendários para seleção de datas.
-    * **Lógica Front-end (Listagem):**
-        * Chamar `GET /projetos/`.
-        * Exibir lista. Permitir filtros por `nome`, `status_projeto`, `ativo`.
-    * **Campos a Exibir na Listagem (exemplos):** `nome`, `status_projeto_nome` (se a API retornar), `data_inicio`, `data_fim`, `ativo`.
+* **Rota Sugerida no Front-end:** `/projetos`
+* **Endpoints da API:**
+    * Listar: `GET /projetos/`[cite: 1].
+    * Criar: `POST /projetos/`[cite: 1].
+    * Obter por ID: `GET /projetos/{projeto_id}`[cite: 1].
+    * Atualizar: `PUT /projetos/{projeto_id}`[cite: 1].
+    * Excluir: `DELETE /projetos/{projeto_id}`[cite: 1].
+* **Corpo da Requisição para Criar (Schema `ProjetoCreateSchema` - campos conforme DB):**
+    * `nome` (string, **obrigatório**).
+    * `status_projeto_id` (integer, **obrigatório**) - *Dropdown populado por `GET /status-projetos/`*.
+    * `ativo` (boolean, **obrigatório** - *pois `NOT NULL` no DB, a API deve ter um default ou exigir*).
+    * `codigo_empresa` (string, opcional).
+    * `descricao` (text, opcional).
+    * `jira_project_key` (string, opcional).
+    * `data_inicio_prevista` (date, opcional, formato "YYYY-MM-DD").
+    * `data_fim_prevista` (date, opcional, formato "YYYY-MM-DD").
+* **Resposta (Schema `ProjetoDTO` - campos conforme DB):**
+    * `id` (integer).
+    * `nome` (string).
+    * `status_projeto_id` (integer).
+    * `codigo_empresa` (string, opcional).
+    * `descricao` (text, opcional).
+    * `jira_project_key` (string, opcional).
+    * `data_inicio_prevista` (date, opcional).
+    * `data_fim_prevista` (date, opcional).
+    * `ativo` (boolean).
+    * `data_criacao` (datetime).
+    * `data_atualizacao` (datetime).
+* **Lógica Front-end (Listagem):** Permitir filtros por `status_projeto`, `apenas_ativos` e paginação (`skip`, `limit`)[cite: 1].
 
 ---
 ## Alocações de Recursos em Projetos 🔗 (Entidade `alocacao_recurso_projeto`)
 
-* **Tela de Gerenciamento de Alocações:**
-    * **Rota Sugerida:** `/alocacoes` (geral) ou `/projetos/{projeto_id}/alocacoes` (específico do projeto) ou `/recursos/{recurso_id}/alocacoes` (específico do recurso).
-    * **Objetivo:** Alocar recursos a projetos, definir o período e o esforço.
-    * **Endpoints da API:**
-        * Listar: `GET /alocacoes/` (pode ser filtrado por `recurso_id`, `projeto_id`, etc.)
-        * Criar: `POST /alocacoes/`
-        * Obter por ID: `GET /alocacoes/{alocacao_id}`
-        * Atualizar: `PUT /alocacoes/{alocacao_id}`
-    * **Dados para Criar/Atualizar Alocação (Front-end -> Back-end via `POST` ou `PUT`):**
-        * `recurso_id` (integer, **obrigatório** para criar) - *Dropdown populado por `GET /recursos/`*.
-        * `projeto_id` (integer, **obrigatório** para criar) - *Dropdown populado por `GET /projetos/`*.
-        * `data_inicio` (date, "YYYY-MM-DD", **obrigatório** para criar)
-        * `data_fim` (date, "YYYY-MM-DD", **obrigatório** para criar)
-        * `percentual_alocacao` (number, **obrigatório** para criar)
-        * `horas_alocadas` (number, **obrigatório** para criar)
-    * **Lógica Front-end:**
-        * Formulário com seleção de recurso, projeto e os campos de data e esforço.
-        * Validações para garantir que `data_fim` seja posterior a `data_inicio`.
-    * **Campos a Exibir na Listagem (exemplos):** `recurso_nome`, `projeto_nome` (se a API retornar), `data_inicio`, `data_fim`, `percentual_alocacao`.
+* **Rota Sugerida no Front-end:** `/alocacoes` ou integrada.
+* **Endpoints da API:**
+    * Listar: `GET /alocacoes/`[cite: 1].
+    * Criar: `POST /alocacoes/`[cite: 1].
+    * Obter por ID: `GET /alocacoes/{alocacao_id}`[cite: 1].
+    * Atualizar: `PUT /alocacoes/{alocacao_id}`[cite: 1].
+    * Excluir: `DELETE /alocacoes/{alocacao_id}`[cite: 1].
+* **Corpo da Requisição para Criar (campos conforme DB):**
+    * `recurso_id` (integer, **obrigatório**) - *Dropdown populado por `GET /recursos/`*.
+    * `projeto_id` (integer, **obrigatório**) - *Dropdown populado por `GET /projetos/`*.
+    * `data_inicio_alocacao` (date, **obrigatório**, formato "YYYY-MM-DD").
+    * `data_fim_alocacao` (date, opcional, formato "YYYY-MM-DD").
+* **Resposta (campos conforme DB, mais nomes agregados se API fornecer):**
+    * `id` (integer).
+    * `recurso_id` (integer).
+    * `projeto_id` (integer).
+    * `data_inicio_alocacao` (date).
+    * `data_fim_alocacao` (date, opcional).
+    * `data_criacao` (datetime).
+    * `data_atualizacao` (datetime).
+    * `recurso_nome` (string, opcional).
+    * `projeto_nome` (string, opcional).
+* **Lógica Front-end (Listagem):** Permitir filtros por `recurso_id`, `projeto_id`, `data_inicio`, `data_fim`[cite: 1].
 
 ---
 ## Planejamento de Horas Mensal 🗓️ (Entidade `horas_planejadas_alocacao`)
 
-* **Tela de Planejamento de Horas:** (Esta tela seria idealmente acessada no contexto de uma *Alocação específica*).
-    * **Rota Sugerida:** `/alocacoes/{alocacao_id}/planejamento-horas`
-    * **Objetivo:** Detalhar ou visualizar, para uma alocação existente, quantas horas são planejadas por mês.
-    * **Endpoints da API:**
-        * Listar: `GET /planejamento-horas/?alocacao_id={alocacao_id}`
-        * *(A API Swagger não detalha `POST`/`PUT` para `planejamento-horas`. Assumindo que o back-end oferece um endpoint para criar/atualizar esses planejamentos, por exemplo, `POST /planejamento-horas/` ou `PUT /planejamento-horas/{planejamento_id}`)*.
-    * **Dados para Criar/Atualizar Planejamento (Front-end -> Back-end - hipotético):**
-        * `alocacao_id` (integer, **obrigatório**)
-        * `ano` (integer, **obrigatório**)
-        * `mes` (integer, **obrigatório**)
-        * `horas_planejadas` (number, **obrigatório**)
-    * **Lógica Front-end (Visualização/Edição):**
-        * Ao visualizar uma alocação, esta tela/componente seria carregada.
-        * Chamar `GET /planejamento-horas/` filtrando por `alocacao_id`.
-        * Exibir uma grade/lista com `ano`, `mes` e `horas_planejadas`.
-        * Permitir adicionar novos planejamentos mensais ou editar existentes (ex: uma tabela onde cada linha é um mês/ano e as horas podem ser inseridas/editadas). A submissão de cada linha/novo item chamaria o endpoint `POST` ou `PUT` apropriado.
+* **Rota Sugerida no Front-end:** `/alocacoes/{alocacao_id}/planejamento` ou integrada.
+* **Endpoints da API:**
+    * Listar por Alocação: `GET /planejamento-horas/alocacao/{alocacao_id}`[cite: 1].
+    * Listar por Recurso e Período: `GET /planejamento-horas/recurso/{recurso_id}`[cite: 1].
+    * Criar/Atualizar: `POST /planejamento-horas/`[cite: 1].
+    * Excluir: `DELETE /planejamento-horas/{planejamento_id}`[cite: 1].
+* **Corpo da Requisição para Criar/Atualizar (Schema `PlanejamentoHorasCreate`):** [cite: 1]
+    * `alocacao_id` (integer, **obrigatório**).
+    * `ano` (integer, **obrigatório**).
+    * `mes` (integer, **obrigatório**, 1-12).
+    * `horas_planejadas` (number, float, **obrigatório**).
+* **Resposta (Schema `PlanejamentoHorasResponse`):** [cite: 1]
+    * `id` (integer).
+    * `alocacao_id` (integer).
+    * `projeto_id` (integer, readOnly).
+    * `recurso_id` (integer, readOnly).
+    * `ano` (integer).
+    * `mes` (integer).
+    * `horas_planejadas` (number, float).
 
 ---
 ## Apontamentos de Horas ⏱️ (Entidade `apontamento`)
 
-Conforme o menu lateral (`image_c85c02.png`): "Consultar/Gerenciar" e "Criar Apontamento Manual".
-
-* **Tela de Consulta/Gerenciamento de Apontamentos:**
-    * **Rota Sugerida:** `/apontamentos` ou `/apontamentos/consulta`
-    * **Objetivo:** Listar e filtrar apontamentos de horas.
-    * **Endpoint da API:** `GET /apontamentos/`
-    * **Lógica Front-end:**
-        * Permitir filtros por `recurso_id`, `projeto_id`, `data_inicio`, `data_fim`.
-        * Exibir os resultados em uma tabela.
-        * **Campos a Exibir (exemplos, baseados no modelo `Apontamento` da API):** `recurso_nome` (ou ID), `projeto_nome` (ou ID), `data_apontamento`, `horas_apontadas`, `descricao`, `jira_issue_key`.
-
-* **Tela de Criação Manual de Apontamento:**
-    * **Rota Sugerida:** `/apontamentos/criar`
-    * **Objetivo:** Permitir que um usuário crie um apontamento manualmente.
-    * **Endpoint da API:** `POST /apontamentos/` (Assumindo que este endpoint existe, conforme modelo `Apontamento` da API e necessidade).
-    * **Dados para Criar Novo Apontamento Manual (Front-end -> Back-end):**
-        * `recurso_id` (integer, **obrigatório**) - *Dropdown populado por `GET /recursos/`*.
-        * `projeto_id` (integer, **obrigatório**) - *Dropdown populado por `GET /projetos/`*.
-        * `alocacao_id` (integer, opcional mas recomendado) - *Dropdown de alocações do recurso no projeto*.
-        * `data` (date, "YYYY-MM-DD", **obrigatório** - referente a `data_apontamento` da tabela)
-        * `horas_apontadas` (number, **obrigatório**)
-        * `jira_issue_key` (string, opcional)
-        * `descricao` (string, opcional)
-        * `fonte_apontamento` (string, ENUM, ex: 'MANUAL', **obrigatório**)
-    * **Lógica Front-end:**
-        * Formulário para preenchimento dos dados.
-        * Ao selecionar Recurso e Projeto, o dropdown de `alocacao_id` poderia ser filtrado para mostrar apenas alocações ativas daquele recurso naquele projeto.
+* **Rota Sugerida no Front-end:** `/apontamentos` (listar), `/apontamentos/criar` (criar manualmente).
+* **Endpoints da API:**
+    * Listar: `GET /apontamentos/`[cite: 1].
+    * Criar Manual: `POST /apontamentos/` (Schema `ApontamentoCreateSchema`)[cite: 1].
+    * Obter por ID: `GET /apontamentos/{apontamento_id}`[cite: 1].
+    * Atualizar Manual: `PUT /apontamentos/{apontamento_id}` (Schema `ApontamentoUpdateSchema`)[cite: 1].
+    * Excluir Manual: `DELETE /apontamentos/{apontamento_id}`[cite: 1].
+    * Agregações: `GET /apontamentos/agregacoes`[cite: 1].
+* **Corpo da Requisição para Criar Manual (Schema `ApontamentoCreateSchema` - campos conforme DB):**
+    * `recurso_id` (integer, **obrigatório**) - *Dropdown de recursos*.
+    * `projeto_id` (integer, **obrigatório**) - *Dropdown de projetos*.
+    * `data_apontamento` (date, **obrigatório**, formato "YYYY-MM-DD").
+    * `horas_apontadas` (number, **obrigatório**, >0 e <=24).
+    * `fonte_apontamento` (string, **obrigatório**, ENUM: "MANUAL", "JIRA" - *conforme seu ENUM*).
+    * `jira_worklog_id` (string, opcional).
+    * `jira_issue_key` (string, opcional, max 50).
+    * `data_hora_inicio_trabalho` (datetime, opcional, formato "YYYY-MM-DDTHH:MM:SS").
+    * `descricao` (text, opcional).
+    * `id_usuario_admin_criador` (integer, opcional) - *API pode preencher com usuário logado.*
+    * `data_sincronizacao_jira` (datetime, opcional).
+* **Resposta (Schema `ApontamentoResponseSchema` - campos conforme DB):** [cite: 1]
+    * Todos os campos da tabela `apontamento`.
+* **Lógica Front-end (Listagem):** Permitir filtros avançados conforme `api_swagger.md` (ex: `recurso_id`, `projeto_id`, `data_inicio`, `data_fim`, `fonte_apontamento`, etc.) e paginação (`skip`, `limit`)[cite: 1].
 
 ---
 ## Capacidade RH / Horas Disponíveis por Recurso 📊 (Entidade `horas_disponiveis_rh`)
 
-Baseado na tela `image_c8549b.png` e no menu lateral.
-
-* **Tela de Gerenciamento de Horas Disponíveis:**
-    * **Rota Sugerida:** `/capacidade-rh/horas-recurso` (ou similar, como no seu exemplo de URL).
-    * **Objetivo:** Definir e consultar as horas disponíveis de um recurso para um determinado mês/ano.
-    * **Endpoints da API:** *(A API Swagger não detalha explicitamente endpoints para `horas_disponiveis_rh`. Seriam necessários `GET` para consultar e `POST`/`PUT` para definir/atualizar. Ex: `GET /recursos/{recurso_id}/horas-disponiveis?ano=AAAA&mes=MM` e `POST /recursos/{recurso_id}/horas-disponiveis`)*.
-    * **Dados para Definir/Atualizar Horas Disponíveis (Front-end -> Back-end - hipotético):**
-        * `recurso_id` (integer, **obrigatório**) - *Selecionado no dropdown "Pesquisar recurso"*.
-        * `ano` (integer, **obrigatório**) - *Selecionado no dropdown "Ano"*.
-        * `mes` (integer, **obrigatório**) - *Selecionado no dropdown "Mês"*.
-        * `horas_disponiveis_mes` (number, **obrigatório**) - *Campo para inserir/atualizar horas*.
-    * **Lógica Front-end:**
-        * Dropdowns para selecionar `Recurso`, `Ano` e `Mês` conforme a imagem.
-        * Ao selecionar os três filtros, fazer uma chamada `GET` (hipotética) para buscar as `horas_disponiveis_mes` atuais para esses parâmetros e exibir no campo apropriado.
-        * Permitir a edição do valor e, ao clicar em um botão "Salvar" ou "Atualizar", enviar os dados para o endpoint `POST` ou `PUT` correspondente.
-
----
-## Telas de Apoio (Dropdowns) 🗂️
-
-* **Equipes:**
-    * **Endpoint:** `GET /equipes/`
-    * **Uso no Front-end:** Popular dropdowns de seleção de equipe (ex: no cadastro de Recursos).
-    * **Campos para Dropdown:** `id`, `nome`.
-* **Seções:**
-    * **Endpoint:** `GET /secoes/`
-    * **Uso no Front-end:** Popular dropdowns (ex: no cadastro de Equipes, se houver um CRUD dedicado para Equipes).
-    * **Campos para Dropdown:** `id`, `nome`.
-* **Status de Projetos:**
-    * **Endpoint:** `GET /status-projetos/`
-    * **Uso no Front-end:** Popular dropdowns na criação/edição de Projetos.
-    * **Campos para Dropdown:** `id`, `nome`.
+* **Rota Sugerida no Front-end:** `/capacidade-rh/horas-recurso` (baseado no menu e tela fornecida)
+* **Objetivo:** Definir e consultar as horas disponíveis de um recurso para um determinado mês/ano.
+* **Endpoints da API (Hipotéticos - Precisam ser definidos na API Swagger):**
+    * Consultar: `GET /horas-disponiveis-rh/?recurso_id={id}&ano={ano}&mes={mes}`
+    * Criar/Atualizar: `POST /horas-disponiveis-rh/` (ou PUT se for para um registro específico)
+* **Dados para Envio (Front-end -> Back-end - Hipotético, campos conforme DB):**
+    * `recurso_id` (integer, **obrigatório**).
+    * `ano` (smallint, **obrigatório**).
+    * `mes` (integer, **obrigatório**, 1-12).
+    * `horas_disponiveis_mes` (numeric, **obrigatório**).
+* **Lógica Front-end:**
+    * Dropdowns para selecionar `Recurso`, `Ano` e `Mês`.
+    * Ao selecionar, buscar dados via GET.
+    * Permitir edição e salvar via POST/PUT.
 
 ---
 ## Relatórios 📈
 
-* **Tela de Relatório de Alocação:**
-    * **Rota Sugerida:** `/relatorios/alocacao`
-    * **Endpoint da API:** `GET /relatorios/alocacao`
-    * **Lógica Front-end (Campos para o usuário preencher/selecionar):**
-        * `ano` (select/input, **obrigatório**)
-        * `mes` (select/input, opcional)
-        * `formato` (select: 'pdf', 'excel', 'csv', opcional)
-    * **Interação:** Ao solicitar o relatório, fazer a chamada GET ao endpoint com os parâmetros selecionados. O back-end deve retornar o arquivo ou um link para download.
+* **Rota Sugerida no Front-end:** `/relatorios/*` (uma sub-rota para cada tipo de relatório)
+* **Endpoints da API:**
+    * `GET /relatorios/horas-apontadas`[cite: 1].
+    * `GET /relatorios/comparativo-planejado-realizado`[cite: 1].
+    * `GET /relatorios/horas-por-projeto`[cite: 1].
+    * `GET /relatorios/horas-por-recurso`[cite: 1].
+    * `GET /relatorios/planejado-vs-realizado`[cite: 1].
+    * `GET /relatorios/disponibilidade-recursos`[cite: 1].
+* **Lógica Front-end:**
+    * Para cada relatório, apresentar os filtros de query relevantes (ex: `ano`, `mes`, `recurso_id`, etc.)[cite: 1].
+    * Ao solicitar, fazer a chamada GET com os parâmetros.
+    * Exibir os dados recebidos em tabelas ou gráficos.
+* **Referência API Completa:** `api_swagger.md` (Seção "Relatórios").
 
 ---
 
-Este documento Markdown deve servir como um bom ponto de partida. Ele pode ser expandido com mais detalhes sobre validações específicas do front-end, estados de tela (loading, erro), e fluxos de usuário mais complexos conforme o desenvolvimento avança.
+**Nota Final:** Este guia consolidado visa ser a principal referência prática para o desenvolvimento front-end. Para detalhes exaustivos de cada endpoint, todos os possíveis códigos de erro, e a especificação técnica completa, a equipe de front-end deve sempre consultar a documentação oficial da API (`api_swagger.md` ou a versão mais atualizada disponível). É crucial que a documentação Swagger seja mantida em sincronia com o back-end.

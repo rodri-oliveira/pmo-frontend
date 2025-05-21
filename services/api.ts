@@ -65,52 +65,52 @@ const buildUrl = (endpoint: string, params?: QueryParams) => {
   return path;
 };
 
-// Função para lidar com erros de resposta
-const handleResponseError = async (response: Response, endpoint: string) => {
-  if (!response.ok) {
-    // Tentar obter detalhes do erro da resposta JSON, se disponível
-    let errorMessage = '';
-    let errorData = null;
-    
-    try {
-      errorData = await response.json();
-      if (errorData && errorData.message) {
-        errorMessage = errorData.message;
-      }
-    } catch (e) {
-      // Se não conseguir ler o JSON, usa a mensagem baseada no status
-      switch (response.status) {
-        case 404:
-          errorMessage = `Recurso não encontrado: ${endpoint}`;
-          break;
-        case 401:
-          errorMessage = 'Não autorizado. Faça login novamente.';
-          break;
-        case 403:
-          errorMessage = 'Acesso negado. Você não tem permissão para acessar este recurso.';
-          break;
-        case 400:
-          errorMessage = 'Requisição inválida. Verifique os dados enviados.';
-          break;
-        case 500:
-        case 502:
-        case 503:
-          errorMessage = 'Erro interno do servidor. Tente novamente mais tarde.';
-          break;
-        default:
-          errorMessage = `Erro na requisição: ${response.status}`;
+// Função para lidar com erros de resposta e lançar ApiError
+const handleAndThrowApiError = async (response: Response, endpoint: string) => {
+  let errorMessage = `Erro ${response.status} ao acessar ${endpoint}.`;
+  let errorDetails: any = null; // Para armazenar o corpo do erro, se houver
+
+  try {
+    // Tenta ler o corpo da resposta como texto primeiro
+    const text = await response.text(); // Consumir o corpo da resposta aqui
+
+    if (text) {
+      try {
+        // Tenta parsear como JSON
+        errorDetails = JSON.parse(text);
+        if (errorDetails && errorDetails.detail) {
+          // Formata mensagens de erro do FastAPI (que podem ser um array ou string)
+          errorMessage = Array.isArray(errorDetails.detail)
+            ? errorDetails.detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ')
+            : String(errorDetails.detail);
+        } else if (errorDetails && errorDetails.message) {
+          errorMessage = String(errorDetails.message);
+        } else if (typeof errorDetails === 'string') {
+            errorMessage = errorDetails;
+        } else if (text) {
+          // Se o parse JSON falhar ou não tiver 'detail'/'message', mas houver texto, usa o texto.
+          errorMessage = text;
+        }
+      } catch (jsonError) {
+        // Se não for JSON, usa o texto diretamente como mensagem de erro
+        errorMessage = text;
       }
     }
-    
-    // Verificar se é um erro de CORS
-    if (response.status === 0 || response.type === 'opaque' || response.status === 520) {
-      console.error('Possível erro de CORS detectado:', endpoint);
-      throw new ApiError('Erro de conexão com o servidor. Possível problema de CORS.', response.status);
-    }
-    
-    console.error(`Erro ${response.status} ao acessar ${endpoint}: ${errorMessage}`);
-    throw new ApiError(errorMessage, response.status);
+  } catch (e) {
+    // Se houver erro ao ler o corpo da resposta (ex: já consumido ou problema de rede no stream)
+    console.error(`Falha ao ler corpo da resposta de erro para ${endpoint}:`, e);
+    // Mantém a mensagem de erro baseada no status HTTP se o corpo não puder ser lido
   }
+
+  // Verificar se é um erro de CORS (status 0 pode indicar isso em alguns navegadores/cenários)
+  if (response.status === 0) {
+    console.error('Possível erro de CORS detectado:', endpoint, response);
+    // Fornece uma mensagem mais específica para CORS ou problemas de rede
+    throw new ApiError('Erro de conexão com o servidor. Verifique o console para detalhes (pode ser CORS ou rede).', 0);
+  }
+
+  console.error(`Erro ${response.status} ao acessar ${endpoint}: ${errorMessage}`, errorDetails || '(sem corpo de erro detalhado)');
+  throw new ApiError(errorMessage, response.status);
 };
 
 // Configuração padrão para requisições
@@ -126,103 +126,195 @@ const authHeaders = () => ({
 
 // Função genérica para requisições GET
 export const apiGet = async <T>(endpoint: string, params?: QueryParams): Promise<T> => {
+  const url = buildUrl(endpoint, params); // buildUrl já faz console.log da URL construída
   try {
-    const url = buildUrl(endpoint, params);
-    
     const response = await fetch(url, {
       method: 'GET',
-      headers: authHeaders(),
-      credentials: 'include', // Alterado para 'include' para permitir cookies cross-origin quando necessário
-      mode: 'cors' // Explicitamente definindo o modo como 'cors'
+      headers: authHeaders(), // authHeaders já inclui 'Content-Type': 'application/json' se necessário, mas GET não envia corpo JSON
+      credentials: 'include',
+      mode: 'cors'
     });
-    
-    await handleResponseError(response, endpoint);
-    
-    return response.json();
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error; // Preserva o erro original com seu status HTTP
+
+    if (!response.ok) {
+      // A função handleAndThrowApiError sempre lançará um erro, então não há retorno dela.
+      await handleAndThrowApiError(response, url);
+      // A linha abaixo nunca será alcançada devido ao throw em handleAndThrowApiError
+      return Promise.reject(new ApiError(`Erro inesperado após handleAndThrowApiError para ${url}`, response.status));
     }
-    console.error(`Erro ao fazer requisição GET para ${endpoint}:`, error);
-    // Erro genérico de rede ou outro erro não relacionado à resposta HTTP
-    throw new ApiError(`Falha na conexão ao tentar acessar ${endpoint}. Verifique sua conexão de rede.`, 0);
+
+    if (response.status === 204) { // No Content
+      return null as T; // Retorna null para tipo T, adequado para respostas 204
+    }
+
+    // Tenta obter o corpo como JSON. Se falhar ou não for JSON, tratar como erro ou texto.
+    const responseText = await response.text();
+    if (!responseText) { // Corpo vazio, mas status OK (ex: 200 com corpo vazio)
+        return null as T;
+    }
+
+    try {
+        return JSON.parse(responseText);
+    } catch (e) {
+        // Se a resposta for OK, mas não for JSON (ex: HTML de erro inesperado, ou texto puro)
+        // Se T for string, podemos retornar o texto diretamente:
+        // if (typeof '' === typeof {} as T) { return responseText as T; }
+        console.warn(`Resposta OK para ${url} mas não é JSON. Content-Type: ${response.headers.get('content-type')}. Corpo:`, responseText.substring(0, 200));
+        // Decide se deve lançar um erro ou retornar o texto.
+        // Por segurança, se o tipo esperado T não for string, e a resposta não for JSON, é um problema.
+        // Se T PODE ser string, você pode querer `return responseText as T;` aqui.
+        // Para agora, vamos ser estritos: se esperávamos JSON (implícito por T não ser string), e não é, lançamos erro.
+        throw new ApiError(`Resposta inesperada do servidor (formato não JSON) para ${url}. Conteúdo: ${responseText.substring(0,100)}`, response.status);
+    }
+
+  } catch (error) { // Captura erros de rede (fetch falhou) ou ApiError já lançado
+    if (error instanceof ApiError) {
+      throw error; // Re-lança ApiError
+    }
+    // Erro de rede ou outro erro não pego pelo fetch ou handleAndThrowApiError
+    console.error(`Erro crítico na requisição GET para ${url}:`, error);
+    throw new ApiError(`Falha na conexão ao tentar acessar ${url}. Verifique sua conexão e o console.`, 0); // Status 0 para erro de rede/cliente
   }
 };
 
 // Função genérica para requisições POST
 export const apiPost = async <T>(endpoint: string, data: any): Promise<T> => {
+  const url = buildUrl(endpoint);
   try {
-    const url = buildUrl(endpoint);
-    
     const response = await fetch(url, {
       method: 'POST',
-      headers: authHeaders(),
-      credentials: 'include', // Alterado para 'include'
-      mode: 'cors', // Explicitamente definindo o modo como 'cors'
+      headers: authHeaders(), // authHeaders() já inclui 'Content-Type': 'application/json'
+      credentials: 'include',
+      mode: 'cors',
       body: JSON.stringify(data),
     });
+
+    if (!response.ok) {
+      await handleAndThrowApiError(response, url);
+      return Promise.reject(new ApiError(`Erro inesperado após handleAndThrowApiError para ${url}`, response.status));
+    }
+
+    // Tratar casos de sucesso com corpo vazio ou sem JSON
+    if (response.status === 204) { // No Content
+      return null as T;
+    }
+    // Status 201 Created pode ou não ter corpo. Se não tiver content-length ou for 0, tratar como null.
+    const contentLength = response.headers.get('content-length');
+    if (response.status === 201 && (!contentLength || contentLength === '0')) {
+        return null as T;
+    }
     
-    await handleResponseError(response, endpoint);
-    
-    return response.json();
+    const responseText = await response.text();
+    if (!responseText && (response.status === 200 || response.status === 201)) { // OK/Created mas corpo vazio
+        return null as T;
+    }
+
+    try {
+        if(responseText) return JSON.parse(responseText);
+        return null as T; // Caso de responseText ser vazio mas não coberto acima
+    } catch (e) {
+        console.warn(`Resposta OK (POST) para ${url} mas não é JSON. Status: ${response.status}, Corpo: ${responseText.substring(0,200)}`);
+        // Se T puder ser string e a resposta for texto, retorne o texto.
+        // Ex: if (typeof responseText === typeof ({} as T)) return responseText as T;
+        throw new ApiError(`Resposta inesperada do servidor (formato não JSON) para ${url}. Conteúdo: ${responseText.substring(0,100)}`, response.status);
+    }
+
   } catch (error) {
     if (error instanceof ApiError) {
-      throw error; // Preserva o erro original com seu status HTTP
+      throw error;
     }
-    console.error(`Erro ao fazer requisição POST para ${endpoint}:`, error);
-    // Erro genérico de rede ou outro erro não relacionado à resposta HTTP
-    throw new ApiError(`Falha na conexão ao tentar enviar dados para ${endpoint}. Verifique sua conexão de rede.`, 0);
+    console.error(`Erro crítico na requisição POST para ${url}:`, error);
+    throw new ApiError(`Falha na conexão ao tentar enviar dados para ${url}. Verifique sua conexão e o console.`, 0);
   }
 };
 
 // Função genérica para requisições PUT
 export const apiPut = async <T>(endpoint: string, data: any): Promise<T> => {
+  const url = buildUrl(endpoint);
   try {
-    const url = buildUrl(endpoint);
-    
     const response = await fetch(url, {
       method: 'PUT',
       headers: authHeaders(),
-      credentials: 'include', // Alterado para 'include'
-      mode: 'cors', // Explicitamente definindo o modo como 'cors'
+      credentials: 'include',
+      mode: 'cors',
       body: JSON.stringify(data),
     });
+
+    if (!response.ok) {
+      await handleAndThrowApiError(response, url);
+      return Promise.reject(new ApiError(`Erro inesperado após handleAndThrowApiError para ${url}`, response.status));
+    }
+
+    if (response.status === 204) { // No Content
+      return null as T;
+    }
     
-    await handleResponseError(response, endpoint);
-    
-    return response.json();
+    const responseText = await response.text();
+    if (!responseText && response.status === 200) { // OK mas corpo vazio
+        return null as T;
+    }
+
+    try {
+        if(responseText) return JSON.parse(responseText);
+        return null as T;
+    } catch (e) {
+        console.warn(`Resposta OK (PUT) para ${url} mas não é JSON. Status: ${response.status}, Corpo: ${responseText.substring(0,200)}`);
+        throw new ApiError(`Resposta inesperada do servidor (formato não JSON) para ${url}. Conteúdo: ${responseText.substring(0,100)}`, response.status);
+    }
+
   } catch (error) {
     if (error instanceof ApiError) {
-      throw error; // Preserva o erro original com seu status HTTP
+      throw error;
     }
-    console.error(`Erro ao fazer requisição PUT para ${endpoint}:`, error);
-    // Erro genérico de rede ou outro erro não relacionado à resposta HTTP
-    throw new ApiError(`Falha na conexão ao tentar atualizar dados em ${endpoint}. Verifique sua conexão de rede.`, 0);
+    console.error(`Erro crítico na requisição PUT para ${url}:`, error);
+    throw new ApiError(`Falha na conexão ao tentar atualizar dados em ${url}. Verifique sua conexão e o console.`, 0);
   }
 };
 
 // Função genérica para requisições DELETE
 export const apiDelete = async <T>(endpoint: string): Promise<T> => {
+  const url = buildUrl(endpoint);
   try {
-    const url = buildUrl(endpoint);
-    
     const response = await fetch(url, {
       method: 'DELETE',
-      headers: authHeaders(),
-      credentials: 'include', // Alterado para 'include'
-      mode: 'cors', // Explicitamente definindo o modo como 'cors'
+      headers: authHeaders(), // DELETE não costuma ter 'Content-Type' no request header, mas authHeaders pode incluir
+      credentials: 'include',
+      mode: 'cors'
     });
+
+    if (!response.ok) {
+      await handleAndThrowApiError(response, url);
+      return Promise.reject(new ApiError(`Erro inesperado após handleAndThrowApiError para ${url}`, response.status));
+    }
+
+    // DELETE frequentemente retorna 204 No Content, ou às vezes 200 OK com corpo (ou 202 Accepted)
+    if (response.status === 204) {
+      return null as T;
+    }
     
-    await handleResponseError(response, endpoint);
-    
-    return response.json();
+    const responseText = await response.text();
+    // Se status for OK (200, 202) e não houver corpo, retorna null
+    if (!responseText && (response.status === 200 || response.status === 202)) {
+        return null as T;
+    }
+
+    try {
+        // Tenta parsear como JSON se houver texto
+        if(responseText) return JSON.parse(responseText);
+        // Se não havia texto e não era 204, ainda retorna null para consistência com casos de sucesso sem corpo
+        return null as T;
+    } catch (e) {
+        console.warn(`Resposta OK (DELETE) para ${url} mas não é JSON ou corpo inesperado. Status: ${response.status}, Corpo: ${responseText.substring(0,200)}`);
+        // Se T puder ser string, e a resposta for texto (mesmo que não JSON), pode retornar o texto
+        // Ex: if (typeof responseText === typeof ({} as T)) return responseText as T;
+        throw new ApiError(`Resposta inesperada do servidor (formato não JSON ou corpo inesperado) para ${url}. Conteúdo: ${responseText.substring(0,100)}`, response.status);
+    }
+
   } catch (error) {
     if (error instanceof ApiError) {
-      throw error; // Preserva o erro original com seu status HTTP
+      throw error;
     }
-    console.error(`Erro ao fazer requisição DELETE para ${endpoint}:`, error);
-    // Erro genérico de rede ou outro erro não relacionado à resposta HTTP
-    throw new ApiError(`Falha na conexão ao tentar excluir dados em ${endpoint}. Verifique sua conexão de rede.`, 0);
+    console.error(`Erro crítico na requisição DELETE para ${url}:`, error);
+    throw new ApiError(`Falha na conexão ao tentar deletar em ${url}. Verifique sua conexão e o console.`, 0);
   }
 };
 
