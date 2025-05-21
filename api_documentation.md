@@ -10,6 +10,8 @@ Este documento descreve como as telas do front-end devem interagir com os endpoi
 
 A API utiliza autenticação via token OAuth2. Todos os endpoints (exceto o webhook do Jira, se aplicável) requerem autenticação[cite: 1].
 
+### Adaptar os métodos de busca para aceitar array direto ou { items: [...] } (padrão defensivo).
+
 ### Tela de Login
 
 * **Rota Sugerida no Front-end:** `/login`
