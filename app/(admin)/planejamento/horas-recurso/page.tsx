@@ -5,7 +5,8 @@ import {
   Box, Typography, Paper, Button, TextField, Table, TableBody, 
   TableCell, TableContainer, TableHead, TableRow, IconButton, 
   Grid, Snackbar, Alert, CircularProgress, FormControl, 
-  InputLabel, Select, MenuItem, Chip, Divider, InputAdornment
+  InputLabel, Select, MenuItem, Chip, Divider, InputAdornment,
+  Autocomplete
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -124,11 +125,24 @@ export default function HorasRecursoPage() {
   const handleFiltroRecursoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFiltroRecurso(e.target.value);
   };
-  const handleRecursoSelecionadoChange = (e: any) => {
-    setRecursoSelecionado(e.target.value);
+  const handleRecursoSelecionadoChange = (e: React.SyntheticEvent, newValue: Recurso | null | string) => {
+    if (typeof newValue === 'string') {
+      // Usuário digitou um texto e pressionou Enter
+      setFiltroRecurso(newValue);
+      setRecursoSelecionado('');
+    } else {
+      // Usuário selecionou um item da lista
+      setRecursoSelecionado(newValue?.id || '');
+    }
   };
-  const handleProjetoSelecionadoChange = (e: any) => {
-    setProjetoSelecionado(e.target.value);
+  const handleProjetoSelecionadoChange = (e: React.SyntheticEvent, newValue: {id: number, nome: string} | null | string) => {
+    if (typeof newValue === 'string') {
+      // Usuário digitou um texto e pressionou Enter
+      setProjetoSelecionado('');
+    } else {
+      // Usuário selecionou um item da lista
+      setProjetoSelecionado(newValue?.id || '');
+    }
   };
   const handleAnoSelecionadoChange = (e: any) => {
     setAnoSelecionado(e.target.value);
@@ -372,52 +386,81 @@ export default function HorasRecursoPage() {
         </Typography>
         
         <Paper sx={{ p: 2, mb: 3 }}>
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={12} sm={6} md={2}>
-              <TextField
-                label="Pesquisar recurso"
-                variant="outlined"
-                fullWidth
-                value={filtroRecurso}
-                onChange={handleFiltroRecursoChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  )
+          <Grid container spacing={3} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Autocomplete
+                options={recursos || []}
+                getOptionLabel={(option) => typeof option === 'object' && option !== null ? option.nome || '' : String(option)}
+                value={null}
+                onChange={handleRecursoSelecionadoChange}
+                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                freeSolo
+                filterOptions={(options, state) => {
+                  const filtered = options.filter(option => 
+                    typeof option === 'object' && option !== null && option.nome && 
+                    option.nome.toLowerCase().includes(state.inputValue.toLowerCase())
+                  );
+                  return filtered;
                 }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Recurso"
+                    variant="outlined"
+                    placeholder="Digite o nome do recurso"
+                    fullWidth
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <InputAdornment position="start">
+                            <PersonIcon />
+                          </InputAdornment>
+                          {params.InputProps.startAdornment}
+                        </>
+                      )
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    {option.nome}
+                  </li>
+                )}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth>
-                <InputLabel>Recurso</InputLabel>
-                <Select
-                  value={recursoSelecionado}
-                  label="Recurso"
-                  onChange={handleRecursoSelecionadoChange}
-                >
-                  {(recursos || []).map(recurso => (
-                    <MenuItem key={recurso.id} value={recurso.id}>{recurso.nome}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            <Grid item xs={12} sm={6} md={3}>
+              <Autocomplete
+                options={projetos || []}
+                getOptionLabel={(option) => typeof option === 'object' && option !== null ? option.nome || '' : String(option)}
+                value={null}
+                onChange={handleProjetoSelecionadoChange}
+                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                freeSolo
+                filterOptions={(options, state) => {
+                  const filtered = options.filter(option => 
+                    typeof option === 'object' && option !== null && option.nome && 
+                    option.nome.toLowerCase().includes(state.inputValue.toLowerCase())
+                  );
+                  return filtered;
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Projeto"
+                    placeholder="Digite o nome do projeto"
+                    variant="outlined"
+                    fullWidth
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    {option.nome}
+                  </li>
+                )}
+              />
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth>
-                <InputLabel>Projeto</InputLabel>
-                <Select
-                  value={projetoSelecionado}
-                  label="Projeto"
-                  onChange={handleProjetoSelecionadoChange}
-                >
-                  {(projetos || []).map(projeto => (
-                    <MenuItem key={projeto.id} value={projeto.id}>{projeto.nome}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth>
                 <InputLabel>Ano</InputLabel>
                 <Select
@@ -431,7 +474,7 @@ export default function HorasRecursoPage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth>
                 <InputLabel>Mês</InputLabel>
                 <Select
@@ -446,18 +489,18 @@ export default function HorasRecursoPage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={2} sx={{ display: 'flex', alignItems: 'center' }}>
-              <Button
-                variant="contained"
-                color="primary"
-                fullWidth
-                onClick={handleAtualizar}
-                sx={{ height: '56px' }}
-              >
-                Atualizar
-              </Button>
-            </Grid>
           </Grid>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleAtualizar}
+              startIcon={<RefreshIcon />}
+              sx={{ height: '45px', px: 3 }}
+            >
+              Atualizar
+            </Button>
+          </Box>
         </Paper>
         
         {loading ? (
