@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
 
+// Paleta WEG
+const WEG_AZUL = "#00579D";
+const WEG_AZUL_CLARO = "#E3F1FC";
+const WEG_BRANCO = "#FFFFFF";
+const CINZA_CLARO = "#F4F6F8";
+const CINZA_BORDA = "#E0E3E7";
+
 const RELATORIOS = [
   {
     label: 'Horas Apontadas',
@@ -199,7 +206,13 @@ function Relatorios() {
       const res = await fetch(`${rel.endpoint}?${qs}`);
       if (!res.ok) throw new Error('Erro ao buscar relatório');
       const data = await res.json();
-      setResult(data);
+      if (Array.isArray(data)) {
+        setResult(data);
+      } else if (Array.isArray(data.items)) {
+        setResult(data.items);
+      } else {
+        setResult([]);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -207,37 +220,110 @@ function Relatorios() {
     }
   }
 
+  // Função para formatar valores numéricos
+  function formatNumber(value) {
+    if (typeof value === 'number') {
+      return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return value;
+  }
+
+  // Função para obter o nome amigável da coluna
+  function getColumnLabel(col) {
+    const columnLabels = {
+      'quantidade': 'Qtd. Lançamentos',
+      // IDs
+      'recurso_id': 'ID Recurso',
+      'projeto_id': 'ID Projeto',
+      'equipe_id': 'ID Equipe',
+      'secao_id': 'ID Seção',
+      
+      // Nomes
+      'recurso_nome': 'Recurso',
+      'projeto_nome': 'Projeto',
+      'equipe_nome': 'Equipe',
+      'secao_nome': 'Seção',
+      'projeto_codigo': 'Código do Projeto',
+      
+      // Datas e períodos
+      'ano': 'Ano',
+      'mes': 'Mês',
+      'data': 'Data',
+      'data_inicio': 'Data Início',
+      'data_fim': 'Data Fim',
+      
+      // Horas
+      'total_horas': 'Total de Horas',
+      'horas_planejadas': 'Horas Planejadas',
+      'horas_realizadas': 'Horas Realizadas',
+      'horas_disponiveis': 'Horas Disponíveis',
+      'horas_disponiveis_mes': 'Horas Disponíveis no Mês',
+      'horas_disponiveis_rh': 'Horas Disponíveis (RH)',
+      'horas_livres': 'Horas Livres',
+      
+      // Métricas
+      'diferenca': 'Diferença (horas)',
+      'percentual_realizado': 'Realizado (%)',
+      'percentual_alocacao_rh': 'Alocação (%)',
+      'percentual_utilizacao_sobre_planejado': 'Utilização s/ Planejado (%)',
+      'percentual_utilizacao_sobre_disponivel_rh': 'Utilização s/ Disponível (%)',
+    };
+    
+    return columnLabels[col] || col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
   // Renderiza tabela dinâmica
   function renderTable() {
     if (!result || !Array.isArray(result) || result.length === 0) return null;
-    // Colunas customizadas para cada relatório
-    const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
+
+    // Descobre as colunas dinamicamente a partir dos dados retornados
     let columns = Object.keys(result[0]);
-    if (tipoRelatorio === 'planejado-vs-realizado') {
-      columns = ['recurso_id', 'recurso_nome', 'projeto_id', 'projeto_nome', 'equipe_nome', 'secao_nome', 'ano', 'mes', 'horas_planejadas', 'horas_realizadas', 'diferenca', 'percentual_realizado'];
+
+    // Permite customização futura por tipo de relatório (mas padrão é sempre o JSON)
+    // Exemplo: se algum relatório precisar esconder/renomear colunas, pode-se ajustar aqui
+
+    // Cálculo de totais (mantém lógica existente)
+    let hasTotals = false;
+    let totals = {};
+    if (columns.some(col => typeof result[0][col] === 'number')) {
+      hasTotals = true;
+      columns.forEach(col => {
+        if (typeof result[0][col] === 'number') {
+          totals[col] = result.reduce((acc, row) => acc + (typeof row[col] === 'number' ? row[col] : 0), 0);
+        }
+      });
     }
-    if (tipoRelatorio === 'disponibilidade-recursos') {
-      columns = ['recurso_id', 'recurso_nome', 'ano', 'mes', 'horas_disponiveis_rh', 'horas_planejadas', 'horas_realizadas', 'horas_livres', 'percentual_alocacao_rh', 'percentual_utilizacao_sobre_planejado', 'percentual_utilizacao_sobre_disponivel_rh'];
-    }
-    if (tipoRelatorio === 'horas-por-projeto') {
-      columns = ['projeto_id', 'projeto_nome', 'projeto_codigo', 'total_horas'];
-    }
-    if (tipoRelatorio === 'horas-por-recurso') {
-      columns = ['projeto_id', 'projeto_nome', 'recurso_id', 'recurso_nome', 'equipe_nome', 'secao_nome', 'total_horas'];
-    }
+
     return (
-      <table style={{marginTop:16, borderCollapse:'collapse', width:'100%'}} border={1}>
+      <table style={{width:'100%', borderCollapse:'collapse', marginTop:8, background:WEG_BRANCO, borderRadius:8, boxShadow:'0 2px 8px #0002'}}>
         <thead>
-          <tr>
-            {columns.map(col => <th key={col} style={{padding:'4px 8px', background:'#f4f4f4'}}>{col}</th>)}
+          <tr style={{background:WEG_AZUL, color:WEG_BRANCO}}>
+            {columns.map(col => (
+              <th key={col} style={{padding:'10px 12px', border:'1px solid '+WEG_AZUL, fontWeight:700, fontSize:15, textAlign:'left'}} title={col}>
+                {getColumnLabel(col)}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {result.map((row, i) => (
-            <tr key={i}>
-              {columns.map(col => <td key={col} style={{padding:'4px 8px'}}>{row[col]}</td>)}
+          {result.map((row, idx) => (
+            <tr key={idx} style={{background: idx%2 ? WEG_AZUL_CLARO : WEG_BRANCO}}>
+              {columns.map(col => (
+                <td key={col} style={{padding:'8px 12px', textAlign: typeof row[col] === 'number' ? 'right' : 'left'}}>
+                  {typeof row[col] === 'number' ? formatNumber(row[col]) : (row[col] ?? '-')}
+                </td>
+              ))}
             </tr>
           ))}
+          {hasTotals && (
+            <tr style={{background:WEG_AZUL_CLARO, fontWeight:600}}>
+              {columns.map(col => (
+                <td key={col} style={{padding:'8px 12px', textAlign: typeof result[0][col] === 'number' ? 'right' : 'left'}}>
+                  {totals[col] !== undefined ? formatNumber(totals[col]) : (col === columns[0] ? 'Total' : '')}
+                </td>
+              ))}
+            </tr>
+          )}
         </tbody>
       </table>
     );
@@ -245,45 +331,141 @@ function Relatorios() {
 
   const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
   return (
-    <div style={{maxWidth: 900, margin: '0 auto', padding: 24}}>
-      <h2>Relatórios</h2>
-      <div style={{marginBottom: 18}}>
-        <label><b>Tipo de Relatório: </b></label>
-        <select value={tipoRelatorio} onChange={handleTipoRelatorioChange} style={{marginLeft: 8, padding: '4px 8px'}}>
+    <div style={{
+      width: '100%', 
+      boxSizing: 'border-box',
+      padding: '20px', 
+      background: WEG_BRANCO,
+      borderRadius: 12, 
+      boxShadow: '0 2px 16px #0002'
+    }}>
+      <h2 style={{
+        color: WEG_AZUL, marginBottom: 12, borderBottom: `3px solid ${WEG_AZUL}`,
+        paddingBottom: 8, fontWeight: 700, letterSpacing: 1
+      }}>
+        Relatórios
+      </h2>
+
+      {/* Seleção do relatório */}
+      <div style={{marginBottom: 22, display: 'flex', alignItems: 'center', gap: 12}}>
+        <label style={{fontWeight: 600, color: WEG_AZUL}}>Tipo de Relatório:</label>
+        <select
+          value={tipoRelatorio}
+          onChange={handleTipoRelatorioChange}
+          style={{
+            padding: '8px 14px', borderRadius: 6, border: `1.5px solid ${WEG_AZUL}`,
+            fontSize: 16, color: WEG_AZUL, background: WEG_BRANCO, fontWeight: 500
+          }}
+        >
           {RELATORIOS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
       </div>
-      <form onSubmit={handleSubmit} style={{display:'flex', flexWrap:'wrap', gap:12}}>
+
+      {/* Filtros */}
+      <form onSubmit={handleSubmit} style={{display:'flex', flexWrap:'wrap', gap:16, marginBottom: 18}}>
         {rel.filtros.map(filtro =>
           filtro.type === 'checkbox' ? (
-            <label key={filtro.name} style={{marginRight: 10}}>
-              <input type="checkbox" name={filtro.name} checked={!!params[filtro.name]} onChange={handleChange} /> {filtro.label}
+            <label key={filtro.name} style={{
+              display: 'flex', alignItems: 'center', gap: 4, color: WEG_AZUL, fontWeight: 500
+            }}>
+              <input
+                type="checkbox"
+                name={filtro.name}
+                checked={!!params[filtro.name]}
+                onChange={handleChange}
+                style={{
+                  accentColor: WEG_AZUL, width: 18, height: 18, marginRight: 4
+                }}
+              />
+              {filtro.label}
             </label>
           ) : (
-            <input key={filtro.name} name={filtro.name} value={params[filtro.name] || ''} onChange={handleChange} placeholder={filtro.placeholder} style={{width:filtro.width}} />
+            <input
+              key={filtro.name}
+              name={filtro.name}
+              value={params[filtro.name] || ''}
+              onChange={handleChange}
+              placeholder={filtro.placeholder}
+              style={{
+                width: filtro.width,
+                padding: '8px 12px',
+                borderRadius: 6,
+                border: `1.5px solid ${CINZA_BORDA}`,
+                fontSize: 15,
+                background: WEG_BRANCO,
+                color: WEG_AZUL,
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                boxShadow: '0 1px 4px #0001'
+              }}
+              onFocus={e => e.target.style.borderColor = WEG_AZUL}
+              onBlur={e => e.target.style.borderColor = CINZA_BORDA}
+            />
           )
         )}
-        <button type="submit" disabled={loading} style={{padding:'6px 18px'}}>Gerar Relatório</button>
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            padding: '10px 28px',
+            background: WEG_AZUL,
+            color: WEG_BRANCO,
+            border: 'none',
+            borderRadius: 6,
+            fontWeight: 700,
+            fontSize: 16,
+            cursor: 'pointer',
+            boxShadow: '0 2px 6px #0001',
+            marginLeft: 12
+          }}
+        >
+          Gerar Relatório
+        </button>
       </form>
 
+      {/* Exemplos rápidos */}
       <div style={{margin:'18px 0'}}>
-        <b>Exemplos rápidos:</b>
+        <b style={{color: WEG_AZUL}}>Exemplos rápidos:</b>
         <div style={{display:'flex', flexWrap:'wrap', gap:8, marginTop:6}}>
           {rel.exemplos.map((ex, idx) => (
-            <button key={idx} type="button" onClick={()=>handleExemploClick(ex)} style={{padding:'4px 10px'}}>{ex.label}</button>
+            <button
+              key={idx}
+              type="button"
+              onClick={()=>handleExemploClick(ex)}
+              style={{
+                padding:'6px 14px',
+                background: WEG_AZUL_CLARO,
+                color: WEG_AZUL,
+                border: `1px solid ${WEG_AZUL}`,
+                borderRadius: 6,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background 0.2s, color 0.2s'
+              }}
+              onMouseOver={e => {e.target.style.background = WEG_AZUL; e.target.style.color = WEG_BRANCO}}
+              onMouseOut={e => {e.target.style.background = WEG_AZUL_CLARO; e.target.style.color = WEG_AZUL}}
+            >
+              {ex.label}
+            </button>
           ))}
         </div>
       </div>
 
-      {loading && <div>Carregando...</div>}
-      {error && <div style={{color:'red', marginTop:12}}>{error}</div>}
-      {renderTable()}
+      {/* Feedbacks */}
+      {loading && <div style={{color: WEG_AZUL, marginTop:12, fontWeight:600}}>Carregando...</div>}
+      {error && <div style={{color:'#D32F2F', marginTop:12, fontWeight:600}}>{error}</div>}
 
-      {result &&
-        <pre style={{marginTop:20, background:'#f3f3f3', padding:10, fontSize:13}}>
-          {JSON.stringify(result, null, 2)}
-        </pre>
-      }
+      {/* Tabela de resultados */}
+      <div style={{marginTop:32}}>
+        {renderTable()}
+      </div>
+
+      {/* Mensagem para nenhum resultado */}
+      {(!loading && result && Array.isArray(result) && result.length === 0) && (
+        <div style={{marginTop:24, color:WEG_AZUL, fontWeight:500, fontSize:18}}>
+          Nenhum resultado encontrado para os filtros selecionados.
+        </div>
+      )}
     </div>
   );
 }
