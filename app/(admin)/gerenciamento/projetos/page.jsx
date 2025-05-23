@@ -15,83 +15,27 @@ import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { apiGet, apiPost, apiPut, apiDelete } from '@/services/api';
 
-// Interface para o tipo Projeto
-interface Projeto {
-  id: number;
-  nome: string;
-  codigo_empresa: string;
-  descricao?: string;
-  data_inicio?: string;
-  data_fim?: string;
-  status?: string;
-  ativo: boolean;
-  data_criacao?: string;
-  data_atualizacao?: string;
-}
 
-// Interface para o formulário de projeto
-interface ProjetoFormData {
-  nome: string;
-  codigo_empresa: string;
-  descricao?: string;
-  data_inicio?: string;
-  data_fim?: string;
-  status?: string;
-  ativo?: boolean;
-}
-
-// Dados mockados para desenvolvimento (quando a API não estiver disponível)
-const dadosMockProjetos: Projeto[] = [
-  { 
-    id: 1, 
-    nome: 'Projeto A', 
-    codigo_empresa: 'PROJ-001', 
-    descricao: 'Descrição do Projeto A',
-    data_inicio: '2023-01-01',
-    data_fim: '2023-12-31',
-    status: 'Em andamento',
-    ativo: true
-  },
-  { 
-    id: 2, 
-    nome: 'Projeto B', 
-    codigo_empresa: 'PROJ-002', 
-    descricao: 'Descrição do Projeto B',
-    data_inicio: '2023-02-01',
-    data_fim: '2023-11-30',
-    status: 'Em andamento',
-    ativo: true
-  },
-  { 
-    id: 3, 
-    nome: 'Projeto C', 
-    codigo_empresa: 'PROJ-003', 
-    descricao: 'Descrição do Projeto C',
-    data_inicio: '2023-03-01',
-    data_fim: '2023-10-31',
-    status: 'Concluído',
-    ativo: false
-  }
-];
 
 export default function GerenciamentoProjetos() {
   // Estados
-  const [projetos, setProjetos] = useState<Projeto[]>([]);
+  const [projetos, setProjetos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
-  const [formData, setFormData] = useState<ProjetoFormData>({
+  const [formData, setFormData] = useState({
     nome: '',
     codigo_empresa: '',
     descricao: '',
     status: 'Em andamento',
     ativo: true
   });
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [apenasAtivos, setApenasAtivos] = useState(false); // filtro visual
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error'
+    severity: 'success'
   });
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -101,26 +45,26 @@ export default function GerenciamentoProjetos() {
   const fetchProjetos = async () => {
     setLoading(true);
     try {
-      const params: any = {
+      const params = {
         skip: page * rowsPerPage,
-        limit: rowsPerPage
+        limit: rowsPerPage,
+        apenas_ativos: apenasAtivos
       };
-      
       if (searchTerm) {
         params.nome = searchTerm;
       }
-      
-      const response = await apiGet<{ items: Projeto[], total: number }>('/projetos', params);
+      // Preferencialmente usar o serviço getProjetos
+      // const response = await getProjetos(params);
+      const response = await apiGet('/projetos', params);
       setProjetos(response.items || []);
       setTotalItems(response.total || 0);
     } catch (error) {
       console.error('Erro ao buscar projetos:', error);
-      // Usar dados mockados em caso de erro
-      setProjetos(dadosMockProjetos);
-      setTotalItems(dadosMockProjetos.length);
+      setProjetos([]);
+      setTotalItems(0);
       setSnackbar({
         open: true,
-        message: 'Erro ao carregar projetos. Usando dados de exemplo.',
+        message: 'Erro ao carregar projetos.',
         severity: 'error'
       });
     } finally {
@@ -131,7 +75,7 @@ export default function GerenciamentoProjetos() {
   // Função para criar um novo projeto
   const handleCreate = async () => {
     try {
-      await apiPost('/projetos', formData);
+      await apiPost('/projetos', formData); // Alinhar com createProjeto do serviço se necessário
       setSnackbar({
         open: true,
         message: 'Projeto criado com sucesso!',
@@ -152,9 +96,22 @@ export default function GerenciamentoProjetos() {
   // Função para atualizar um projeto existente
   const handleUpdate = async () => {
     if (editingId === null) return;
-    
+
+    // Monta o payload apenas com os campos obrigatórios e opcionais preenchidos
+    const payload = {
+      nome: formData.nome,
+      status_projeto_id: formData.status_projeto_id || formData.status || 1, // fallback para 1 se necessário
+      ativo: formData.ativo
+    };
+    // Adiciona opcionais se preenchidos
+    if (formData.codigo_empresa) payload.codigo_empresa = formData.codigo_empresa;
+    if (formData.descricao) payload.descricao = formData.descricao;
+    if (formData.jira_project_key) payload.jira_project_key = formData.jira_project_key;
+    if (formData.data_inicio) payload.data_inicio_prevista = formData.data_inicio;
+    if (formData.data_fim) payload.data_fim_prevista = formData.data_fim;
+
     try {
-      await apiPut(`/projetos/${editingId}`, formData);
+      await apiPut(`/projetos/${editingId}`, payload);
       setSnackbar({
         open: true,
         message: 'Projeto atualizado com sucesso!',
@@ -172,10 +129,10 @@ export default function GerenciamentoProjetos() {
     }
   };
 
+
   // Função para excluir um projeto
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id) => {
     if (!confirm('Tem certeza que deseja excluir este projeto?')) return;
-    
     try {
       await apiDelete(`/projetos/${id}`);
       setSnackbar({
@@ -183,6 +140,7 @@ export default function GerenciamentoProjetos() {
         message: 'Projeto excluído com sucesso!',
         severity: 'success'
       });
+      // Atualiza a lista de projetos para refletir deleção lógica
       fetchProjetos();
     } catch (error) {
       console.error('Erro ao excluir projeto:', error);
@@ -194,20 +152,36 @@ export default function GerenciamentoProjetos() {
     }
   };
 
+
   // Função para abrir o diálogo de edição
-  const handleEdit = (projeto: Projeto) => {
+  const handleEdit = async (projeto) => {
     setEditingId(projeto.id);
-    setFormData({
-      nome: projeto.nome,
-      codigo_empresa: projeto.codigo_empresa,
-      descricao: projeto.descricao || '',
-      data_inicio: projeto.data_inicio,
-      data_fim: projeto.data_fim,
-      status: projeto.status || 'Em andamento',
-      ativo: projeto.ativo
-    });
+    try {
+      // Busca o projeto mais recente do backend
+      const projetoAtualizado = await apiGet(`/projetos/${projeto.id}`);
+      setFormData({
+        nome: projetoAtualizado.nome || '',
+        codigo_empresa: projetoAtualizado.codigo_empresa || '',
+        descricao: projetoAtualizado.descricao || '',
+        status: projetoAtualizado.status || projetoAtualizado.status_projeto_id || '',
+        ativo: projetoAtualizado.ativo,
+        data_inicio: projetoAtualizado.data_inicio_prevista || '',
+        data_fim: projetoAtualizado.data_fim_prevista || ''
+      });
+    } catch (error) {
+      setFormData({
+        nome: projeto.nome || '',
+        codigo_empresa: projeto.codigo_empresa || '',
+        descricao: projeto.descricao || '',
+        status: projeto.status || projeto.status_projeto_id || '',
+        ativo: projeto.ativo,
+        data_inicio: projeto.data_inicio_prevista || projeto.data_inicio || '',
+        data_fim: projeto.data_fim_prevista || projeto.data_fim || ''
+      });
+    }
     setOpenDialog(true);
   };
+
 
   // Função para abrir o diálogo de criação
   const handleOpenCreateDialog = () => {
@@ -228,12 +202,12 @@ export default function GerenciamentoProjetos() {
   };
 
   // Função para lidar com a mudança de página
-  const handleChangePage = (_: unknown, newPage: number) => {
+  const handleChangePage = (_event, newPage) => {
     setPage(newPage);
   };
 
   // Função para lidar com a mudança de linhas por página
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
@@ -288,6 +262,20 @@ export default function GerenciamentoProjetos() {
               }}
             />
           </Grid>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth>
+              <InputLabel id="apenas-ativos-label">Apenas Ativos?</InputLabel>
+              <Select
+                labelId="apenas-ativos-label"
+                value={apenasAtivos}
+                label="Apenas Ativos?"
+                onChange={(e) => setApenasAtivos(e.target.value === 'true')}
+              >
+                <MenuItem value={false}>Todos</MenuItem>
+                <MenuItem value={true}>Sim</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
         </Grid>
 
         {loading ? (
@@ -300,33 +288,39 @@ export default function GerenciamentoProjetos() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>ID</TableCell>
                     <TableCell>Nome</TableCell>
-                    <TableCell>Código</TableCell>
-                    <TableCell>Status</TableCell>
+                    <TableCell>Código Empresa</TableCell>
+                    <TableCell>Descrição</TableCell>
+                    <TableCell>Status Projeto ID</TableCell>
+                    <TableCell>Jira Project Key</TableCell>
+                    <TableCell>Data Início Prevista</TableCell>
+                    <TableCell>Data Fim Prevista</TableCell>
                     <TableCell>Ativo</TableCell>
                     <TableCell>Ações</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {projetos.map((projeto) => (
+                  {(projetos || []).map((projeto) => (
                     <TableRow key={projeto.id}>
-                      <TableCell>{projeto.id}</TableCell>
-                      <TableCell>{projeto.nome}</TableCell>
-                      <TableCell>{projeto.codigo_empresa}</TableCell>
-                      <TableCell>{projeto.status || 'N/A'}</TableCell>
+                      <TableCell>{projeto.nome || '-'}</TableCell>
+                      <TableCell>{projeto.codigo_empresa || '-'}</TableCell>
+                      <TableCell>{projeto.descricao || '-'}</TableCell>
+                      <TableCell>{projeto.status_projeto_id || '-'}</TableCell>
+                      <TableCell>{projeto.jira_project_key || '-'}</TableCell>
+                      <TableCell>{projeto.data_inicio_prevista ? projeto.data_inicio_prevista.split('T')[0] : '-'}</TableCell>
+                      <TableCell>{projeto.data_fim_prevista ? projeto.data_fim_prevista.split('T')[0] : '-'}</TableCell>
                       <TableCell>
-                        <Chip 
-                          label={projeto.ativo ? 'Sim' : 'Não'} 
-                          color={projeto.ativo ? 'success' : 'error'} 
-                          size="small" 
-                        />
+                        {projeto.ativo ? (
+                          <Chip label="Ativo" color="success" size="small" />
+                        ) : (
+                          <Chip label="Inativo" color="default" size="small" />
+                        )}
                       </TableCell>
                       <TableCell>
                         <IconButton onClick={() => handleEdit(projeto)} size="small">
                           <EditIcon />
                         </IconButton>
-                        <IconButton onClick={() => handleDelete(projeto.id)} size="small">
+                        <IconButton onClick={() => handleDelete(projeto.id)} size="small" color="error">
                           <DeleteIcon />
                         </IconButton>
                       </TableCell>

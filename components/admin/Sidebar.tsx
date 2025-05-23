@@ -39,6 +39,7 @@ const textColorSecondary = 'rgba(0, 0, 0, 0.6)';
 
 const menuItems: MenuItemType[] = [
   { text: 'Dashboard', href: '/dashboard', icon: <DashboardIcon sx={{ color: wegBlue }} /> },
+  { text: 'Relatórios', href: '/relatorios', icon: <BarChartIcon sx={{ color: wegBlue }} /> },
   {
     text: 'Planejamento',
     icon: <EventNoteIcon sx={{ color: wegBlue }} />,

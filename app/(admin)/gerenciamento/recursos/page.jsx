@@ -4,27 +4,26 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box, Typography, Paper, Button, TextField, IconButton, Grid,
   Snackbar, Alert, CircularProgress, FormControl, InputLabel, Select,
-  MenuItem, SelectChangeEvent, InputAdornment, Switch, FormControlLabel, Tooltip, Chip
+  MenuItem, InputAdornment, Switch, FormControlLabel, Tooltip, Chip
 } from '@mui/material';
 import {
-  DataGrid, GridColDef, GridActionsCellItem, GridPaginationModel, GridRowParams, GridValueGetter
+  DataGrid, GridActionsCellItem
 } from '@mui/x-data-grid';
 import {
-  getRecursos, createRecurso, updateRecurso, deleteRecurso, getEquipes,
-  Recurso, RecursoFormData, Equipe, RecursoListResponse, EquipeListResponse
-} from '../../../../services/recursos'; // Ajuste o caminho se necessário
+  getRecursos, createRecurso, updateRecurso, deleteRecurso, getEquipes
+} from '../../../../services/recursos.jsx';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import PeopleAltIcon from '@mui/icons-material/PeopleAlt'; // Ícone para Recursos
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 
-const initialFormData: RecursoFormData = {
+const initialFormData = {
   nome: '',
   email: '',
   equipe_id: 0,
@@ -34,21 +33,21 @@ const initialFormData: RecursoFormData = {
 };
 
 export default function RecursosPage() {
-  const [recursos, setRecursos] = useState<Recurso[]>([]);
-  const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const [recursos, setRecursos] = useState([]);
+  const [equipes, setEquipes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
-  const [formData, setFormData] = useState<RecursoFormData>(initialFormData);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formData, setFormData] = useState(initialFormData);
+  const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [equipeFilter, setEquipeFilter] = useState<number>(0); // 0 para 'Todas'
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 10 });
+  const [equipeFilter, setEquipeFilter] = useState(0);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [rowCount, setRowCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
+  const handleCloseSnackbar = (event, reason) => {
     if (reason === 'clickaway') {
       return;
     }
@@ -61,11 +60,11 @@ export default function RecursosPage() {
       if (Array.isArray(response)) {
         setEquipes(response || []);
       } else {
-        setEquipes((response as EquipeListResponse).items || []);
+        setEquipes((response.items) || []);
       }
     } catch (error) {
       console.error('Erro ao buscar equipes:', error);
-      setEquipes([]); // Fallback para array vazio
+      setEquipes([]);
       setSnackbar({ open: true, message: 'Erro ao carregar equipes. Verifique a conexão ou tente mais tarde.', severity: 'error' });
     }
   }, []);
@@ -84,7 +83,7 @@ export default function RecursosPage() {
       setRowCount(data.total || 0);
     } catch (error) {
       console.error('Erro ao buscar recursos:', error);
-      setRecursos([]); // Fallback para array vazio
+      setRecursos([]);
       setRowCount(0);
       setSnackbar({ open: true, message: 'Erro ao carregar recursos. Verifique a conexão ou tente mais tarde.', severity: 'error' });
     }
@@ -104,9 +103,9 @@ export default function RecursosPage() {
 
   useEffect(() => {
     loadRecursos();
-  }, [loadRecursos]); // paginationModel, debouncedSearchTerm, equipeFilter são dependências de loadRecursos
+  }, [loadRecursos]);
 
-  const handleOpenDialog = (id?: number) => {
+  const handleOpenDialog = (id) => {
     if (id) {
       const recurso = recursos.find(r => r.id === id);
       if (recurso) {
@@ -128,40 +127,25 @@ export default function RecursosPage() {
   };
 
   const handleCloseDialog = () => {
-    if (isSubmitting) return; // Impede fechar durante o submit
+    if (isSubmitting) return;
     setOpenDialog(false);
     setEditingId(null);
     setFormData(initialFormData);
   };
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<number | string>) => {
+  const handleChange = (event) => {
     const target = event.target;
-    const name = (target as { name?: string }).name;
-    const value = (target as { value?: unknown }).value;
-
-    if (!name) {
-      return; // Segurança: nome deve estar presente
-    }
-
-    if (target instanceof HTMLInputElement) {
-      if (target.type === 'checkbox') {
-        setFormData(prev => ({ ...prev, [name]: target.checked }));
-      } else if (name === 'horas_diarias') { // Campo de horas pode ser input number
-        setFormData(prev => ({ ...prev, [name]: Number(target.value) }));
-      } else {
-        setFormData(prev => ({ ...prev, [name]: target.value }));
-      }
-    } else if (target instanceof HTMLTextAreaElement) {
-      setFormData(prev => ({ ...prev, [name]: target.value }));
+    const name = target.name;
+    const value = target.value;
+    if (!name) return;
+    if (target.type === 'checkbox') {
+      setFormData(prev => ({ ...prev, [name]: target.checked }));
+    } else if (name === 'horas_diarias') {
+      setFormData(prev => ({ ...prev, [name]: Number(target.value) }));
+    } else if (name === 'equipe_id') {
+      setFormData(prev => ({ ...prev, [name]: Number(value) }));
     } else {
-      // Assume SelectChangeEvent para os demais casos na união de tipos
-      // O target de SelectChangeEvent é { name: string, value: unknown }
-      // O tipo de `value` aqui é `number | string` (do SelectChangeEvent<number | string>)
-      if (name === 'equipe_id') { // equipe_id é um Select
-        setFormData(prev => ({ ...prev, [name]: Number(value) }));
-      } else {
-        setFormData(prev => ({ ...prev, [name]: value as string | number }));
-      }
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
@@ -184,43 +168,42 @@ export default function RecursosPage() {
         setSnackbar({ open: true, message: 'Recurso criado com sucesso!', severity: 'success' });
       }
       handleCloseDialog();
-      loadRecursos(); // Recarrega para refletir mudanças e nova paginação/ordenação do backend
-    } catch (error: any) {
+      loadRecursos();
+    } catch (error) {
       console.error('Erro ao salvar recurso:', error);
-      const errorMessage = error.response?.data?.detail || 'Erro ao salvar recurso!';
+      const errorMessage = error?.response?.data?.detail || 'Erro ao salvar recurso!';
       setSnackbar({ open: true, message: errorMessage, severity: 'error' });
     }
     setIsSubmitting(false);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este recurso?')) {
       setIsSubmitting(true);
       try {
         await deleteRecurso(id);
         setSnackbar({ open: true, message: 'Recurso excluído com sucesso!', severity: 'success' });
-        // Ajustar rowCount e recarregar. Se a última linha da página for excluída, pode ser preciso voltar uma página.
         const newRowCount = rowCount - 1;
         if (recursos.length === 1 && paginationModel.page > 0 && newRowCount > 0) {
-            setPaginationModel(prev => ({ ...prev, page: prev.page -1}));
+          setPaginationModel(prev => ({ ...prev, page: prev.page -1}));
         } else {
-            loadRecursos(); 
+          loadRecursos();
         }
-        setRowCount(newRowCount); // Otimisticamente atualiza o rowCount
-      } catch (error: any) {
+        setRowCount(newRowCount);
+      } catch (error) {
         console.error('Erro ao excluir recurso:', error);
-        const errorMessage = error.response?.data?.detail || 'Erro ao excluir recurso!';
+        const errorMessage = error?.response?.data?.detail || 'Erro ao excluir recurso!';
         setSnackbar({ open: true, message: errorMessage, severity: 'error' });
       }
       setIsSubmitting(false);
     }
   };
 
-  const columns = useMemo<GridColDef<Recurso>[]>(() => [
-    { 
-      field: 'nome', 
-      headerName: 'Nome do Recurso', 
-      flex: 1.5, 
+  const columns = useMemo(() => [
+    {
+      field: 'nome',
+      headerName: 'Nome do Recurso',
+      flex: 1.5,
       minWidth: 200,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -250,11 +233,11 @@ export default function RecursosPage() {
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => (
-        <Chip 
-            label={params.value ? 'Sim' : 'Não'} 
-            size="small" 
-            color={params.value ? 'success' : 'error'} 
-            variant='outlined'
+        <Chip
+          label={params.value ? 'Sim' : 'Não'}
+          size="small"
+          color={params.value ? 'success' : 'error'}
+          variant='outlined'
         />
       )
     },
@@ -265,7 +248,7 @@ export default function RecursosPage() {
       width: 120,
       align: 'center',
       headerAlign: 'center',
-      getActions: (params: GridRowParams<Recurso>) => [
+      getActions: (params) => [
         <GridActionsCellItem
           icon={<Tooltip title="Editar"><EditIcon /></Tooltip>}
           label="Editar"
@@ -280,7 +263,7 @@ export default function RecursosPage() {
         />,
       ],
     },
-  ], [equipes, handleOpenDialog, handleDelete]); // Adicionado handleOpenDialog e handleDelete como dependências
+  ], [equipes, handleOpenDialog, handleDelete]);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -313,7 +296,7 @@ export default function RecursosPage() {
               <Select
                 name="equipeFilter"
                 value={equipeFilter}
-                onChange={(e) => setEquipeFilter(e.target.value as number)}
+                onChange={(e) => setEquipeFilter(Number(e.target.value))}
                 label="Equipe"
               >
                 <MenuItem value={0}><em>Todas</em></MenuItem>
@@ -330,8 +313,7 @@ export default function RecursosPage() {
               onClick={() => {
                 setSearchTerm('');
                 setEquipeFilter(0);
-                setPaginationModel({ page: 0, pageSize: paginationModel.pageSize }); // Mantém pageSize
-                // loadRecursos(); // Será chamado pelo useEffect devido à mudança de estado
+                setPaginationModel({ page: 0, pageSize: paginationModel.pageSize });
               }}
               sx={{ height: '40px' }}
             >
@@ -351,7 +333,7 @@ export default function RecursosPage() {
 
       <Paper sx={{ height: 600, width: '100%', borderRadius: 2, boxShadow: 3 }}>
         <DataGrid
-          rows={recursos || []} // Garantindo que seja sempre um array
+          rows={recursos || []}
           columns={columns}
           pagination
           paginationMode="server"
@@ -371,34 +353,18 @@ export default function RecursosPage() {
             '& .MuiDataGrid-cell': {
               borderBottom: '1px solid #e0e0e0',
             },
-             '& .MuiDataGrid-footerContainer': {
+            '& .MuiDataGrid-footerContainer': {
               borderTop: '1px solid #e0e0e0',
             }
           }}
           localeText={{
             noRowsLabel: 'Nenhum recurso encontrado.',
             footerRowSelected: (count) => count !== 1 ? `${count} linhas selecionadas` : `${count} linha selecionada`,
-            // Traduções para paginação
             footerPaginationRowsPerPage: 'Itens por página:',
             footerPaginationFrom: 'de',
             footerPaginationTo: 'até',
             footerPaginationTotal: 'total',
             footerPaginationOf: 'de',
-            // Adicione outras traduções de localeText aqui se necessário, por exemplo:
-            // filterOperatorContains: 'Contém',
-            // filterOperatorEquals: 'Igual a',
-            // filterOperatorStartsWith: 'Começa com',
-            // filterOperatorEndsWith: 'Termina com',
-            // filterOperatorIsEmpty: 'Está vazio',
-            // filterOperatorIsNotEmpty: 'Não está vazio',
-            // filterOperatorIsAnyOf: 'É qualquer um de',
-            // columnMenuLabel: 'Menu',
-            // columnMenuShowColumns: 'Mostrar colunas',
-            // columnMenuFilter: 'Filtrar',
-            // columnMenuHideColumn: 'Ocultar',
-            // columnMenuUnsort: 'Não classificar',
-            // columnMenuSortAsc: 'Classificar crescente',
-            // columnMenuSortDesc: 'Classificar decrescente',
           }}
         />
       </Paper>
@@ -492,8 +458,8 @@ export default function RecursosPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             variant="contained"
             disabled={!isFormValid()}
             sx={{ backgroundColor: '#00579d' }}
@@ -502,7 +468,7 @@ export default function RecursosPage() {
           </Button>
         </DialogActions>
       </Dialog>
-      
+
       {/* Snackbar para feedback */}
       <Snackbar
         open={snackbar.open}
