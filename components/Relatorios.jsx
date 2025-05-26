@@ -387,83 +387,133 @@ export default function Relatorios() {
     }
 
     return (
-      <table style={{width:'100%', borderCollapse:'collapse', marginTop:8, background:WEG_BRANCO, borderRadius:8, boxShadow:'0 2px 8px #0002'}}>
-        <thead>
-          <tr style={{background:WEG_AZUL, color:WEG_BRANCO}}>
-            {columns.map(col => (
-              <th key={col} style={{padding:'10px 12px', border:'1px solid '+WEG_AZUL, fontWeight:700, fontSize:15, textAlign:'left'}} title={col}>
-                {getColumnLabel(col)}
-              </th>
+      <div style={{width:'100%', overflowX:'auto', borderRadius: '12px', boxShadow:'0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8}}>
+        <table style={{width:'100%', borderCollapse:'separate', borderSpacing:0, minWidth:700}}>
+          <thead style={{position: 'sticky', top: 0, zIndex: 2}}>
+            <tr style={{background:WEG_AZUL, color:WEG_BRANCO}}>
+              {columns.map((col, idx) => (
+  <th key={col}
+    style={{
+      padding:'14px 14px',
+      fontWeight:800,
+      fontSize:15,
+      textAlign:'center',
+      width: `${100 / columns.length}%`,
+      minWidth: 90,
+      borderTopLeftRadius: idx === 0 ? 10 : 0,
+      borderTopRightRadius: idx === columns.length-1 ? 10 : 0,
+      borderBottom: '2px solid #004170',
+      letterSpacing: 0.4
+    }}
+    title={col}
+  >
+    {getColumnLabel(col)}
+  </th>
+))}
+            </tr>
+          </thead>
+          <tbody>
+            {dataRows.map((row, idx) => (
+              <tr key={idx} style={{background: idx%2 ? '#F4F8FB' : WEG_BRANCO}}>
+                {columns.map((col, idx) => (
+  <td key={col} style={{
+    padding:'11px 14px',
+    textAlign:'center',
+    width: `${100 / columns.length}%`,
+    minWidth: 90,
+    fontSize: 15,
+    borderBottom: '1px solid #e3e7ee',
+    color: '#232b36',
+    fontWeight: 500
+  }}>
+    {typeof row[col] === 'number' ? formatNumber(row[col]) : (row[col] ?? '-')}
+  </td>
+))}
+              </tr>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {dataRows.map((row, idx) => (
-            <tr key={idx} style={{background: idx%2 ? WEG_AZUL_CLARO : WEG_BRANCO}}>
-              {columns.map(col => (
-                <td key={col} style={{padding:'8px 12px', textAlign: typeof row[col] === 'number' ? 'right' : 'left'}}>
-                  {typeof row[col] === 'number' ? formatNumber(row[col]) : (row[col] ?? '-')}
+            {/* Exibir mensagem quando não há dados */}
+            {dataRows.length === 0 && (
+              <tr>
+                <td colSpan={columns.length} style={{padding:'18px', textAlign:'center', color:WEG_AZUL, fontWeight:600, fontSize:16}}>
+                  Nenhum resultado encontrado para os filtros selecionados.
                 </td>
-              ))}
-            </tr>
-          ))}
-          {/* Exibir mensagem quando não há dados */}
-          {dataRows.length === 0 && (
-            <tr>
-              <td colSpan={columns.length} style={{padding:'16px', textAlign:'center', color:WEG_AZUL, fontWeight:500}}>
-                Nenhum resultado encontrado para os filtros selecionados.
-              </td>
-            </tr>
-          )}
-          {hasTotals && (
-            <tr style={{background:WEG_AZUL_CLARO, fontWeight:600}}>
-              {columns.map(col => (
-                <td key={col} style={{padding:'8px 12px', textAlign: typeof result[0][col] === 'number' ? 'right' : 'left'}}>
-                  {totals[col] !== undefined ? formatNumber(totals[col]) : (col === columns[0] ? 'Total' : '')}
-                </td>
-              ))}
-            </tr>
-          )}
-        </tbody>
-      </table>
+              </tr>
+            )}
+            {hasTotals && (
+              <tr style={{background:'#E3F1FC', fontWeight:800, borderTop: '2px solid #b6d6f6'}}>
+                {columns.map((col, idx) => (
+  <td key={col} style={{
+    padding:'13px 14px',
+    textAlign:'center',
+    width: `${100 / columns.length}%`,
+    minWidth: 90,
+    color: idx === 0 ? WEG_AZUL : '#00325a',
+    fontWeight: idx === 0 ? 900 : 700,
+    fontSize: 15,
+    borderBottomLeftRadius: idx === 0 ? 10 : 0,
+    borderBottomRightRadius: idx === columns.length-1 ? 10 : 0
+  }}>
+    {totals[col] !== undefined ? formatNumber(totals[col]) : (col === columns[0] ? 'Total' : '')}
+  </td>
+))}
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     );
   }
 
-  const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
-  return (
-    <div style={{
-      width: '100%', 
-      boxSizing: 'border-box',
-      padding: '20px', 
-      background: WEG_BRANCO,
-      borderRadius: 12, 
-      boxShadow: '0 2px 16px #0002'
+const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
+return (
+  <div style={{
+    width: '100%', 
+    boxSizing: 'border-box',
+    padding: '32px 32px 24px 32px', 
+    background: '#f8fafc',
+    borderRadius: 18, 
+    boxShadow: '0 4px 24px #0003'
+  }}>
+    <h2 style={{
+      color: WEG_AZUL, marginBottom: 22, borderBottom: `3px solid ${WEG_AZUL}`,
+      paddingBottom: 10, fontWeight: 800, letterSpacing: 1.2, fontSize: 26
     }}>
-      <h2 style={{
-        color: WEG_AZUL, marginBottom: 12, borderBottom: `3px solid ${WEG_AZUL}`,
-        paddingBottom: 8, fontWeight: 700, letterSpacing: 1
-      }}>
-        Relatórios
-      </h2>
+      Relatórios
+    </h2>
 
-      {/* Seleção do relatório */}
-      <div style={{marginBottom: 22, display: 'flex', alignItems: 'center', gap: 12}}>
-        <label style={{fontWeight: 600, color: WEG_AZUL}}>Tipo de Relatório:</label>
-        <select
-          value={tipoRelatorio}
-          onChange={handleTipoRelatorioChange}
-          style={{
-            padding: '8px 14px', borderRadius: 6, border: `1.5px solid ${WEG_AZUL}`,
-            fontSize: 16, color: WEG_AZUL, background: WEG_BRANCO, fontWeight: 500
-          }}
-        >
-          {RELATORIOS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-        </select>
-      </div>
+    {/* Seleção do relatório */}
+    <div style={{marginBottom: 26, display: 'flex', alignItems: 'center', gap: 16}}>
+      <label style={{fontWeight: 700, color: WEG_AZUL, fontSize: 17, marginRight: 8}}>Tipo de Relatório:</label>
+      <select
+        value={tipoRelatorio}
+        onChange={handleTipoRelatorioChange}
+        style={{
+          padding: '10px 18px', borderRadius: 8, border: `2px solid ${WEG_AZUL}`,
+          fontSize: 17, color: WEG_AZUL, background: WEG_BRANCO, fontWeight: 600, minWidth: 220
+        }}
+      >
+        {RELATORIOS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+      </select>
+    </div>
 
-      {/* Filtros */}
-      <form onSubmit={handleSubmit} style={{display:'flex', flexWrap:'wrap', gap:16, marginBottom: 18}}>
-        {rel.filtros.map(filtro => {
+    {/* Bloco visual de filtros */}
+    <form
+  onSubmit={handleSubmit}
+  style={{
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'flex-end',
+    gap: 24,
+    rowGap: 18,
+    marginBottom: 36,
+    background: CINZA_CLARO,
+    borderRadius: 14,
+    padding: '22px 24px 14px 24px',
+    boxShadow: '0 2px 12px #0001',
+    border: `2px solid ${CINZA_BORDA}`
+  }}
+>
+  {rel.filtros.map(filtro => {
           if (filtro.name === 'recurso_id') {
             return (
               <AutocompleteRecurso
@@ -545,24 +595,29 @@ export default function Relatorios() {
             />
           );
         })}
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: '10px 28px',
-            background: WEG_AZUL,
-            color: WEG_BRANCO,
-            border: 'none',
-            borderRadius: 6,
-            fontWeight: 700,
-            fontSize: 16,
-            cursor: 'pointer',
-            boxShadow: '0 2px 6px #0001',
-            marginLeft: 12
-          }}
-        >
-          Gerar Relatório
-        </button>
+  <div style={{ minWidth: 180, flex: '1 1 220px', display: 'flex', alignItems: 'center', marginTop: 8 }}>
+    <button
+      type="submit"
+      disabled={loading}
+      style={{
+        height: 44,
+        minWidth: 170,
+        padding: '0 32px',
+        background: WEG_AZUL,
+        color: WEG_BRANCO,
+        border: 'none',
+        borderRadius: 8,
+        fontWeight: 800,
+        fontSize: 17,
+        cursor: 'pointer',
+        boxShadow: '0 3px 10px #0002',
+        marginLeft: 18,
+        letterSpacing: 0.5
+      }}
+    >
+      Gerar Relatório
+    </button>
+  </div>
       </form>
 
       {/* Feedbacks */}
