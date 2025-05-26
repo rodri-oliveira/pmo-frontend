@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AutocompleteRecurso from './AutocompleteRecurso';
 
 // Paleta WEG
 const WEG_AZUL = "#00579D";
@@ -190,7 +191,12 @@ function Relatorios() {
 
   function buildQueryString(params) {
     return Object.entries(params)
-      .filter(([_, v]) => v !== '' && v !== false)
+      .filter(([k, v]) => {
+        if (k === 'recurso_id') {
+          return typeof v === 'number' && !isNaN(v);
+        }
+        return v !== '' && v !== false;
+      })
       .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
       .join('&');
   }
@@ -202,7 +208,11 @@ function Relatorios() {
     setResult(null);
     try {
       const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
-      const qs = buildQueryString(params);
+      const fixedParams = { ...params };
+      if (fixedParams.recurso_id && typeof fixedParams.recurso_id === 'object') {
+        fixedParams.recurso_id = fixedParams.recurso_id.id;
+      }
+      const qs = buildQueryString(fixedParams);
       const res = await fetch(`${rel.endpoint}?${qs}`);
       if (!res.ok) throw new Error('Erro ao buscar relatório');
       const data = await res.json();
@@ -363,23 +373,38 @@ function Relatorios() {
 
       {/* Filtros */}
       <form onSubmit={handleSubmit} style={{display:'flex', flexWrap:'wrap', gap:16, marginBottom: 18}}>
-        {rel.filtros.map(filtro =>
-          filtro.type === 'checkbox' ? (
-            <label key={filtro.name} style={{
-              display: 'flex', alignItems: 'center', gap: 4, color: WEG_AZUL, fontWeight: 500
-            }}>
-              <input
-                type="checkbox"
-                name={filtro.name}
-                checked={!!params[filtro.name]}
-                onChange={handleChange}
-                style={{
-                  accentColor: WEG_AZUL, width: 18, height: 18, marginRight: 4
-                }}
+        {rel.filtros.map(filtro => {
+          // Substitui apenas para o filtro 'recurso_id' do relatório 'Horas Apontadas'
+          if (tipoRelatorio === 'horas-apontadas' && filtro.name === 'recurso_id') {
+            return (
+              <AutocompleteRecurso
+                key={filtro.name}
+                value={params.recurso_id}
+                onChange={id => setParams(prev => ({ ...prev, recurso_id: id }))}
+                placeholder={filtro.placeholder || 'Digite o nome do recurso...'}
               />
-              {filtro.label}
-            </label>
-          ) : (
+            );
+          }
+          if (filtro.type === 'checkbox') {
+            return (
+              <label key={filtro.name} style={{
+                display: 'flex', alignItems: 'center', gap: 4, color: WEG_AZUL, fontWeight: 500
+              }}>
+                <input
+                  type="checkbox"
+                  name={filtro.name}
+                  checked={!!params[filtro.name]}
+                  onChange={handleChange}
+                  style={{
+                    accentColor: WEG_AZUL, width: 18, height: 18, marginRight: 4
+                  }}
+                />
+                {filtro.label}
+              </label>
+            );
+          }
+          // Campo padrão
+          return (
             <input
               key={filtro.name}
               name={filtro.name}
@@ -401,8 +426,8 @@ function Relatorios() {
               onFocus={e => e.target.style.borderColor = WEG_AZUL}
               onBlur={e => e.target.style.borderColor = CINZA_BORDA}
             />
-          )
-        )}
+          );
+        })}
         <button
           type="submit"
           disabled={loading}
