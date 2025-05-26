@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import AutocompleteRecurso from './AutocompleteRecurso';
+import AutocompleteProjeto from './AutocompleteProjeto';
+import AutocompleteEquipe from './AutocompleteEquipe';
+import AutocompleteSecao from './AutocompleteSecao';
 
 // Paleta WEG
 const WEG_AZUL = "#00579D";
@@ -143,7 +146,7 @@ const RELATORIOS = [
   },
 ];
 
-function Relatorios() {
+export default function Relatorios() {
   const [tipoRelatorio, setTipoRelatorio] = useState(RELATORIOS[0].value);
   const [params, setParams] = useState({
     recurso_id: '',
@@ -192,10 +195,12 @@ function Relatorios() {
   function buildQueryString(params) {
     return Object.entries(params)
       .filter(([k, v]) => {
-        if (k === 'recurso_id') {
-          return typeof v === 'number' && !isNaN(v);
+        // Filtrar apenas valores vazios, mas manter valores booleanos (true ou false)
+        // Os parâmetros de agrupamento precisam ser enviados explicitamente, mesmo quando false
+        if (k.startsWith('agrupar_por_')) {
+          return true; // Sempre incluir parâmetros de agrupamento
         }
-        return v !== '' && v !== false;
+        return v !== '';
       })
       .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
       .join('&');
@@ -209,18 +214,60 @@ function Relatorios() {
     try {
       const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
       const fixedParams = { ...params };
-      if (fixedParams.recurso_id && typeof fixedParams.recurso_id === 'object') {
-        fixedParams.recurso_id = fixedParams.recurso_id.id;
-      }
+      
+      // Processar todos os campos de ID que podem ser objetos do autocomplete
+      const idFields = ['recurso_id', 'projeto_id', 'equipe_id', 'secao_id'];
+      
+      idFields.forEach(field => {
+        // Se o campo for um objeto (selecionado via autocomplete), extrair o id
+        if (fixedParams[field] && typeof fixedParams[field] === 'object') {
+          fixedParams[field] = fixedParams[field].id;
+        }
+        
+        // Se o campo estiver vazio ou não for um número válido, removê-lo
+        if (!fixedParams[field] || isNaN(Number(fixedParams[field]))) {
+          delete fixedParams[field];
+        }
+      });
       const qs = buildQueryString(fixedParams);
+      console.log('DEBUG params:', fixedParams);
+      console.log('DEBUG qs:', qs);
+      console.log('DEBUG endpoint:', `${rel.endpoint}?${qs}`);
       const res = await fetch(`${rel.endpoint}?${qs}`);
-      if (!res.ok) throw new Error('Erro ao buscar relatório');
+      console.log('DEBUG status:', res.status, res.statusText);
+      
+      if (!res.ok) throw new Error(`Erro ao buscar relatório: ${res.status} ${res.statusText}`);
+      
       const data = await res.json();
+      console.log('DEBUG resposta completa:', data);
+      
+      // Verificar se a resposta é válida e contém dados
       if (Array.isArray(data)) {
+        console.log('DEBUG dados em array:', data.length, 'itens');
         setResult(data);
-      } else if (Array.isArray(data.items)) {
-        setResult(data.items);
+      } else if (data && data.items && Array.isArray(data.items)) {
+        console.log('DEBUG dados em data.items:', data.items.length, 'itens');
+        
+        // Verificar se é uma resposta de apontamentos individuais (quando filtra por recurso_id)
+        // Neste caso, os items contêm campos como id, recurso_id, projeto_id, etc.
+        const isIndividualItems = data.items.length > 0 && data.items[0].id !== undefined && data.items[0].recurso_id !== undefined;
+        
+        if (isIndividualItems) {
+          console.log('DEBUG detectado resposta de apontamentos individuais');
+          setResult(data.items);
+        }
+        // Caso normal com agrupamentos
+        else if (data.total_horas !== undefined) {
+          setResult([
+            ...data.items,
+            // Adicionar uma linha de total se houver total_horas
+            { total: true, horas: data.total_horas }
+          ]);
+        } else {
+          setResult(data.items);
+        }
       } else {
+        console.log('DEBUG sem dados válidos na resposta');
         setResult([]);
       }
     } catch (err) {
@@ -284,24 +331,59 @@ function Relatorios() {
 
   // Renderiza tabela dinâmica
   function renderTable() {
-    if (!result || !Array.isArray(result) || result.length === 0) return null;
+    if (!result || !Array.isArray(result) || result.length === 0) {
+      console.log('DEBUG renderTable: sem dados para exibir');
+      return (
+        <div style={{marginTop:24, color:WEG_AZUL, fontWeight:500, fontSize:18}}>
+          Nenhum resultado encontrado para os filtros selecionados.
+        </div>
+      );
+    }
 
+    console.log('DEBUG renderTable: dados para exibir', result);
+    
+    // Filtra linhas de total especiais (adicionadas manualmente)
+    const dataRows = result.filter(row => !row.total);
+    const totalRows = result.filter(row => row.total);
+    
+    // Verificar se temos dados para exibir
+    if (dataRows.length === 0) {
+      console.log('DEBUG renderTable: sem dados após filtrar linhas de total');
+      return (
+        <div style={{marginTop:24, color:WEG_AZUL, fontWeight:500, fontSize:18}}>
+          Nenhum resultado encontrado para os filtros selecionados.
+        </div>
+      );
+    }
+    
     // Descobre as colunas dinamicamente a partir dos dados retornados
-    let columns = Object.keys(result[0]);
+    // Ignora propriedades especiais como 'total'
+    let columns = Object.keys(dataRows[0] || {}).filter(col => col !== 'total');
+    console.log('DEBUG colunas detectadas:', columns);
 
-    // Permite customização futura por tipo de relatório (mas padrão é sempre o JSON)
-    // Exemplo: se algum relatório precisar esconder/renomear colunas, pode-se ajustar aqui
-
-    // Cálculo de totais (mantém lógica existente)
-    let hasTotals = false;
+    // Cálculo de totais automaticamente a partir dos dados
+    let hasTotals = totalRows.length > 0 || columns.some(col => typeof dataRows[0][col] === 'number');
     let totals = {};
-    if (columns.some(col => typeof result[0][col] === 'number')) {
-      hasTotals = true;
+    
+    // Se temos linhas de total especiais, usamos elas
+    if (totalRows.length > 0) {
+      totalRows.forEach(row => {
+        Object.keys(row).forEach(key => {
+          if (key !== 'total') {
+            totals[key] = row[key];
+          }
+        });
+      });
+      console.log('DEBUG totais especiais:', totals);
+    }
+    // Senão, calculamos os totais automaticamente
+    else if (columns.some(col => typeof dataRows[0][col] === 'number')) {
       columns.forEach(col => {
-        if (typeof result[0][col] === 'number') {
-          totals[col] = result.reduce((acc, row) => acc + (typeof row[col] === 'number' ? row[col] : 0), 0);
+        if (typeof dataRows[0][col] === 'number') {
+          totals[col] = dataRows.reduce((acc, row) => acc + (typeof row[col] === 'number' ? row[col] : 0), 0);
         }
       });
+      console.log('DEBUG totais calculados:', totals);
     }
 
     return (
@@ -316,7 +398,7 @@ function Relatorios() {
           </tr>
         </thead>
         <tbody>
-          {result.map((row, idx) => (
+          {dataRows.map((row, idx) => (
             <tr key={idx} style={{background: idx%2 ? WEG_AZUL_CLARO : WEG_BRANCO}}>
               {columns.map(col => (
                 <td key={col} style={{padding:'8px 12px', textAlign: typeof row[col] === 'number' ? 'right' : 'left'}}>
@@ -325,6 +407,14 @@ function Relatorios() {
               ))}
             </tr>
           ))}
+          {/* Exibir mensagem quando não há dados */}
+          {dataRows.length === 0 && (
+            <tr>
+              <td colSpan={columns.length} style={{padding:'16px', textAlign:'center', color:WEG_AZUL, fontWeight:500}}>
+                Nenhum resultado encontrado para os filtros selecionados.
+              </td>
+            </tr>
+          )}
           {hasTotals && (
             <tr style={{background:WEG_AZUL_CLARO, fontWeight:600}}>
               {columns.map(col => (
@@ -374,14 +464,43 @@ function Relatorios() {
       {/* Filtros */}
       <form onSubmit={handleSubmit} style={{display:'flex', flexWrap:'wrap', gap:16, marginBottom: 18}}>
         {rel.filtros.map(filtro => {
-          // Substitui apenas para o filtro 'recurso_id' do relatório 'Horas Apontadas'
-          if (tipoRelatorio === 'horas-apontadas' && filtro.name === 'recurso_id') {
+          if (filtro.name === 'recurso_id') {
             return (
               <AutocompleteRecurso
                 key={filtro.name}
-                value={params.recurso_id}
-                onChange={id => setParams(prev => ({ ...prev, recurso_id: id }))}
+                value={typeof params.recurso_id === 'object' ? params.recurso_id : params.recurso_id ? { id: params.recurso_id, nome: '' } : null}
+                onChange={recurso => setParams(prev => ({ ...prev, recurso_id: recurso }))}
                 placeholder={filtro.placeholder || 'Digite o nome do recurso...'}
+              />
+            );
+          }
+          if (filtro.name === 'projeto_id') {
+            return (
+              <AutocompleteProjeto
+                key={filtro.name}
+                value={typeof params.projeto_id === 'object' ? params.projeto_id : params.projeto_id ? { id: params.projeto_id, nome: '' } : null}
+                onChange={projeto => setParams(prev => ({ ...prev, projeto_id: projeto }))}
+                placeholder={filtro.placeholder || 'Digite o nome do projeto...'}
+              />
+            );
+          }
+          if (filtro.name === 'equipe_id') {
+            return (
+              <AutocompleteEquipe
+                key={filtro.name}
+                value={typeof params.equipe_id === 'object' ? params.equipe_id : params.equipe_id ? { id: params.equipe_id, nome: '' } : null}
+                onChange={equipe => setParams(prev => ({ ...prev, equipe_id: equipe }))}
+                placeholder={filtro.placeholder || 'Digite o nome da equipe...'}
+              />
+            );
+          }
+          if (filtro.name === 'secao_id') {
+            return (
+              <AutocompleteSecao
+                key={filtro.name}
+                value={typeof params.secao_id === 'object' ? params.secao_id : params.secao_id ? { id: params.secao_id, nome: '' } : null}
+                onChange={secao => setParams(prev => ({ ...prev, secao_id: secao }))}
+                placeholder={filtro.placeholder || 'Digite o nome da seção...'}
               />
             );
           }
@@ -494,5 +613,3 @@ function Relatorios() {
     </div>
   );
 }
-
-export default Relatorios;

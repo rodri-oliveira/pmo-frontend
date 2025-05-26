@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { buscarRecursosPorNome } from '../utils/autocomplete';
+import { buscarSecoesPorNome } from '../utils/autocomplete';
 
 /**
- * Componente de autocomplete para selecionar recurso pelo nome
+ * Componente de autocomplete para selecionar seção pelo nome
  * Props:
- *   value: valor atual (id do recurso)
- *   onChange: função chamada com o id do recurso selecionado
+ *   value: valor atual (id da seção ou objeto {id, nome})
+ *   onChange: função chamada com o objeto {id, nome} da seção selecionada
  */
-export default function AutocompleteRecurso({ value, onChange, placeholder = 'Digite o nome do recurso...' }) {
+export default function AutocompleteSecao({ value, onChange, placeholder = 'Digite o nome da seção...' }) {
   const [inputValue, setInputValue] = useState(value && value.nome ? value.nome : '');
   const [sugestoes, setSugestoes] = useState([]);
   const [showSugestoes, setShowSugestoes] = useState(false);
@@ -19,7 +19,7 @@ export default function AutocompleteRecurso({ value, onChange, placeholder = 'Di
     clearTimeout(timeoutRef.current);
     if (val.length >= 2) {
       timeoutRef.current = setTimeout(async () => {
-        const sugests = await buscarRecursosPorNome(val);
+        const sugests = await buscarSecoesPorNome(val);
         setSugestoes(sugests);
         setShowSugestoes(true);
       }, 300);
@@ -33,7 +33,7 @@ export default function AutocompleteRecurso({ value, onChange, placeholder = 'Di
     setInputValue(sugestao.nome);
     setShowSugestoes(false);
     setSugestoes([]);
-    if (onChange) onChange(sugestao); // Agora retorna o objeto inteiro: { id, nome }
+    if (onChange) onChange(sugestao); // Retorna o objeto { id, nome }
   }
 
   return (
