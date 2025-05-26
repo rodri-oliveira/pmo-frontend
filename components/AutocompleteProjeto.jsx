@@ -33,7 +33,7 @@ export default function AutocompleteProjeto({ value, onChange, placeholder = 'Di
     setInputValue(sugestao.nome);
     setShowSugestoes(false);
     setSugestoes([]);
-    if (onChange) onChange(sugestao); // Retorna o objeto { id, nome }
+    if (onChange) onChange(sugestao); // Agora retorna o objeto inteiro: { id, nome }
   }
 
   return (
