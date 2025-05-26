@@ -514,9 +514,7 @@ export default function Relatorios() {
                   name={filtro.name}
                   checked={!!params[filtro.name]}
                   onChange={handleChange}
-                  style={{
-                    accentColor: WEG_AZUL, width: 18, height: 18, marginRight: 4
-                  }}
+                  style={{ accentColor: WEG_AZUL, width: 18, height: 18, marginRight: 4 }}
                 />
                 {filtro.label}
               </label>
@@ -566,34 +564,6 @@ export default function Relatorios() {
           Gerar Relatório
         </button>
       </form>
-
-      {/* Exemplos rápidos */}
-      <div style={{margin:'18px 0'}}>
-        <b style={{color: WEG_AZUL}}>Exemplos rápidos:</b>
-        <div style={{display:'flex', flexWrap:'wrap', gap:8, marginTop:6}}>
-          {rel.exemplos.map((ex, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={()=>handleExemploClick(ex)}
-              style={{
-                padding:'6px 14px',
-                background: WEG_AZUL_CLARO,
-                color: WEG_AZUL,
-                border: `1px solid ${WEG_AZUL}`,
-                borderRadius: 6,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'background 0.2s, color 0.2s'
-              }}
-              onMouseOver={e => {e.target.style.background = WEG_AZUL; e.target.style.color = WEG_BRANCO}}
-              onMouseOut={e => {e.target.style.background = WEG_AZUL_CLARO; e.target.style.color = WEG_AZUL}}
-            >
-              {ex.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Feedbacks */}
       {loading && <div style={{color: WEG_AZUL, marginTop:12, fontWeight:600}}>Carregando...</div>}

@@ -78,15 +78,12 @@ export async function buscarEquipesPorNome(termo) {
 export async function buscarSecoesPorNome(termo) {
   if (!termo || termo.length < 2) return [];
   try {
-    // Endpoint de busca de seções
-    const resp = await fetch(`/backend/v1/secoes/autocomplete?search=${encodeURIComponent(termo)}`);
+    // Novo endpoint de busca de seções
+    const resp = await fetch(`/backend/v1/secoes?nome=${encodeURIComponent(termo)}&ativo=true`);
     if (!resp.ok) throw new Error('Erro ao buscar seções');
     const data = await resp.json();
-    // Aceita resposta como array raiz OU objeto com items
-    return (Array.isArray(data)
-      ? data.map(item => ({ id: item.id, nome: item.nome }))
-      : (data.items || []).map(item => ({ id: item.id, nome: item.nome }))
-    );
+    // Sempre espera data.items
+    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
