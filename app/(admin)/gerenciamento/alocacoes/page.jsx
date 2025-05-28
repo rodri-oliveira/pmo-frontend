@@ -10,11 +10,19 @@ const AlocacoesPage = () => {
     recurso_id: '',
     projeto_id: '',
     data_inicio_alocacao: '',
-    data_fim_alocacao: ''
+    data_fim_alocacao: '',
+    status_alocacao_id: '',
+    observacao: ''
   });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [loading, setLoading] = useState(false);
   const [alocacoes, setAlocacoes] = useState([]);
+  const [statusAlocacoes, setStatusAlocacoes] = useState([]);
+  const statusAlocacoesMock = [
+    { id: 1, nome: 'Ativo' },
+    { id: 2, nome: 'Pausado' },
+    { id: 3, nome: 'Finalizado' }
+  ];
   const [editingId, setEditingId] = useState(null);
   const [openPlanejamentoModal, setOpenPlanejamentoModal] = useState(false);
   const [planejamentosAloc, setPlanejamentosAloc] = useState([]);
@@ -26,8 +34,19 @@ const AlocacoesPage = () => {
     getRecursos().then((data) => setRecursos(data.items || []));
     getProjetos().then((data) => setProjetos(data.items || []));
     carregarAlocacoes();
+    carregarStatusAlocacoes();
     // eslint-disable-next-line
   }, []);
+
+  const carregarStatusAlocacoes = async () => {
+    try {
+      const data = await import('../../../services/statusProjetos.jsx').then(mod => mod.getStatusProjetos());
+      setStatusAlocacoes(data.items || []);
+    } catch (error) {
+      setStatusAlocacoes(statusAlocacoesMock);
+      setSnackbar({ open: true, message: 'Erro ao carregar status. Usando dados de exemplo.', severity: 'error' });
+    }
+  };
 
   const carregarAlocacoes = async () => {
     try {
@@ -49,7 +68,9 @@ const AlocacoesPage = () => {
     const payload = {
       recurso_id: Number(formData.recurso_id),
       projeto_id: Number(formData.projeto_id),
-      data_inicio_alocacao: formData.data_inicio_alocacao
+      data_inicio_alocacao: formData.data_inicio_alocacao,
+      status_alocacao_id: formData.status_alocacao_id,
+      observacao: formData.observacao
     };
     if (formData.data_fim_alocacao) payload.data_fim_alocacao = formData.data_fim_alocacao;
     try {
@@ -60,7 +81,7 @@ const AlocacoesPage = () => {
         await createAlocacao(payload);
         setSnackbar({ open: true, message: 'Alocação criada com sucesso!', severity: 'success' });
       }
-      setFormData({ recurso_id: '', projeto_id: '', data_inicio_alocacao: '', data_fim_alocacao: '' });
+      setFormData({ recurso_id: '', projeto_id: '', data_inicio_alocacao: '', data_fim_alocacao: '', status_alocacao_id: '', observacao: '' });
       setEditingId(null);
       carregarAlocacoes();
     } catch (error) {
@@ -79,7 +100,9 @@ const AlocacoesPage = () => {
         recurso_id: aloc.recurso_id?.toString() || '',
         projeto_id: aloc.projeto_id?.toString() || '',
         data_inicio_alocacao: aloc.data_inicio_alocacao || '',
-        data_fim_alocacao: aloc.data_fim_alocacao || ''
+        data_fim_alocacao: aloc.data_fim_alocacao || '',
+        status_alocacao_id: aloc.status_alocacao_id || '',
+        observacao: aloc.observacao || ''
       });
       setEditingId(id);
     } catch (error) {
@@ -174,6 +197,33 @@ const AlocacoesPage = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                select
+                label="Status da Alocação"
+                name="status_alocacao_id"
+                value={formData.status_alocacao_id}
+                onChange={handleChange}
+                required
+                fullWidth
+              >
+                {(statusAlocacoes || []).map((s) => (
+                  <MenuItem key={s.id} value={s.id}>{s.nome}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Observação"
+                name="observacao"
+                value={formData.observacao}
+                onChange={handleChange}
+                fullWidth
+                multiline
+                minRows={2}
+                maxRows={4}
+              />
+            </Grid>
             <Grid item xs={12}>
               <Button type="submit" variant="contained" color="primary" disabled={loading} fullWidth>
                 {loading ? 'Salvando...' : 'Salvar Alocação'}
@@ -206,6 +256,8 @@ const AlocacoesPage = () => {
                       <th style={{ borderBottom: '1px solid #ccc', padding: 8 }}>Projeto ID</th>
                       <th style={{ borderBottom: '1px solid #ccc', padding: 8 }}>Data Início</th>
                       <th style={{ borderBottom: '1px solid #ccc', padding: 8 }}>Data Fim</th>
+<th style={{ borderBottom: '1px solid #ccc', padding: 8 }}>Status</th>
+<th style={{ borderBottom: '1px solid #ccc', padding: 8 }}>Observação</th>
                       <th style={{ borderBottom: '1px solid #ccc', padding: 8 }}>Ações</th>
                     </tr>
                   </thead>
@@ -217,6 +269,8 @@ const AlocacoesPage = () => {
                         <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{a.projeto_id || '-'}</td>
                         <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{a.data_inicio_alocacao || '-'}</td>
                         <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{a.data_fim_alocacao || '-'}</td>
+<td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{(statusAlocacoes.find(s => s.id === a.status_alocacao_id)?.nome) || '-'}</td>
+<td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{a.observacao || '-'}</td>
                         <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>
                           <Button size="small" variant="outlined" onClick={() => handleEdit(a.id)} sx={{ mr: 1 }}>
                             Editar

@@ -111,7 +111,8 @@ export default function RecursosPage() {
       if (recurso) {
         setFormData({
           nome: recurso.nome,
-          email: recurso.email,
+          // O campo email agora pode ser null, então garantimos string vazia se vier null/undefined
+          email: recurso.email ?? '',
           equipe_id: recurso.equipe_id,
           horas_diarias: recurso.horas_diarias,
           jira_account_id: recurso.jira_account_id || '',

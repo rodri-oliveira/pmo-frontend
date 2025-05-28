@@ -426,7 +426,10 @@ export default function Relatorios() {
     color: '#232b36',
     fontWeight: 500
   }}>
-    {typeof row[col] === 'number' ? formatNumber(row[col]) : (row[col] ?? '-')}
+    {/* Tratamento defensivo para campo 'email' opcional */}
+    {col === 'email'
+      ? (!row[col] || row[col] === '' ? 'Sem e-mail' : row[col])
+      : (typeof row[col] === 'number' ? formatNumber(row[col]) : (row[col] ?? '-'))}
   </td>
 ))}
               </tr>

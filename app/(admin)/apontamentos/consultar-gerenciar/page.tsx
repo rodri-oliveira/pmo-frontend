@@ -38,15 +38,14 @@ import LockIcon from '@mui/icons-material/Lock';
 import { getApontamentos, getApontamento, updateApontamento, deleteApontamento } from '@/services/apontamentos';
 import { getProjetos } from '@/services/projetos';
 import { getRecursos } from '@/services/recursos';
+import { getEquipes } from '@/services/equipes';
+import { getSecoes } from '@/services/secoes';
 import { apiGet, apiPost, apiPut } from '@/services/api';
 
 interface Apontamento {
   id: number;
   recurso_id: number;
-  recurso?: {
-    id: number;
-    nome: string;
-  };
+  recurso?: Recurso;
   projeto_id: number;
   projeto?: {
     id: number;
@@ -70,7 +69,7 @@ interface Projeto {
 interface Recurso {
   id: number;
   nome: string;
-  email?: string;
+  email?: string | null;
   matricula?: string;
 }
 
@@ -95,6 +94,8 @@ export default function ConsultarApontamentosPage() {
   const [apontamentos, setApontamentos] = useState<Apontamento[]>([]);
   const [projetos, setProjetos] = useState<Projeto[]>([]);
   const [recursos, setRecursos] = useState<Recurso[]>([]);
+  const [equipes, setEquipes] = useState<any[]>([]);
+  const [secoes, setSecoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [apontamentoAtual, setApontamentoAtual] = useState<Apontamento | null>(null);
@@ -109,6 +110,9 @@ export default function ConsultarApontamentosPage() {
   const [projetoFilter, setProjetoFilter] = useState<number | ''>('');
   const [recursoFilter, setRecursoFilter] = useState<number | ''>('');
   const [fonteFilter, setFonteFilter] = useState<string>('');
+  const [equipeFilter, setEquipeFilter] = useState<number | ''>('');
+  const [secaoFilter, setSecaoFilter] = useState<number | ''>('');
+  const [jiraIssueKeyFilter, setJiraIssueKeyFilter] = useState<string>('');
   
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -119,31 +123,6 @@ export default function ConsultarApontamentosPage() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
 
-  const [testando, setTestando] = useState(false);
-  const [sincronizando, setSincronizando] = useState(false);
-  const [showToken, setShowToken] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [config, setConfig] = useState<JiraConfig>({
-    url: '',
-    username: '',
-    api_token: '',
-    ativo: false,
-    status: 'desconectado'
-  });
-  const [logSincronizacao, setLogSincronizacao] = useState<string[]>([]);
-
-  // Dados mockados para desenvolvimento (quando a API não estiver disponível)
-  const dadosMockRecursos: Recurso[] = [
-    { id: 1, nome: 'Ana Silva', email: 'ana.silva@example.com', matricula: '12345' },
-    { id: 2, nome: 'Bruno Costa', email: 'bruno.costa@example.com', matricula: '23456' },
-    { id: 3, nome: 'Carla Oliveira', email: 'carla.oliveira@example.com', matricula: '34567' }
-  ];
-
-  const dadosMockProjetos: Projeto[] = [
-    { id: 1, nome: 'Projeto A', codigo_empresa: 'PROJ-001' },
-    { id: 2, nome: 'Projeto B', codigo_empresa: 'PROJ-002' },
-    { id: 3, nome: 'Projeto C', codigo_empresa: 'PROJ-003' }
-  ];
 
   // Função para buscar apontamentos
   const fetchApontamentos = async () => {
@@ -174,12 +153,23 @@ export default function ConsultarApontamentosPage() {
         params.fonte_apontamento = fonteFilter;
       }
       
+      if (equipeFilter) {
+        params.equipe_id = equipeFilter;
+      }
+      
+      if (secaoFilter) {
+        params.secao_id = secaoFilter;
+      }
+      
+      if (jiraIssueKeyFilter) {
+        params.jira_issue_key = jiraIssueKeyFilter;
+      }
+      
       const data = await getApontamentos(params);
       setApontamentos(data.items || []);
       setTotalItems(data.total || 0);
     } catch (error) {
       console.error('Erro ao buscar apontamentos:', error);
-      // Usar dados vazios em caso de erro
       setApontamentos([]);
       setTotalItems(0);
       setSnackbar({
@@ -199,11 +189,10 @@ export default function ConsultarApontamentosPage() {
       setProjetos(data.items || []);
     } catch (error) {
       console.error('Erro ao buscar projetos:', error);
-      // Usar dados mockados em caso de erro
-      setProjetos(dadosMockProjetos);
+      setProjetos([]);
       setSnackbar({
         open: true,
-        message: 'Erro ao carregar projetos. Usando dados de exemplo.',
+        message: 'Erro ao carregar projetos.',
         severity: 'error'
       });
     }
@@ -216,31 +205,34 @@ export default function ConsultarApontamentosPage() {
       setRecursos(data.items || []);
     } catch (error) {
       console.error('Erro ao buscar recursos:', error);
-      // Usar dados mockados em caso de erro
-      setRecursos(dadosMockRecursos);
+      setRecursos([]);
       setSnackbar({
         open: true,
-        message: 'Erro ao carregar recursos. Usando dados de exemplo.',
+        message: 'Erro ao carregar recursos.',
         severity: 'error'
       });
     }
   };
 
-  // Buscar configurações do Jira
-  const fetchJiraConfig = async () => {
-    setLoading(true);
+  // Buscar equipes
+  const fetchEquipes = async () => {
     try {
-      const data = await apiGet<JiraConfig>('/admin/jira/config');
-      setConfig(data);
+      const data = await getEquipes({ ativo: true });
+      setEquipes(data.items || []);
     } catch (error) {
-      console.error('Erro ao buscar configurações do Jira:', error);
-      setSnackbar({
-        open: true,
-        message: 'Erro ao carregar configurações de integração com o Jira',
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
+      setEquipes([]);
+      setSnackbar({ open: true, message: 'Erro ao carregar equipes.', severity: 'error' });
+    }
+  };
+
+  // Buscar seções
+  const fetchSecoes = async () => {
+    try {
+      const data = await getSecoes({ ativo: true });
+      setSecoes(data.items || []);
+    } catch (error) {
+      setSecoes([]);
+      setSnackbar({ open: true, message: 'Erro ao carregar seções.', severity: 'error' });
     }
   };
 
@@ -248,14 +240,15 @@ export default function ConsultarApontamentosPage() {
   useEffect(() => {
     fetchProjetos();
     fetchRecursos();
+    fetchEquipes();
+    fetchSecoes();
     fetchApontamentos();
-    fetchJiraConfig();
   }, []);
 
   // Efeito para atualizar quando os filtros ou a paginação mudam
   useEffect(() => {
     fetchApontamentos();
-  }, [page, rowsPerPage, projetoFilter, recursoFilter, fonteFilter]);
+  }, [page, rowsPerPage, projetoFilter, recursoFilter, fonteFilter, equipeFilter, secaoFilter, jiraIssueKeyFilter]);
 
   const handleOpenEditDialog = async (apontamento: Apontamento) => {
     try {
@@ -361,84 +354,6 @@ export default function ConsultarApontamentosPage() {
     fetchApontamentos();
   };
 
-  // Função para atualizar campo no form
-  const handleChangeJiraConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setConfig({
-      ...config,
-      [name]: type === 'checkbox' ? checked : value
-    });
-  };
-
-  // Função para salvar configurações
-  const handleSaveJiraConfig = async () => {
-    setLoading(true);
-    try {
-      await apiPut<JiraConfig>('/admin/jira/config', config);
-      setSnackbar({
-        open: true,
-        message: 'Configurações do Jira salvas com sucesso!',
-        severity: 'success'
-      });
-      fetchJiraConfig(); // Recarregar dados
-    } catch (error) {
-      console.error('Erro ao salvar configurações do Jira:', error);
-      setSnackbar({
-        open: true,
-        message: 'Erro ao salvar configurações. Tente novamente.',
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Função para testar conexão
-  const handleTestConnection = async () => {
-    setTestando(true);
-    try {
-      const result = await apiPost<{success: boolean, message: string}>('/admin/jira/test-connection', config);
-      setSnackbar({
-        open: true,
-        message: result.success ? 'Conexão com Jira estabelecida com sucesso!' : `Falha na conexão: ${result.message}`,
-        severity: result.success ? 'success' : 'error'
-      });
-    } catch (error: any) {
-      setSnackbar({
-        open: true,
-        message: `Erro ao testar conexão: ${error.message || 'Erro desconhecido'}`,
-        severity: 'error'
-      });
-    } finally {
-      setTestando(false);
-    }
-  };
-
-  // Função para iniciar sincronização
-  const handleSync = async () => {
-    setSincronizando(true);
-    setDialogOpen(true);
-    setLogSincronizacao(['Iniciando sincronização com o Jira...']);
-    
-    try {
-      // Simulação de log em tempo real (em produção seria WebSocket ou Server-Sent Events)
-      const result = await apiPost<{success: boolean, log: string[]}>('/admin/jira/sincronizar', {});
-      
-      setLogSincronizacao(prev => [...prev, ...result.log]);
-      
-      if (result.success) {
-        setLogSincronizacao(prev => [...prev, 'Sincronização concluída com sucesso!']);
-        setConfig(prev => ({...prev, ultima_sincronizacao: new Date().toISOString()}));
-      } else {
-        setLogSincronizacao(prev => [...prev, 'Erro na sincronização. Verifique os logs para mais detalhes.']);
-      }
-    } catch (error: any) {
-      setLogSincronizacao(prev => [...prev, `Erro na sincronização: ${error.message || 'Erro desconhecido'}`]);
-    } finally {
-      setSincronizando(false);
-    }
-  };
-
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
       <Box>
@@ -446,267 +361,275 @@ export default function ConsultarApontamentosPage() {
           <AccessTimeIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
           Consulta e Gerenciamento de Apontamentos
         </Typography>
-        
+
         <Paper sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={2}>
               <DatePicker
                 label="Data de Início"
                 value={dataInicio}
-                onChange={setDataInicio}
-                slotProps={{ 
-                  textField: { 
-                    fullWidth: true, 
-                    size: "small",
+                onChange={(newValue) => setDataInicio(newValue)}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: 'small',
                     InputProps: {
                       startAdornment: (
                         <Box component="span" sx={{ mr: 1, color: 'action.active' }}>
-                          <FilterListIcon fontSize="small" />
-                        </Box>
+                        <FilterListIcon fontSize="small" />
+                      </Box>
                       ),
                     }
-                  } 
+                  }
                 }}
               />
             </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={2}>
               <DatePicker
                 label="Data de Fim"
                 value={dataFim}
-                onChange={setDataFim}
-                slotProps={{ 
-                  textField: { 
-                    fullWidth: true, 
-                    size: "small" 
-                  } 
+                onChange={(newValue) => setDataFim(newValue)}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: 'small',
+                  }
                 }}
               />
             </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Projeto</InputLabel>
+                <InputLabel id="projeto-label">Projeto</InputLabel>
                 <Select
+                  labelId="projeto-label"
                   value={projetoFilter}
                   label="Projeto"
-                  onChange={(e) => setProjetoFilter(e.target.value as number | '')}
+                  onChange={e => setProjetoFilter(e.target.value as number | '')}
                 >
                   <MenuItem value="">Todos</MenuItem>
-                  {projetos.map((projeto) => (
-                    <MenuItem key={projeto.id} value={projeto.id}>
-                      {projeto.nome}
-                    </MenuItem>
+                  {projetos.map(proj => (
+                    <MenuItem key={proj.id} value={proj.id}>{proj.nome}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Recurso</InputLabel>
+                <InputLabel id="recurso-label">Recurso</InputLabel>
                 <Select
+                  labelId="recurso-label"
                   value={recursoFilter}
                   label="Recurso"
-                  onChange={(e) => setRecursoFilter(e.target.value as number | '')}
+                  onChange={e => setRecursoFilter(e.target.value as number | '')}
                 >
                   <MenuItem value="">Todos</MenuItem>
-                  {(recursos || []).map((recurso) => (
-                    <MenuItem key={recurso.id} value={recurso.id}>
-                      {recurso.nome}
-                    </MenuItem>
+                  {(recursos || []).map(rec => (
+                    <MenuItem key={rec.id} value={rec.id}>{rec.nome}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Fonte do Apontamento</InputLabel>
+                <InputLabel id="equipe-label">Equipe</InputLabel>
                 <Select
+                  labelId="equipe-label"
+                  value={equipeFilter}
+                  label="Equipe"
+                  onChange={e => setEquipeFilter(e.target.value as number | '')}
+                >
+                  <MenuItem value="">Todas</MenuItem>
+                  {(equipes || []).map(eq => (
+                    <MenuItem key={eq.id} value={eq.id}>{eq.nome}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="secao-label">Seção</InputLabel>
+                <Select
+                  labelId="secao-label"
+                  value={secaoFilter}
+                  label="Seção"
+                  onChange={e => setSecaoFilter(e.target.value as number | '')}
+                >
+                  <MenuItem value="">Todas</MenuItem>
+                  {(secoes || []).map(sec => (
+                    <MenuItem key={sec.id} value={sec.id}>{sec.nome}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="fonte-label">Fonte do Apontamento</InputLabel>
+                <Select
+                  labelId="fonte-label"
                   value={fonteFilter}
                   label="Fonte do Apontamento"
-                  onChange={(e) => setFonteFilter(e.target.value)}
+                  onChange={e => setFonteFilter(e.target.value)}
                 >
                   <MenuItem value="">Todas</MenuItem>
                   <MenuItem value="MANUAL">Manual</MenuItem>
-                  <MenuItem value="JIRA">JIRA</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            
-            <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <Button
-                variant="outlined"
-                startIcon={<SearchIcon />}
-                onClick={handleFilter}
-                sx={{ mr: 1 }}
-              >
+            <Grid item xs={12} sm={6} md={2}>
+              <Button variant="outlined" startIcon={<SearchIcon />} onClick={handleFilter} sx={{ mr: 1 }}>
                 Filtrar
               </Button>
-              <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={fetchApontamentos}
-              >
+              <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchApontamentos}>
                 Atualizar
               </Button>
             </Grid>
           </Grid>
         </Paper>
-        
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableRow>
-                <TableCell><strong>Data</strong></TableCell>
-                <TableCell><strong>Recurso</strong></TableCell>
-                <TableCell><strong>Projeto</strong></TableCell>
-                <TableCell><strong>Descrição</strong></TableCell>
-                <TableCell align="right"><strong>Horas</strong></TableCell>
-                <TableCell align="center"><strong>Fonte</strong></TableCell>
-                <TableCell width={110} align="center"><strong>Ações</strong></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
+
+        {apontamentos.length === 0 && !loading ? (
+          <Typography variant="body2" align="center" sx={{ mt: 2 }}>
+            Nenhum apontamento encontrado
+          </Typography>
+        ) : (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                    <CircularProgress size={30} sx={{ color: '#00579d' }} />
-                    <Typography variant="body2" sx={{ mt: 1 }}>Carregando apontamentos...</Typography>
+                  <TableCell>
+                    <strong>Data</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Recurso</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Projeto</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Descrição</strong>
+                  </TableCell>
+                  <TableCell align="right">
+                    <strong>Horas</strong>
+                  </TableCell>
+                  <TableCell align="center">
+                    <strong>Fonte</strong>
+                  </TableCell>
+                  <TableCell width={110} align="center">
+                    <strong>Ações</strong>
                   </TableCell>
                 </TableRow>
-              ) : apontamentos.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">Nenhum apontamento encontrado</TableCell>
-                </TableRow>
-              ) : (
-                apontamentos.map((apontamento) => (
-                  <TableRow key={apontamento.id} hover>
-                    <TableCell>
-                      {format(new Date(apontamento.data_apontamento), 'dd/MM/yyyy')}
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                      <CircularProgress size={30} sx={{ color: '#00579d' }} />
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        Carregando apontamentos...
+                      </Typography>
                     </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <PersonIcon sx={{ mr: 1, color: '#00579d', fontSize: 20 }} />
-                        {apontamento.recurso?.nome || `Recurso #${apontamento.recurso_id}`}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <FolderIcon sx={{ mr: 1, color: '#00579d', fontSize: 20 }} />
-                        {apontamento.projeto?.nome || `Projeto #${apontamento.projeto_id}`}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip title={apontamento.descricao} arrow>
+                  </TableRow>
+                ) : (
+                  apontamentos.map((apontamento) => (
+                    <TableRow key={apontamento.id} hover>
+                      <TableCell>
+                        {format(new Date(apontamento.data_apontamento), 'dd/MM/yyyy')}
+                      </TableCell>
+                      <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <DescriptionIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
-                          <Typography sx={{ 
-                            maxWidth: 250, 
-                            whiteSpace: 'nowrap', 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis'
-                          }}>
-                            {apontamento.descricao}
-                          </Typography>
+                          <PersonIcon sx={{ mr: 1, color: '#00579d', fontSize: 20 }} />
+                          {apontamento.recurso?.nome || `Recurso #${apontamento.recurso_id}`}
+                          {apontamento.recurso?.email ? (
+                            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>{apontamento.recurso.email}</Typography>
+                          ) : null}
                         </Box>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Chip 
-                        label={`${apontamento.horas_apontadas}h`}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      {apontamento.fonte_apontamento === 'JIRA' ? (
-                        <Tooltip title={apontamento.jira_issue_key || 'JIRA'}>
-                          <Chip 
-                            icon={<JiraIcon />}
-                            label="JIRA"
-                            size="small"
-                            color="info"
-                          />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <FolderIcon sx={{ mr: 1, color: '#00579d', fontSize: 20 }} />
+                          {apontamento.projeto?.nome || `Projeto #${apontamento.projeto_id}`}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title={apontamento.descricao} arrow>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <DescriptionIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />
+                            <Typography
+                              sx={{
+                                maxWidth: 250,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {apontamento.descricao}
+                            </Typography>
+                          </Box>
                         </Tooltip>
-                      ) : (
-                        <Chip 
+                      </TableCell>
+                      <TableCell align="right">
+                        <Chip
+                          label={`${apontamento.horas_apontadas}h`}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
                           label="Manual"
                           size="small"
                           color="default"
                         />
-                      )}
-                    </TableCell>
-                    <TableCell align="center">
-                      <IconButton 
-                        size="small" 
-                        color="primary" 
-                        onClick={() => handleOpenEditDialog(apontamento)}
-                        sx={{ color: '#00579d' }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton 
-                        size="small" 
-                        color="error" 
-                        onClick={() => handleDeleteApontamento(apontamento.id)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50]}
-            component="div"
-            count={totalItems}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            labelRowsPerPage="Linhas por página:"
-            labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
-          />
-        </TableContainer>
-        
-        {/* Dialog para editar apontamento */}
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleOpenEditDialog(apontamento)}
+                          sx={{ color: '#00579d' }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDeleteApontamento(apontamento.id)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
+                count={totalItems}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                labelRowsPerPage="Linhas por página:"
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+              />
+            </Table>
+          </TableContainer>
+        )}
+
         {apontamentoAtual && (
           <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
             <DialogTitle>Editar Apontamento</DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 0.5 }}>
                 <Grid item xs={12}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">Recurso</Typography>
-                    <Typography variant="body1">
-                      {apontamentoAtual.recurso?.nome || `Recurso #${apontamentoAtual.recurso_id}`}
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">Projeto</Typography>
-                    <Typography variant="body1">
-                      {apontamentoAtual.projeto?.nome || `Projeto #${apontamentoAtual.projeto_id}`}
-                    </Typography>
-                  </Box>
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">Data</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <AccessTimeIcon sx={{ mr: 1 }} />
                     <Typography variant="body1">
                       {format(new Date(apontamentoAtual.data_apontamento), 'dd/MM/yyyy')}
                     </Typography>
                   </Box>
                 </Grid>
-                
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -717,23 +640,12 @@ export default function ConsultarApontamentosPage() {
                     onChange={handleInputChange}
                   />
                 </Grid>
-                
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
                     name="descricao"
                     label="Descrição"
                     value={formData.descricao}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    name="jira_issue_key"
-                    label="Chave do Issue no JIRA"
-                    value={formData.jira_issue_key}
                     onChange={handleInputChange}
                   />
                 </Grid>
@@ -746,207 +658,18 @@ export default function ConsultarApontamentosPage() {
           </Dialog>
         )}
         
-        <Paper sx={{ p: 3, mt: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            Integração com JIRA
-          </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            Configure a integração com sua instância do JIRA para sincronizar tarefas e registros de tempo.
-          </Typography>
-          
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <Box component="form" noValidate autoComplete="off">
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField
-                    name="url"
-                    label="URL do JIRA"
-                    fullWidth
-                    value={config.url}
-                    onChange={handleChangeJiraConfig}
-                    placeholder="https://sua-empresa.atlassian.net"
-                    helperText="URL completa da sua instância do JIRA"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LinkIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    name="username"
-                    label="Nome de usuário / Email"
-                    fullWidth
-                    value={config.username}
-                    onChange={handleChangeJiraConfig}
-                    helperText="Email associado à sua conta JIRA"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    name="api_token"
-                    label="Token de API"
-                    fullWidth
-                    type={showToken ? 'text' : 'password'}
-                    value={config.api_token}
-                    onChange={handleChangeJiraConfig}
-                    helperText="Token de API do JIRA (gerenciado em Atlassian account settings)"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LockIcon />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle token visibility"
-                            onClick={() => setShowToken(!showToken)}
-                            edge="end"
-                          >
-                            {showToken ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                          </IconButton>
-                        </InputAdornment>
-                      )
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={config.ativo}
-                        name="ativo"
-                        onChange={handleChangeJiraConfig}
-                        color="primary"
-                      />
-                    }
-                    label="Ativar integração com JIRA"
-                  />
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={handleSaveJiraConfig}
-                      disabled={loading}
-                    >
-                      Salvar Configurações
-                    </Button>
-                    
-                    <Button
-                      variant="outlined"
-                      onClick={handleTestConnection}
-                      disabled={loading || testando || !config.url || !config.username || !config.api_token}
-                      startIcon={<CodeIcon />}
-                    >
-                      {testando ? <CircularProgress size={24} /> : 'Testar Conexão'}
-                    </Button>
-                  </Box>
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-        </Paper>
         
-        <Paper sx={{ p: 3, mt: 4 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">Sincronização de Dados</Typography>
-            <Box>
-              {config.ultima_sincronizacao && (
-                <Typography variant="body2" color="text.secondary">
-                  Última sincronização: {new Date(config.ultima_sincronizacao).toLocaleString()}
-                </Typography>
-              )}
-            </Box>
-          </Box>
           
-          <Divider sx={{ mb: 3 }} />
-          
-          <Box sx={{ mb: 3 }}>
-            <Alert 
-              severity={
-                config.status === 'conectado' ? 'success' : 
-                config.status === 'erro' ? 'error' : 'info'
-              }
-              icon={
-                config.status === 'conectado' ? <CheckCircleIcon /> : 
-                config.status === 'erro' ? <ErrorIcon /> : <SyncIcon />
-              }
-            >
-              {config.status === 'conectado' ? 'Conexão com JIRA estabelecida. Pronto para sincronização.' : 
-               config.status === 'erro' ? `Erro na conexão: ${config.erro_mensagem || 'Verifique suas credenciais.'}` : 
-               'JIRA não configurado ou desconectado.'}
-            </Alert>
-          </Box>
-          
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={<SyncIcon />}
-            onClick={handleSync}
-            disabled={loading || sincronizando || config.status !== 'conectado'}
-            sx={{ mb: 3 }}
-          >
-            {sincronizando ? <CircularProgress size={24} color="inherit" /> : 'Sincronizar com JIRA'}
-          </Button>
-          
-          <Typography variant="body2" color="text.secondary" paragraph>
-            A sincronização irá atualizar os registros de tempo, tarefas e projetos entre o JIRA e este sistema.
-          </Typography>
-        </Paper>
         
         {/* Dialog para exibir log de sincronização */}
-        <Dialog
-          open={dialogOpen}
-          onClose={handleCloseDialog}
-          aria-labelledby="sync-dialog-title"
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle id="sync-dialog-title">
-            Log de Sincronização com JIRA
-          </DialogTitle>
-          <DialogContent>
-            <DialogContentText component="div">
-              <Box sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 1, fontFamily: 'monospace', maxHeight: '400px', overflow: 'auto' }}>
-                {logSincronizacao.map((line, index) => (
-                  <Box key={index} sx={{ py: 0.5 }}>
-                    {line}
-                  </Box>
-                ))}
-                {sincronizando && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    <Typography variant="body2">Processando...</Typography>
-                  </Box>
-                )}
-              </Box>
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Fechar</Button>
-          </DialogActions>
-        </Dialog>
+        
         
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
+          onClose={() => setSnackbar(s => ({ ...s, open: false }))}
         >
-          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
+          <Alert onClose={() => setSnackbar(s => ({ ...s, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>
             {snackbar.message}
           </Alert>
         </Snackbar>
