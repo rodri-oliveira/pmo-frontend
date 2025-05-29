@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
-import Relatorios from '../../../components/Relatorios';
+import React, { useState } from 'react';
+import RelatoriosCascade from '../../../components/relatorios/RelatoriosCascade';
 
 export default function RelatoriosPage() {
-  return <Relatorios />;
+  return <RelatoriosCascade />;
 }
