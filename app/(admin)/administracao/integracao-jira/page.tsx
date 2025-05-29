@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { 
   Box, 
   Typography, 
@@ -14,11 +15,63 @@ import {
 } from '@mui/material';
 
 export default function IntegracaoJiraPage() {
+  const { data: session } = useSession();
+  const [loadingSincronizar, setLoadingSincronizar] = useState(false);
+
+  // ...restante do código
+
+  const handleSincronizarJira = async () => {
+    try {
+      setLoadingSincronizar(true);
+      setSnackbar({ open: false, message: '', severity: 'success' });
+      // Obter token do NextAuth/Keycloak
+      const token = session?.accessToken;
+      console.log('[JIRA] Token recuperado da sessão:', token);
+      if (!token) throw new Error('Token de autenticação não encontrado. Faça login novamente.');
+      // LOG: Preparando chamada para backend
+      console.log('[JIRA] Enviando requisição para /backend/v1/sincronizacoes-jira/importar com Authorization:', `Bearer ${token}`);
+      console.log('[JIRA] Configuração enviada:', config);
+      const response = await fetch('/backend/v1/sincronizacoes-jira/importar-tudo', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      console.log('[JIRA] Status da resposta:', response.status);
+      let data = null;
+      try {
+        data = await response.clone().json();
+        console.log('[JIRA] Corpo da resposta:', data);
+      } catch (err) {
+        console.log('[JIRA] Não foi possível fazer parse do JSON da resposta.');
+      }
+      if (!response.ok) {
+        throw new Error((data && data.detail) || 'Erro ao sincronizar com o Jira.');
+      }
+      setSnackbar({
+        open: true,
+        message: 'Sincronização iniciada com sucesso! Aguarde alguns minutos e consulte os apontamentos.',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('[JIRA] Erro no handleSincronizarJira:', error);
+      setSnackbar({
+        open: true,
+        message: error instanceof Error
+  ? error.message
+  : 'Erro ao sincronizar com o Jira.',
+        severity: 'error'
+      });
+    } finally {
+      setLoadingSincronizar(false);
+    }
+  };
+
   const [config, setConfig] = useState({
     url: '',
     apiKey: '',
     username: '',
-    projectKey: ''
   });
   const [loading, setLoading] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean, message: string} | null>(null);
@@ -44,7 +97,6 @@ export default function IntegracaoJiraPage() {
             url: 'https://jira.weg.net',
             apiKey: '',
             username: 'usuario.jira',
-            projectKey: 'PMO'
           });
           setLoading(false);
         }, 1000);
@@ -182,16 +234,10 @@ export default function IntegracaoJiraPage() {
             />
           </Grid>
           
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Chave do Projeto"
-              name="projectKey"
-              value={config.projectKey}
-              onChange={handleChange}
-              placeholder="PMO"
-              helperText="Chave do projeto principal no Jira"
-            />
+          <Grid item xs={12} md={12}>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              A sincronização irá importar automaticamente <b>todos os projetos do Jira</b> que o usuário configurado tem permissão de visualizar. Não é necessário informar nenhuma chave de projeto.
+            </Alert>
           </Grid>
         </Grid>
         
@@ -221,6 +267,15 @@ export default function IntegracaoJiraPage() {
             disabled={loading || !config.url || !config.apiKey || !config.username}
           >
             Testar Conexão
+          </Button>
+
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleSincronizarJira}
+            disabled={loadingSincronizar}
+          >
+            {loadingSincronizar ? <CircularProgress size={24} /> : 'Sincronizar Apontamentos do Jira'}
           </Button>
         </Box>
       </Paper>

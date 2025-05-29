@@ -4,8 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, Typography, Paper, Button, TextField, Grid,
   FormControl, InputLabel, Select, MenuItem, SelectChangeEvent,
-  Snackbar, Alert, CircularProgress, Autocomplete
+  Snackbar, Alert, CircularProgress
 } from '@mui/material';
+import AutocompleteRecurso from '@/components/AutocompleteRecurso';
+import AutocompleteProjeto from '@/components/AutocompleteProjeto';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -35,8 +37,8 @@ interface Projeto {
 }
 
 interface ApontamentoFormData {
-  recurso_id: number;
-  projeto_id: number;
+  recurso_id: { id: number; nome: string } | null;
+  projeto_id: { id: number; nome: string } | null;
   data_apontamento: Date | null;
   horas_apontadas: number;
   descricao: string;
@@ -47,8 +49,8 @@ interface ApontamentoFormData {
 
 const CriarApontamentoManualPage = () => {
   const [formData, setFormData] = useState<ApontamentoFormData>({
-    recurso_id: 0,
-    projeto_id: 0,
+    recurso_id: null,
+    projeto_id: null,
     data_apontamento: new Date(),
     horas_apontadas: 0,
     descricao: '',
@@ -144,9 +146,16 @@ const CriarApontamentoManualPage = () => {
     
     try {
       // Validar formulário
-      if (!formData.recurso_id || !formData.projeto_id || !formData.data_apontamento || formData.horas_apontadas <= 0) {
+      if (!formData.recurso_id || !formData.recurso_id.id || !formData.projeto_id || !formData.projeto_id.id || !formData.data_apontamento || formData.horas_apontadas <= 0) {
         throw new Error('Por favor, preencha todos os campos obrigatórios.');
       }
+      
+      // Preparar dados para envio (extrair apenas o id)
+      const dadosEnvio = {
+        ...formData,
+        recurso_id: formData.recurso_id.id,
+        projeto_id: formData.projeto_id.id
+      };
       
       // Em ambiente de produção, descomente:
       // const response = await fetch('http://localhost:8000/backend/v1/apontamentos', {
@@ -154,7 +163,7 @@ const CriarApontamentoManualPage = () => {
       //   headers: {
       //     'Content-Type': 'application/json',
       //   },
-      //   body: JSON.stringify(formData),
+      //   body: JSON.stringify(dadosEnvio),
       // });
       // 
       // if (!response.ok) {
@@ -163,7 +172,7 @@ const CriarApontamentoManualPage = () => {
       
       // Simulação para desenvolvimento
       setTimeout(() => {
-        console.log('Apontamento criado:', formData);
+        console.log('Apontamento criado:', dadosEnvio);
         setSnackbar({
           open: true,
           message: 'Apontamento criado com sucesso!',
@@ -172,8 +181,8 @@ const CriarApontamentoManualPage = () => {
         
         // Resetar formulário
         setFormData({
-          recurso_id: 0,
-          projeto_id: 0,
+          recurso_id: null,
+          projeto_id: null,
           data_apontamento: new Date(),
           horas_apontadas: 0,
           descricao: '',
@@ -236,54 +245,26 @@ const CriarApontamentoManualPage = () => {
             <Grid container spacing={3}>
               {/* Recurso */}
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel id="recurso-label">Recurso</InputLabel>
-                  <Select
-                    labelId="recurso-label"
-                    value={formData.recurso_id || ''}
-                    label="Recurso"
-                    onChange={(e: SelectChangeEvent<number>) => 
-                      setFormData({ ...formData, recurso_id: Number(e.target.value) })}
-                    startAdornment={<PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />}
-                    disabled={loadingRecursos}
-                  >
-                    <MenuItem value={0} disabled>Selecione um recurso</MenuItem>
-                    {(recursos || []).map((recurso) => (
-                      <MenuItem key={recurso.id} value={recurso.id}>
-                        {recurso.nome}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {loadingRecursos && (
-                    <CircularProgress size={24} sx={{ position: 'absolute', right: 40, top: 12 }} />
-                  )}
-                </FormControl>
+                <AutocompleteRecurso
+                  value={formData.recurso_id}
+                  onChange={(val: {id: number, nome: string} | null) => setFormData({ ...formData, recurso_id: val })}
+                  placeholder="Digite o nome do recurso..."
+                />
+                {loadingRecursos && (
+                  <CircularProgress size={24} sx={{ position: 'absolute', right: 40, top: 12 }} />
+                )}
               </Grid>
               
               {/* Projeto */}
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel id="projeto-label">Projeto</InputLabel>
-                  <Select
-                    labelId="projeto-label"
-                    value={formData.projeto_id || ''}
-                    label="Projeto"
-                    onChange={(e: SelectChangeEvent<number>) => 
-                      setFormData({ ...formData, projeto_id: Number(e.target.value) })}
-                    startAdornment={<FolderIcon sx={{ mr: 1, color: 'text.secondary' }} />}
-                    disabled={loadingProjetos}
-                  >
-                    <MenuItem value={0} disabled>Selecione um projeto</MenuItem>
-                    {(projetos || []).map((projeto) => (
-                      <MenuItem key={projeto.id} value={projeto.id}>
-                        {projeto.nome} ({projeto.codigo_empresa})
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {loadingProjetos && (
-                    <CircularProgress size={24} sx={{ position: 'absolute', right: 40, top: 12 }} />
-                  )}
-                </FormControl>
+                <AutocompleteProjeto
+                  value={formData.projeto_id}
+                  onChange={(val: {id: number, nome: string} | null) => setFormData({ ...formData, projeto_id: val })}
+                  placeholder="Digite o nome do projeto..."
+                />
+                {loadingProjetos && (
+                  <CircularProgress size={24} sx={{ position: 'absolute', right: 40, top: 12 }} />
+                )}
               </Grid>
               
               {/* Data do Apontamento */}

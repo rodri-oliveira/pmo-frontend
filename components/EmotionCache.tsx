@@ -1,26 +1,10 @@
-// Arquivo: components/EmotionCache.tsx
-// Local: C:\weg\automacaopmofrontend\components\EmotionCache.tsx
-"use client";
+import * as React from 'react';
+import createCache from '@emotion/cache';
+import { CacheProvider } from '@emotion/react';
 
-import * as React from "react";
-import createCache from "@emotion/cache";
-import { useServerInsertedHTML } from "next/navigation";
-import { CacheProvider as DefaultCacheProvider } from "@emotion/react";
-import type { EmotionCache, Options as OptionsOfCreateCache } from "@emotion/cache";
-
-export type NextAppDirEmotionCacheProviderProps = {
-  /** This is the options passed to createCache() from "@emotion/cache" */
-  options: Omit<OptionsOfCreateCache, "insertionPoint">;
-  /** By default <CacheProvider /> from "@emotion/react" */
-  CacheProvider?: (props: {
-    value: EmotionCache;
-    children: React.ReactNode;
-  }) => React.JSX.Element | null;
-  children: React.ReactNode;
-};
-
-export default function NextAppDirEmotionCacheProvider(props: NextAppDirEmotionCacheProviderProps) {
-  const { options, CacheProvider = DefaultCacheProvider, children } = props;
+export default function NextAppDirEmotionCacheProvider({ children, options }) {
+  const cache = React.useMemo(() => createCache({ key: 'mui', prepend: true, ...options }), [options]);
+  return <CacheProvider value={cache}>{children}</CacheProvider>;
 
   const [registry] = React.useState(() => {
     const cache = createCache(options);

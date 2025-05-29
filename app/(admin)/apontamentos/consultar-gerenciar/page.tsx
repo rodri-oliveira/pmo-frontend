@@ -41,6 +41,10 @@ import { getRecursos } from '@/services/recursos';
 import { getEquipes } from '@/services/equipes';
 import { getSecoes } from '@/services/secoes';
 import { apiGet, apiPost, apiPut } from '@/services/api';
+import AutocompleteRecurso from '@/components/AutocompleteRecurso';
+import AutocompleteProjeto from '@/components/AutocompleteProjeto';
+import AutocompleteEquipe from '@/components/AutocompleteEquipe';
+import AutocompleteSecao from '@/components/AutocompleteSecao';
 
 interface Apontamento {
   id: number;
@@ -107,11 +111,11 @@ export default function ConsultarApontamentosPage() {
   
   const [dataInicio, setDataInicio] = useState<Date | null>(startOfMonth(new Date()));
   const [dataFim, setDataFim] = useState<Date | null>(endOfMonth(new Date()));
-  const [projetoFilter, setProjetoFilter] = useState<number | ''>('');
-  const [recursoFilter, setRecursoFilter] = useState<number | ''>('');
+  const [projetoFilter, setProjetoFilter] = useState<any | null>(null);
+  const [recursoFilter, setRecursoFilter] = useState<any | null>(null);
   const [fonteFilter, setFonteFilter] = useState<string>('');
-  const [equipeFilter, setEquipeFilter] = useState<number | ''>('');
-  const [secaoFilter, setSecaoFilter] = useState<number | ''>('');
+  const [equipeFilter, setEquipeFilter] = useState<any | null>(null);
+  const [secaoFilter, setSecaoFilter] = useState<any | null>(null);
   const [jiraIssueKeyFilter, setJiraIssueKeyFilter] = useState<string>('');
   
   const [snackbar, setSnackbar] = useState({
@@ -141,24 +145,24 @@ export default function ConsultarApontamentosPage() {
         params.data_fim = format(dataFim, 'yyyy-MM-dd');
       }
       
-      if (projetoFilter) {
-        params.projeto_id = projetoFilter;
+      if (projetoFilter && projetoFilter.id) {
+        params.projeto_id = projetoFilter.id;
       }
-      
-      if (recursoFilter) {
-        params.recurso_id = recursoFilter;
+
+      if (recursoFilter && recursoFilter.id) {
+        params.recurso_id = recursoFilter.id;
       }
-      
+
       if (fonteFilter) {
         params.fonte_apontamento = fonteFilter;
       }
-      
-      if (equipeFilter) {
-        params.equipe_id = equipeFilter;
+
+      if (equipeFilter && equipeFilter.id) {
+        params.equipe_id = equipeFilter.id;
       }
-      
-      if (secaoFilter) {
-        params.secao_id = secaoFilter;
+
+      if (secaoFilter && secaoFilter.id) {
+        params.secao_id = secaoFilter.id;
       }
       
       if (jiraIssueKeyFilter) {
@@ -398,68 +402,32 @@ export default function ConsultarApontamentosPage() {
               />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="projeto-label">Projeto</InputLabel>
-                <Select
-                  labelId="projeto-label"
-                  value={projetoFilter}
-                  label="Projeto"
-                  onChange={e => setProjetoFilter(e.target.value as number | '')}
-                >
-                  <MenuItem value="">Todos</MenuItem>
-                  {projetos.map(proj => (
-                    <MenuItem key={proj.id} value={proj.id}>{proj.nome}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <AutocompleteProjeto
+                value={projetoFilter}
+                onChange={(val: {id: number, nome: string} | null) => setProjetoFilter(val)}
+                placeholder="Digite o nome do projeto..."
+              />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="recurso-label">Recurso</InputLabel>
-                <Select
-                  labelId="recurso-label"
-                  value={recursoFilter}
-                  label="Recurso"
-                  onChange={e => setRecursoFilter(e.target.value as number | '')}
-                >
-                  <MenuItem value="">Todos</MenuItem>
-                  {(recursos || []).map(rec => (
-                    <MenuItem key={rec.id} value={rec.id}>{rec.nome}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <AutocompleteRecurso
+                value={recursoFilter}
+                onChange={(val: {id: number, nome: string} | null) => setRecursoFilter(val)}
+                placeholder="Digite o nome do recurso..."
+              />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="equipe-label">Equipe</InputLabel>
-                <Select
-                  labelId="equipe-label"
-                  value={equipeFilter}
-                  label="Equipe"
-                  onChange={e => setEquipeFilter(e.target.value as number | '')}
-                >
-                  <MenuItem value="">Todas</MenuItem>
-                  {(equipes || []).map(eq => (
-                    <MenuItem key={eq.id} value={eq.id}>{eq.nome}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <AutocompleteEquipe
+                value={equipeFilter}
+                onChange={(val: {id: number, nome: string} | null) => setEquipeFilter(val)}
+                placeholder="Digite o nome da equipe..."
+              />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="secao-label">Seção</InputLabel>
-                <Select
-                  labelId="secao-label"
-                  value={secaoFilter}
-                  label="Seção"
-                  onChange={e => setSecaoFilter(e.target.value as number | '')}
-                >
-                  <MenuItem value="">Todas</MenuItem>
-                  {(secoes || []).map(sec => (
-                    <MenuItem key={sec.id} value={sec.id}>{sec.nome}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <AutocompleteSecao
+                value={secaoFilter}
+                onChange={(val: {id: number, nome: string} | null) => setSecaoFilter(val)}
+                placeholder="Digite o nome da seção..."
+              />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth size="small">

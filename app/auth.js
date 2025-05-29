@@ -3,10 +3,21 @@ import KeycloakProvider from "next-auth/providers/keycloak";
 
 // Função auxiliar para atualizar o access token
 async function refreshAccessToken(token) {
+  console.log('[refreshAccessToken] Iniciando refresh do access token...');
+  console.log('[refreshAccessToken] Token recebido:', token);
   try {
     const clientId = process.env.AUTH_KEYCLOAK_ID;
     const clientSecret = process.env.AUTH_KEYCLOAK_SECRET;
     const refreshUrl = `${process.env.AUTH_KEYCLOAK_ISSUER}/protocol/openid-connect/token`;
+    console.log('[refreshAccessToken] Variáveis de ambiente:', { clientId, clientSecret, refreshUrl });
+
+    const requestBody = new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: "refresh_token",
+      refresh_token: token.refreshToken,
+    });
+    console.log('[refreshAccessToken] Corpo da requisição:', requestBody.toString());
 
     const response = await fetch(refreshUrl, {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -20,8 +31,12 @@ async function refreshAccessToken(token) {
     });
 
     const tokens = await response.json();
+    console.log('[refreshAccessToken] Resposta da requisição:', tokens);
 
-    if (!response.ok) throw tokens;
+    if (!response.ok) {
+      console.error('[refreshAccessToken] Erro ao atualizar token:', tokens);
+      throw tokens;
+    }
 
     return {
       ...token,
@@ -30,10 +45,11 @@ async function refreshAccessToken(token) {
       refreshToken: tokens.refresh_token ?? token.refreshToken,
     };
   } catch (error) {
-    console.error("Error refreshing access token", error);
+    console.error('[refreshAccessToken] Exception capturada:', error);
     return { ...token, error: "RefreshAccessTokenError" };
   }
 }
+
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
