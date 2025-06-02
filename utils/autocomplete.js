@@ -7,12 +7,15 @@
  */
 export async function buscarTodasSecoes() {
   try {
+    console.log('Buscando todas as seções...');
     const resp = await fetch(`/backend/v1/secoes?ativo=true`);
     if (!resp.ok) throw new Error('Erro ao buscar seções');
     const data = await resp.json();
-    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    const secoes = (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    console.log('Seções encontradas:', secoes);
+    return secoes;
   } catch (e) {
-    console.error(e);
+    console.error('Erro ao buscar todas as seções:', e);
     return [];
   }
 }
@@ -25,14 +28,17 @@ export async function buscarTodasSecoes() {
 export async function buscarSecoesPorNome(termo) {
   if (!termo || termo.length < 2) return [];
   try {
+    console.log(`Buscando seções com o termo: "${termo}"`);
     // Novo endpoint de busca de seções
     const resp = await fetch(`/backend/v1/secoes?nome=${encodeURIComponent(termo)}&ativo=true`);
     if (!resp.ok) throw new Error('Erro ao buscar seções');
     const data = await resp.json();
     // Sempre espera data.items
-    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    const secoes = (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    console.log(`Seções encontradas para "${termo}":`, secoes);
+    return secoes;
   } catch (e) {
-    console.error(e);
+    console.error(`Erro ao buscar seções com termo "${termo}":`, e);
     return [];
   }
 }

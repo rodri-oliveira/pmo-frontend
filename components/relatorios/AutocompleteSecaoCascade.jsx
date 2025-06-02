@@ -67,8 +67,15 @@ export default function AutocompleteSecaoCascade({ value, onChange, placeholder 
   }
 
   function handleFocus() {
-    // Ao focar, mostrar todas as seções se não houver texto digitado
-    if (!inputValue) {
+    // Ao focar, sempre mostrar sugestões disponíveis
+    if (inputValue) {
+      // Se já tem um valor, buscar por esse valor
+      buscarSecoesPorNome(inputValue).then(secoes => {
+        setSugestoes(secoes.length > 0 ? secoes : todasSecoes);
+        setShowSugestoes(true);
+      });
+    } else {
+      // Se não tem valor, mostrar todas as seções
       setSugestoes(todasSecoes);
       setShowSugestoes(true);
     }
@@ -77,7 +84,6 @@ export default function AutocompleteSecaoCascade({ value, onChange, placeholder 
   function handleSelect(sugestao) {
     setInputValue(sugestao.nome);
     setShowSugestoes(false);
-    setSugestoes([]);
     if (onChange) onChange(sugestao); // Retorna o objeto { id, nome }
   }
 
@@ -104,35 +110,51 @@ export default function AutocompleteSecaoCascade({ value, onChange, placeholder 
         disabled={loading}
       />
       {showSugestoes && sugestoes.length > 0 && (
-        <ul style={{
+        <div style={{
           position: 'absolute',
-          zIndex: 10,
+          top: '100%',
+          left: 0,
+          width: '100%',
+          maxHeight: 200,
+          overflowY: 'auto',
           background: '#fff',
           border: '1px solid #ccc',
-          borderRadius: 6,
-          margin: 0,
-          padding: '4px 0',
-          width: '100%',
-          maxHeight: 180,
-          overflowY: 'auto',
-          boxShadow: '0 2px 8px #0002',
-          listStyle: 'none'
+          borderRadius: 4,
+          zIndex: 100, // Aumentar o z-index para garantir que apareça acima de outros elementos
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
         }}>
-          {sugestoes.map((s, idx) => (
-            <li key={idx}
-                onMouseDown={() => handleSelect(s)}
-                style={{ 
-                  padding: '8px 12px', 
-                  cursor: 'pointer', 
-                  fontSize: 15,
-                  backgroundColor: value && value.id === s.id ? '#E3F1FC' : 'transparent',
-                  fontWeight: value && value.id === s.id ? 600 : 400
-                }}
+          {sugestoes.map(sugestao => (
+            <div
+              key={sugestao.id}
+              onClick={() => handleSelect(sugestao)}
+              style={{
+                padding: '8px 12px',
+                cursor: 'pointer',
+                borderBottom: '1px solid #eee',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={e => e.target.style.background = '#f5f5f5'}
+              onMouseLeave={e => e.target.style.background = '#fff'}
             >
-              {s.nome}
-            </li>
+              {sugestao.nome}
+            </div>
           ))}
-        </ul>
+        </div>
+      )}
+      
+      {/* Adicionar um handler para fechar o dropdown quando clicar fora */}
+      {showSugestoes && (
+        <div 
+          onClick={() => setShowSugestoes(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 99
+          }}
+        />
       )}
     </div>
   );

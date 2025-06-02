@@ -1,4 +1,7 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
+import { TextField } from '@mui/material';
 import AutocompleteSecaoCascade from './AutocompleteSecaoCascade';
 import AutocompleteEquipeCascade from './AutocompleteEquipeCascade';
 import AutocompleteRecursoCascade from './AutocompleteRecursoCascade';
@@ -13,25 +16,129 @@ const CINZA_BORDA = "#E0E3E7";
 
 const RELATORIOS = [
   {
-    label: 'Horas Apontadas',
-    value: 'horas-apontadas',
+    label: 'Horas por Recurso',
+    value: 'cascade-horas-por-recurso',
     endpoint: '/backend/v1/relatorios/horas-apontadas',
+    descricao: 'Total de horas apontadas por cada recurso no período selecionado',
     filtros: [
       { name: 'secao_id', type: 'secao' },
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
       { name: 'projeto_id', type: 'projeto' },
-      { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 210 },
-      { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 210 },
-      { name: 'agrupar_por_recurso', label: 'Agrupar por Recurso', type: 'checkbox' },
-      { name: 'agrupar_por_projeto', label: 'Agrupar por Projeto', type: 'checkbox' },
-      { name: 'agrupar_por_data', label: 'Agrupar por Data', type: 'checkbox' },
-      { name: 'agrupar_por_mes', label: 'Agrupar por Mês', type: 'checkbox' },
+    ],
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: true, hidden: true },
+      { name: 'agrupar_por_projeto', value: false, hidden: true },
+      { name: 'agrupar_por_data', value: false, hidden: true },
+      { name: 'agrupar_por_mes', value: false, hidden: true },
     ],
   },
   {
+    label: 'Horas por Projeto',
+    value: 'cascade-horas-por-projeto',
+    endpoint: '/backend/v1/relatorios/horas-apontadas',
+    descricao: 'Total de horas apontadas para cada projeto no período selecionado',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+    ],
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: false, hidden: true },
+      { name: 'agrupar_por_projeto', value: true, hidden: true },
+      { name: 'agrupar_por_data', value: false, hidden: true },
+      { name: 'agrupar_por_mes', value: false, hidden: true },
+    ],
+  },
+  {
+    label: 'Horas por Recurso e Projeto',
+    value: 'cascade-horas-por-recurso-projeto',
+    endpoint: '/backend/v1/relatorios/horas-apontadas',
+    descricao: 'Matriz mostrando horas apontadas por cada recurso em cada projeto',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+    ],
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: true, hidden: true },
+      { name: 'agrupar_por_projeto', value: true, hidden: true },
+      { name: 'agrupar_por_data', value: false, hidden: true },
+      { name: 'agrupar_por_mes', value: false, hidden: true },
+    ],
+  },
+  {
+    label: 'Horas por Período (Mensal)',
+    value: 'cascade-horas-por-periodo-mensal',
+    endpoint: '/backend/v1/relatorios/horas-apontadas',
+    descricao: 'Total de horas apontadas por mês no período selecionado',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+    ],
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: false, hidden: true },
+      { name: 'agrupar_por_projeto', value: false, hidden: true },
+      { name: 'agrupar_por_data', value: false, hidden: true },
+      { name: 'agrupar_por_mes', value: true, hidden: true },
+    ],
+  },
+  {
+    label: 'Horas por Recurso e Período',
+    value: 'cascade-horas-por-recurso-periodo',
+    endpoint: '/backend/v1/relatorios/horas-apontadas',
+    descricao: 'Horas apontadas por cada recurso em cada mês',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+    ],
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: true, hidden: true },
+      { name: 'agrupar_por_projeto', value: false, hidden: true },
+      { name: 'agrupar_por_data', value: false, hidden: true },
+      { name: 'agrupar_por_mes', value: true, hidden: true },
+    ],
+  },
+  {
+    label: 'Horas por Projeto e Período',
+    value: 'cascade-horas-por-projeto-periodo',
+    endpoint: '/backend/v1/relatorios/horas-apontadas',
+    descricao: 'Horas apontadas para cada projeto em cada mês',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+    ],
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: false, hidden: true },
+      { name: 'agrupar_por_projeto', value: true, hidden: true },
+      { name: 'agrupar_por_data', value: false, hidden: true },
+      { name: 'agrupar_por_mes', value: true, hidden: true },
+    ],
+  },
+  {
+    label: 'Apontamentos Detalhados',
+    value: 'cascade-apontamentos-detalhados',
+    endpoint: '/backend/v1/relatorios/apontamentos-detalhados',
+    descricao: 'Lista detalhada de todos os apontamentos no período',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+    ],
+    agrupamentos: [],
+  },
+  {
     label: 'Planejado vs Realizado',
-    value: 'planejado-vs-realizado',
+    value: 'cascade-planejado-vs-realizado',
     endpoint: '/backend/v1/relatorios/planejado-vs-realizado',
     filtros: [
       { name: 'secao_id', type: 'secao' },
@@ -108,13 +215,29 @@ const RELATORIOS = [
 
 export default function RelatoriosCascade() {
   const [tipoRelatorio, setTipoRelatorio] = useState(RELATORIOS[0].value);
+  
+  // Função para obter o primeiro dia do mês anterior
+  function getPrimeirodiaMesAnterior() {
+    const dataInicio = new Date();
+    dataInicio.setMonth(dataInicio.getMonth() - 1);
+    dataInicio.setDate(1);
+    return dataInicio.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+  }
+  
+  // Função para obter o dia atual
+  function getDiaAtual() {
+    const dataFim = new Date();
+    return dataFim.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+  }
+  
+  // Estado para armazenar os parâmetros do relatório
   const [params, setParams] = useState({
     secao_id: null,
     equipe_id: null,
     recurso_id: null,
     projeto_id: null,
-    data_inicio: '',
-    data_fim: '',
+    data_inicio: getPrimeirodiaMesAnterior(),
+    data_fim: getDiaAtual(),
     agrupar_por_recurso: false,
     agrupar_por_projeto: false,
     agrupar_por_data: false,
@@ -126,6 +249,7 @@ export default function RelatoriosCascade() {
 
   // Manipuladores para os campos de autocomplete em cascata
   function handleSecaoChange(secao) {
+    // Apenas atualizar os parâmetros, sem gerar relatório automaticamente
     setParams(prev => ({
       ...prev,
       secao_id: secao,
@@ -142,6 +266,8 @@ export default function RelatoriosCascade() {
       recurso_id: null, // Limpar recurso quando a equipe mudar
       projeto_id: null  // Limpar projeto quando a equipe mudar
     }));
+    
+    // Removida a geração automática de relatório para evitar erros
   }
 
   function handleRecursoChange(recurso) {
@@ -150,6 +276,8 @@ export default function RelatoriosCascade() {
       recurso_id: recurso,
       projeto_id: null  // Limpar projeto quando o recurso mudar
     }));
+    
+    // Removida a geração automática de relatório para evitar erros
   }
 
   function handleProjetoChange(projeto) {
@@ -157,6 +285,8 @@ export default function RelatoriosCascade() {
       ...prev,
       projeto_id: projeto
     }));
+    
+    // Removida a geração automática de relatório para evitar erros
   }
 
   function handleChange(e) {
@@ -168,34 +298,43 @@ export default function RelatoriosCascade() {
   }
 
   function handleTipoRelatorioChange(e) {
-    const selected = e.target.value;
-    setTipoRelatorio(selected);
-    setParams({
+    const novoTipo = e.target.value;
+    setTipoRelatorio(novoTipo);
+    setResult(null); // Limpar resultados ao mudar o tipo de relatório
+    setError('');
+    
+    // Encontrar o relatório selecionado
+    const relatorioSelecionado = RELATORIOS.find(r => r.value === novoTipo);
+    
+    // Criar novos parâmetros mantendo as datas
+    const novosParams = {
       secao_id: null,
       equipe_id: null,
       recurso_id: null,
       projeto_id: null,
-      data_inicio: '',
-      data_fim: '',
+      data_inicio: params.data_inicio || getPrimeirodiaMesAnterior(),
+      data_fim: params.data_fim || getDiaAtual(),
       agrupar_por_recurso: false,
       agrupar_por_projeto: false,
       agrupar_por_data: false,
       agrupar_por_mes: true,
-    });
-    setResult(null);
-    setError('');
+    };
+    
+    // Aplicar os agrupamentos específicos deste tipo de relatório
+    if (relatorioSelecionado && relatorioSelecionado.agrupamentos) {
+      // Aplicar os agrupamentos definidos para este tipo de relatório
+      relatorioSelecionado.agrupamentos.forEach(agrupamento => {
+        novosParams[agrupamento.name] = agrupamento.value;
+      });
+    }
+    
+    // Atualizar os parâmetros
+    setParams(novosParams);
   }
 
   function buildQueryString(params) {
     return Object.entries(params)
-      .filter(([k, v]) => {
-        // Filtrar apenas valores vazios, mas manter valores booleanos (true ou false)
-        // Os parâmetros de agrupamento precisam ser enviados explicitamente, mesmo quando false
-        if (k.startsWith('agrupar_por_')) {
-          return true; // Sempre incluir parâmetros de agrupamento
-        }
-        return v !== '' && v !== null;
-      })
+      .filter(([_, v]) => v !== null && v !== undefined && v !== '')
       .map(([k, v]) => {
         // Se for um objeto com id (selecionado via autocomplete), extrair o id
         if (v && typeof v === 'object' && v.id) {
@@ -206,16 +345,41 @@ export default function RelatoriosCascade() {
       .join('&');
   }
   
-  async function handleSubmit(e) {
-    e.preventDefault();
+  // Função para gerar relatório com base nos parâmetros
+  async function gerarRelatorio(parametros) {
     setLoading(true);
     setError('');
     setResult(null);
     
+    // Validar se as datas foram fornecidas
+    if (!parametros.data_inicio || !parametros.data_fim) {
+      setError('As datas de início e fim são obrigatórias para gerar o relatório.');
+      setLoading(false);
+      return;
+    }
+    
     try {
+      // Criar uma cópia dos parâmetros para não modificar o original
+      const paramsAjustados = { ...parametros };
+      // Remover secao_id e equipe_id antes de enviar para o backend
+      delete paramsAjustados.secao_id;
+      delete paramsAjustados.equipe_id;
+      // Adicionar parâmetros de agrupamento se não estiverem definidos
+      if (paramsAjustados.agrupar_por_recurso === undefined) {
+        paramsAjustados.agrupar_por_recurso = true; // Agrupar por recurso por padrão
+      }
+      
+      if (paramsAjustados.agrupar_por_projeto === undefined) {
+        paramsAjustados.agrupar_por_projeto = true; // Agrupar por projeto por padrão
+      }
+      
+      if (paramsAjustados.agrupar_por_mes === undefined) {
+        paramsAjustados.agrupar_por_mes = true; // Agrupar por mês por padrão
+      }
+      
       const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
-      const qs = buildQueryString(params);
-      console.log('DEBUG params:', params);
+      const qs = buildQueryString(paramsAjustados);
+      console.log('DEBUG params ajustados:', paramsAjustados);
       console.log('DEBUG qs:', qs);
       console.log('DEBUG endpoint:', `${rel.endpoint}?${qs}`);
       
@@ -258,11 +422,17 @@ export default function RelatoriosCascade() {
         setResult([]);
       }
     } catch (err) {
-      console.error('Erro ao buscar relatório:', err);
+      console.error('Erro ao gerar relatório:', err);
       setError(err.message);
+      setResult([]);
     } finally {
       setLoading(false);
     }
+  }
+  
+  async function handleSubmit(e) {
+    e.preventDefault();
+    gerarRelatorio(params);
   }
   
   // Função para formatar valores numéricos
@@ -456,18 +626,23 @@ export default function RelatoriosCascade() {
       </h2>
 
       {/* Seleção do relatório */}
-      <div style={{marginBottom: 26, display: 'flex', alignItems: 'center', gap: 16}}>
+      <div style={{marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16}}>
         <label style={{fontWeight: 700, color: WEG_AZUL, fontSize: 17, marginRight: 8}}>Tipo de Relatório:</label>
         <select
           value={tipoRelatorio}
           onChange={handleTipoRelatorioChange}
           style={{
             padding: '10px 18px', borderRadius: 8, border: `2px solid ${WEG_AZUL}`,
-            fontSize: 17, color: WEG_AZUL, background: WEG_BRANCO, fontWeight: 600, minWidth: 220
+            fontSize: 17, color: WEG_AZUL, background: WEG_BRANCO, fontWeight: 600, minWidth: 300
           }}
         >
           {RELATORIOS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
+      </div>
+      
+      {/* Descrição do relatório selecionado */}
+      <div style={{marginBottom: 26, color: '#555', fontSize: 15, fontStyle: 'italic'}}>
+        {RELATORIOS.find(r => r.value === tipoRelatorio)?.descricao || ''}
       </div>
 
       {/* Bloco visual de filtros */}
@@ -487,6 +662,33 @@ export default function RelatoriosCascade() {
           border: `2px solid ${CINZA_BORDA}`
         }}
       >
+        {/* Campos de data - Obrigatórios */}
+        <div className="flex flex-col md:flex-row gap-4 mb-4" style={{ width: '100%' }}>
+          <TextField
+            label="Data Início"
+            type="date"
+            name="data_inicio"
+            value={params.data_inicio}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            required
+            helperText="Obrigatório: Período inicial do relatório"
+            error={!params.data_inicio}
+          />
+          <TextField
+            label="Data Fim"
+            type="date"
+            name="data_fim"
+            value={params.data_fim}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            required
+            helperText="Obrigatório: Período final do relatório"
+            error={!params.data_fim}
+          />
+        </div>
         {rel.filtros.map(filtro => {
           if (filtro.type === 'secao') {
             return (
