@@ -18,30 +18,28 @@ export default function AutocompleteProjetoCascade({ value, onChange, recursoId,
 
   const currentRecursoId = recursoId && recursoId.id ? recursoId.id : recursoId;
 
+  // Função para carregar projetos disponível em todo o componente
+  const carregarProjetos = async () => {
+    setLoading(true);
+    try {
+      const projetos = currentRecursoId
+        ? await buscarProjetosPorRecurso(currentRecursoId)
+        : await buscarTodosProjetos();
+      setTodosProjetos(projetos);
+      setSugestoes(projetos);
+      setShowSugestoes(true);
+    } catch (error) {
+      console.error('Erro ao carregar projetos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Carregar projetos ao montar e quando o recurso mudar
   useEffect(() => {
-    const carregarProjetos = async () => {
-      setLoading(true);
-      try {
-        const projetos = currentRecursoId
-          ? await buscarProjetosPorRecurso(currentRecursoId)
-          : await buscarTodosProjetos();
-        console.log('AutocompleteProjetoCascade: projetos carregados', projetos);
-        setTodosProjetos(projetos);
-        setSugestoes(projetos);
-        // Mostrar sugestões automaticamente após carregar projetos
-        setShowSugestoes(true);
-      } catch (error) {
-        console.error('Erro ao carregar projetos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    // Limpar seleção ao mudar o recurso
-    if (value && onChange) {
-      onChange(null);
-      setInputValue('');
-    }
+    // Limpar seleção de projeto ao mudar recurso
+    setInputValue('');
+    if (onChange) onChange(null);
     carregarProjetos();
   }, [currentRecursoId]);
 
@@ -113,6 +111,8 @@ export default function AutocompleteProjetoCascade({ value, onChange, recursoId,
         value={inputValue}
         onChange={handleInputChange}
         onFocus={handleFocus}
+        onBlur={() => setTimeout(() => setShowSugestoes(false), 150)}
+        disabled={loading}
         placeholder={placeholder}
         style={{ 
           width: '100%', 
@@ -122,16 +122,12 @@ export default function AutocompleteProjetoCascade({ value, onChange, recursoId,
           fontSize: 15,
           background: loading ? '#f5f5f5' : '#fff'
         }}
-        onBlur={() => setTimeout(() => setShowSugestoes(false), 150)}
-        disabled={loading}
       />
       {inputValue && !loading && (
         <span
-          onClick={() => {
-            setInputValue('');
-            if (onChange) onChange(null);
-            setSugestoes(todosProjetos);
-            setShowSugestoes(false);
+          onMouseDown={e => {
+            e.preventDefault();
+            handleInputChange({ target: { value: '' } });
           }}
           style={{
             position: 'absolute',

@@ -118,6 +118,22 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
         onBlur={() => setTimeout(() => setShowSugestoes(false), 150)}
         disabled={loading}
       />
+      {inputValue && !loading && (
+        <span
+          onMouseDown={e => {
+            e.preventDefault();
+            handleInputChange({ target: { value: '' } });
+          }}
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: 36,
+            cursor: 'pointer',
+            fontSize: 16,
+            color: '#999'
+          }}
+        >×</span>
+      )}
       {showSugestoes && sugestoes.length > 0 && (
         <div style={{
           position: 'absolute',

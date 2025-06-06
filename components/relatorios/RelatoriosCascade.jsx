@@ -18,22 +18,17 @@ const RELATORIOS = [
   {
     label: 'Horas por Recurso',
     value: 'cascade-horas-por-recurso',
-    endpoint: '/backend/v1/relatorios/horas-apontadas',
+    endpoint: '/backend/v1/relatorios/horas-por-recurso',
     descricao: 'Total de horas apontadas por cada recurso no período selecionado',
     filtros: [
       { name: 'secao_id', type: 'secao' },
       { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' },
       { name: 'projeto_id', type: 'projeto' },
       { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 140 },
       { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 140 },
-      { name: 'fonte_apontamento', placeholder: 'Fonte apontamento (JIRA|MANUAL)', type: 'text', width: 200 },
     ],
     agrupamentos: [
       { name: 'agrupar_por_recurso', value: true, hidden: true },
-      { name: 'agrupar_por_projeto', value: false, hidden: true },
-      { name: 'agrupar_por_data', value: false, hidden: true },
-      { name: 'agrupar_por_mes', value: false, hidden: true },
     ],
   },
   {

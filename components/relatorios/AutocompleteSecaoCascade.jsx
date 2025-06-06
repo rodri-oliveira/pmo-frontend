@@ -48,7 +48,8 @@ export default function AutocompleteSecaoCascade({ value, onChange, placeholder 
     clearTimeout(timeoutRef.current);
     
     if (!val) {
-      // Se o campo estiver vazio, mostrar todas as seções
+      // Se o campo estiver vazio, limpar seleção e mostrar todas as seções
+      if (onChange) onChange(null);
       setSugestoes(todasSecoes);
       setShowSugestoes(true);
       return;
@@ -111,11 +112,9 @@ export default function AutocompleteSecaoCascade({ value, onChange, placeholder 
       />
       {inputValue && !loading && (
         <span
-          onClick={() => {
-            setInputValue('');
-            if (onChange) onChange(null);
-            setSugestoes(todasSecoes);
-            setShowSugestoes(false);
+          onMouseDown={e => {
+            e.preventDefault();
+            handleInputChange({ target: { value: '' } });
           }}
           style={{
             position: 'absolute',
