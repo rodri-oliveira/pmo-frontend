@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { TextField } from '@mui/material';
 import AutocompleteSecaoCascade from './AutocompleteSecaoCascade';
 import AutocompleteEquipeCascade from './AutocompleteEquipeCascade';
-import AutocompleteRecursoCascade from './AutocompleteRecursoCascade';
 import AutocompleteProjetoCascade from './AutocompleteProjetoCascade';
 
 // Paleta WEG
@@ -34,19 +33,17 @@ const RELATORIOS = [
   {
     label: 'Horas por Projeto',
     value: 'cascade-horas-por-projeto',
-    endpoint: '/backend/v1/relatorios/horas-apontadas',
-    descricao: 'Total de horas apontadas para cada projeto no período selecionado',
+    endpoint: '/backend/v1/relatorios/horas-por-projeto',
+    descricao: 'Total de horas apontadas por projeto no período selecionado',
     filtros: [
-      { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' },
-      { name: 'projeto_id', type: 'projeto' },
+      { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD)', type: 'text', width: 140 },
+      { name: 'data_fim',    placeholder: 'Data fim (YYYY-MM-DD)',    type: 'text', width: 140 },
+      { name: 'secao_id',    type: 'secao' },
+      { name: 'equipe_id',   type: 'equipe' },
+      { name: 'projeto_id',  type: 'projeto' },
     ],
     agrupamentos: [
-      { name: 'agrupar_por_recurso', value: false, hidden: true },
-      { name: 'agrupar_por_projeto', value: true, hidden: true },
-      { name: 'agrupar_por_data', value: false, hidden: true },
-      { name: 'agrupar_por_mes', value: false, hidden: true },
+      { name: 'agrupar_por_projeto', value: true, hidden: true }
     ],
   },
   {
@@ -255,16 +252,6 @@ export default function RelatoriosCascade() {
       equipe_id: equipe,
       recurso_id: null, // Limpar recurso quando a equipe mudar
       projeto_id: null  // Limpar projeto quando a equipe mudar
-    }));
-    
-    // Removida a geração automática de relatório para evitar erros
-  }
-
-  function handleRecursoChange(recurso) {
-    setParams(prev => ({
-      ...prev,
-      recurso_id: recurso,
-      projeto_id: null  // Limpar projeto quando o recurso mudar
     }));
     
     // Removida a geração automática de relatório para evitar erros
@@ -698,24 +685,14 @@ export default function RelatoriosCascade() {
               />
             );
           }
-          if (filtro.type === 'recurso') {
-            return (
-              <AutocompleteRecursoCascade
-                key={filtro.name}
-                value={params.recurso_id}
-                onChange={handleRecursoChange}
-                equipeId={params.equipe_id ? params.equipe_id.id : null}
-                placeholder="Selecione o recurso"
-              />
-            );
-          }
           if (filtro.type === 'projeto') {
             return (
               <AutocompleteProjetoCascade
                 key={filtro.name}
                 value={params.projeto_id}
                 onChange={handleProjetoChange}
-                recursoId={params.recurso_id ? params.recurso_id.id : null}
+                equipeId={params.equipe_id ? params.equipe_id.id : null}
+                secaoId={params.secao_id ? params.secao_id.id : null}
                 placeholder="Selecione o projeto"
               />
             );
