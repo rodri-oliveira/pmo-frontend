@@ -109,6 +109,24 @@ export default function AutocompleteSecaoCascade({ value, onChange, placeholder 
         onBlur={() => setTimeout(() => setShowSugestoes(false), 150)}
         disabled={loading}
       />
+      {inputValue && !loading && (
+        <span
+          onClick={() => {
+            setInputValue('');
+            if (onChange) onChange(null);
+            setSugestoes(todasSecoes);
+            setShowSugestoes(false);
+          }}
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: 36,
+            cursor: 'pointer',
+            fontSize: 16,
+            color: '#999'
+          }}
+        >×</span>
+      )}
       {showSugestoes && sugestoes.length > 0 && (
         <div style={{
           position: 'absolute',

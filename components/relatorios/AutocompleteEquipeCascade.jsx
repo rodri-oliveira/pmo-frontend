@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { buscarEquipesPorNome, buscarEquipesPorSecao } from '../../utils/autocomplete';
+import { buscarEquipesPorNome, buscarEquipesPorSecao, buscarTodasEquipes } from '../../utils/autocomplete';
 
 /**
  * Componente de autocomplete para selecionar equipe pelo nome
@@ -16,32 +16,27 @@ export default function AutocompleteEquipeCascade({ value, onChange, secaoId, pl
   const [loading, setLoading] = useState(false);
   const timeoutRef = useRef();
 
-  // Carregar equipes quando a seção mudar
+  // Carregar equipes ao montar e quando a seção mudar
   useEffect(() => {
     const carregarEquipes = async () => {
       setLoading(true);
       try {
-        if (secaoId) {
-          const equipes = await buscarEquipesPorSecao(secaoId);
-          setTodasEquipes(equipes);
-          setSugestoes(equipes);
-        } else {
-          setTodasEquipes([]);
-          setSugestoes([]);
-        }
+        const equipes = secaoId
+          ? await buscarEquipesPorSecao(secaoId)
+          : await buscarTodasEquipes();
+        setTodasEquipes(equipes);
+        setSugestoes(equipes);
       } catch (error) {
         console.error('Erro ao carregar equipes:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    // Limpar o valor selecionado quando a seção mudar
+    // Limpar seleção ao mudar a seção
     if (value && onChange) {
       onChange(null);
       setInputValue('');
     }
-
     carregarEquipes();
   }, [secaoId]);
 
@@ -60,9 +55,9 @@ export default function AutocompleteEquipeCascade({ value, onChange, secaoId, pl
     clearTimeout(timeoutRef.current);
     
     if (!val) {
-      // Se o campo estiver vazio, mostrar todas as equipes da seção
       setSugestoes(todasEquipes);
       setShowSugestoes(true);
+      if (onChange) onChange(null);
       return;
     }
     
@@ -110,18 +105,36 @@ export default function AutocompleteEquipeCascade({ value, onChange, secaoId, pl
         value={inputValue}
         onChange={handleInputChange}
         onFocus={handleFocus}
-        placeholder={secaoId ? placeholder : 'Digite o nome da Seção...'}
+        placeholder={placeholder}
         style={{ 
           width: '100%', 
           padding: '8px 12px', 
           borderRadius: 6, 
           border: '1.5px solid #E0E3E7', 
           fontSize: 15,
-          background: loading || !secaoId ? '#f5f5f5' : '#fff'
+          background: loading ? '#f5f5f5' : '#fff'
         }}
         onBlur={() => setTimeout(() => setShowSugestoes(false), 150)}
-        disabled={loading || !secaoId}
+        disabled={loading}
       />
+      {inputValue && !loading && (
+        <span
+          onClick={() => {
+            setInputValue('');
+            if (onChange) onChange(null);
+            setSugestoes(todasEquipes);
+            setShowSugestoes(false);
+          }}
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: 36,
+            cursor: 'pointer',
+            fontSize: 16,
+            color: '#999'
+          }}
+        >×</span>
+      )}
       {showSugestoes && sugestoes.length > 0 && (
         <div style={{
           position: 'absolute',

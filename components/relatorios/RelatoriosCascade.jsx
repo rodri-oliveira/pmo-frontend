@@ -25,6 +25,9 @@ const RELATORIOS = [
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
       { name: 'projeto_id', type: 'projeto' },
+      { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 140 },
+      { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 140 },
+      { name: 'fonte_apontamento', placeholder: 'Fonte apontamento (JIRA|MANUAL)', type: 'text', width: 200 },
     ],
     agrupamentos: [
       { name: 'agrupar_por_recurso', value: true, hidden: true },
@@ -115,12 +118,43 @@ const RELATORIOS = [
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
       { name: 'projeto_id', type: 'projeto' },
+      { name: 'ano', placeholder: 'Ano de referência (opcional)', type: 'text', width: 120 },
+      { name: 'mes', placeholder: 'Mês (1-12, opcional)', type: 'text', width: 80 },
     ],
     agrupamentos: [
       { name: 'agrupar_por_recurso', value: false, hidden: true },
-      { name: 'agrupar_por_projeto', value: true, hidden: true },
+      { name: 'agrupar_por_projeto', value: false, hidden: true },
       { name: 'agrupar_por_data', value: false, hidden: true },
       { name: 'agrupar_por_mes', value: true, hidden: true },
+    ],
+  },
+  {
+    label: 'Planejado vs Realizado',
+    value: 'cascade-planejado-vs-realizado',
+    endpoint: '/backend/v1/relatorios/planejado-vs-realizado',
+    descricao: 'Relatório comparativo entre horas planejadas e realizadas',
+    filtros: [
+      { name: 'ano', placeholder: 'Ano de referência (obrigatório)', type: 'text', width: 120 },
+      { name: 'mes', placeholder: 'Mês (1-12)', type: 'text', width: 80 },
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+    ],
+  },
+  {
+    label: 'Relatório Dinâmico de Horas',
+    value: 'cascade-relatorio-dinamico',
+    endpoint: '/backend/v1/relatorios/dinamico',
+    descricao: 'Relatório dinâmico de horas com agrupamentos customizáveis',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+      { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 140 },
+      { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 140 },
+      { name: 'agrupar_por', placeholder: 'Ex: recurso, equipe, secao, projeto, mes, ano', type: 'text', width: 200 },
     ],
   },
   {
@@ -137,28 +171,15 @@ const RELATORIOS = [
     agrupamentos: [],
   },
   {
-    label: 'Planejado vs Realizado',
-    value: 'cascade-planejado-vs-realizado',
-    endpoint: '/backend/v1/relatorios/planejado-vs-realizado',
+    label: 'Horas Disponíveis do Recurso',
+    value: 'horas-disponiveis',
+    endpoint: '/backend/v1/relatorios/horas-disponiveis',
     filtros: [
       { name: 'secao_id', type: 'secao' },
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
-      { name: 'projeto_id', type: 'projeto' },
-      { name: 'ano', placeholder: 'Ano de referência (obrigatório)', type: 'text', width: 120 },
-      { name: 'mes', placeholder: 'Mês (1-12)', type: 'text', width: 80 },
-    ],
-  },
-  {
-    label: 'Disponibilidade de Recursos',
-    value: 'disponibilidade-recursos',
-    endpoint: '/backend/v1/relatorios/disponibilidade-recursos',
-    filtros: [
-      { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' },
-      { name: 'ano', placeholder: 'Ano de referência (obrigatório)', type: 'text', width: 120 },
-      { name: 'mes', placeholder: 'Mês (1-12)', type: 'text', width: 80 },
+      { name: 'ano', placeholder: 'ano', type: 'text', width: 100 },
+      { name: 'mes', placeholder: 'mes', type: 'text', width: 100 },
     ],
   },
   {
@@ -183,32 +204,6 @@ const RELATORIOS = [
       { name: 'projeto_id', type: 'projeto' },
       { name: 'data_inicio', placeholder: 'Data início', type: 'text', width: 140 },
       { name: 'data_fim', placeholder: 'Data fim', type: 'text', width: 140 },
-    ],
-  },
-  {
-    label: 'Horas Disponíveis do Recurso',
-    value: 'horas-disponiveis',
-    endpoint: '/backend/v1/relatorios/horas-disponiveis',
-    filtros: [
-      { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' },
-      { name: 'ano', placeholder: 'ano', type: 'text', width: 100 },
-      { name: 'mes', placeholder: 'mes', type: 'text', width: 100 },
-    ],
-  },
-  {
-    label: 'Relatório Dinâmico de Horas',
-    value: 'dinamico',
-    endpoint: '/backend/v1/relatorios-dinamico/dinamico',
-    filtros: [
-      { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' },
-      { name: 'projeto_id', type: 'projeto' },
-      { name: 'data_inicio', placeholder: 'Data inicial (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 180 },
-      { name: 'data_fim', placeholder: 'Data final (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 180 },
-      { name: 'agrupar_por', placeholder: 'Ex: recurso, equipe, secao, projeto, mes, ano', type: 'text', width: 200 },
     ],
   },
 ];
@@ -361,9 +356,6 @@ export default function RelatoriosCascade() {
     try {
       // Criar uma cópia dos parâmetros para não modificar o original
       const paramsAjustados = { ...parametros };
-      // Remover secao_id e equipe_id antes de enviar para o backend
-      delete paramsAjustados.secao_id;
-      delete paramsAjustados.equipe_id;
       // Adicionar parâmetros de agrupamento se não estiverem definidos
       if (paramsAjustados.agrupar_por_recurso === undefined) {
         paramsAjustados.agrupar_por_recurso = true; // Agrupar por recurso por padrão
@@ -430,7 +422,7 @@ export default function RelatoriosCascade() {
     }
   }
   
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
     gerarRelatorio(params);
   }

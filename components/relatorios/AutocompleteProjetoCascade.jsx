@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { buscarProjetosPorNome, buscarProjetosPorRecurso } from '../../utils/autocomplete';
+import { buscarProjetosPorNome, buscarProjetosPorRecurso, buscarTodosProjetos } from '../../utils/autocomplete';
 
 /**
  * Componente de autocomplete para selecionar projeto pelo nome
@@ -16,34 +16,34 @@ export default function AutocompleteProjetoCascade({ value, onChange, recursoId,
   const [loading, setLoading] = useState(false);
   const timeoutRef = useRef();
 
-  // Carregar projetos quando o recurso mudar
+  const currentRecursoId = recursoId && recursoId.id ? recursoId.id : recursoId;
+
+  // Carregar projetos ao montar e quando o recurso mudar
   useEffect(() => {
     const carregarProjetos = async () => {
       setLoading(true);
       try {
-        if (recursoId) {
-          const projetos = await buscarProjetosPorRecurso(recursoId);
-          setTodosProjetos(projetos);
-          setSugestoes(projetos);
-        } else {
-          setTodosProjetos([]);
-          setSugestoes([]);
-        }
+        const projetos = currentRecursoId
+          ? await buscarProjetosPorRecurso(currentRecursoId)
+          : await buscarTodosProjetos();
+        console.log('AutocompleteProjetoCascade: projetos carregados', projetos);
+        setTodosProjetos(projetos);
+        setSugestoes(projetos);
+        // Mostrar sugestões automaticamente após carregar projetos
+        setShowSugestoes(true);
       } catch (error) {
         console.error('Erro ao carregar projetos:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    // Limpar o valor selecionado quando o recurso mudar
+    // Limpar seleção ao mudar o recurso
     if (value && onChange) {
       onChange(null);
       setInputValue('');
     }
-
     carregarProjetos();
-  }, [recursoId]);
+  }, [currentRecursoId]);
 
   // Atualizar o valor do input quando o value mudar externamente
   useEffect(() => {
@@ -60,15 +60,15 @@ export default function AutocompleteProjetoCascade({ value, onChange, recursoId,
     clearTimeout(timeoutRef.current);
     
     if (!val) {
-      // Se o campo estiver vazio, mostrar todos os projetos do recurso
       setSugestoes(todosProjetos);
       setShowSugestoes(true);
+      if (onChange) onChange(null);
       return;
     }
     
     if (val.length >= 2) {
       timeoutRef.current = setTimeout(async () => {
-        const sugests = await buscarProjetosPorNome(val, recursoId);
+        const sugests = await buscarProjetosPorNome(val, currentRecursoId);
         setSugestoes(sugests);
         setShowSugestoes(true);
       }, 300);
@@ -80,13 +80,16 @@ export default function AutocompleteProjetoCascade({ value, onChange, recursoId,
 
   function handleFocus() {
     // Ao focar, sempre mostrar sugestões disponíveis
-    if (inputValue && recursoId) {
+    if (inputValue && currentRecursoId) {
       // Se já tem um valor, buscar por esse valor
-      buscarProjetosPorNome(inputValue, recursoId).then(projetos => {
+      console.log('AutocompleteProjetoCascade.handleFocus filtro por nome', inputValue, currentRecursoId);
+      buscarProjetosPorNome(inputValue, currentRecursoId).then(projetos => {
+        console.log('AutocompleteProjetoCascade.handleFocus resultados nome', projetos);
         setSugestoes(projetos.length > 0 ? projetos : todosProjetos);
         setShowSugestoes(true);
       });
     } else if (todosProjetos.length > 0) {
+      console.log('AutocompleteProjetoCascade.handleFocus mostra todosProjetos', todosProjetos);
       // Se não tem valor mas tem projetos, mostrar todos os projetos
       setSugestoes(todosProjetos);
       setShowSugestoes(true);
@@ -110,18 +113,36 @@ export default function AutocompleteProjetoCascade({ value, onChange, recursoId,
         value={inputValue}
         onChange={handleInputChange}
         onFocus={handleFocus}
-        placeholder={recursoId ? placeholder : 'Digite o nome do Recurso'}
+        placeholder={placeholder}
         style={{ 
           width: '100%', 
           padding: '8px 12px', 
           borderRadius: 6, 
           border: '1.5px solid #E0E3E7', 
           fontSize: 15,
-          background: loading || !recursoId ? '#f5f5f5' : '#fff'
+          background: loading ? '#f5f5f5' : '#fff'
         }}
         onBlur={() => setTimeout(() => setShowSugestoes(false), 150)}
-        disabled={loading || !recursoId}
+        disabled={loading}
       />
+      {inputValue && !loading && (
+        <span
+          onClick={() => {
+            setInputValue('');
+            if (onChange) onChange(null);
+            setSugestoes(todosProjetos);
+            setShowSugestoes(false);
+          }}
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: 36,
+            cursor: 'pointer',
+            fontSize: 16,
+            color: '#999'
+          }}
+        >×</span>
+      )}
       {showSugestoes && sugestoes.length > 0 && (
         <div style={{
           position: 'absolute',

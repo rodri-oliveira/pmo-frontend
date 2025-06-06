@@ -11,7 +11,8 @@ export async function buscarTodasSecoes() {
     const resp = await fetch(`/backend/v1/secoes?ativo=true`);
     if (!resp.ok) throw new Error('Erro ao buscar seções');
     const data = await resp.json();
-    const secoes = (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    const raw = Array.isArray(data) ? data : (data.items || []);
+    const secoes = raw.map(item => ({ id: item.id, nome: item.nome }));
     console.log('Seções encontradas:', secoes);
     return secoes;
   } catch (e) {
@@ -52,7 +53,8 @@ export async function buscarTodasEquipes() {
     const resp = await fetch(`/backend/v1/equipes?ativo=true`);
     if (!resp.ok) throw new Error('Erro ao buscar equipes');
     const data = await resp.json();
-    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    const raw = Array.isArray(data) ? data : (data.items || []);
+    return raw.map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -115,7 +117,8 @@ export async function buscarTodosRecursos() {
     const resp = await fetch(`/backend/v1/recursos?ativo=true`);
     if (!resp.ok) throw new Error('Erro ao buscar recursos');
     const data = await resp.json();
-    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    const raw = Array.isArray(data) ? data : (data.items || []);
+    return raw.map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -170,15 +173,35 @@ export async function buscarRecursosPorEquipe(equipeId) {
 }
 
 /**
- * Busca todos os projetos disponíveis
+ * Busca projetos por equipe
+ * @param {number} equipeId - ID da equipe
+ * @returns {Promise<Array<{ id: number, nome: string }>>}
+ */
+export async function buscarProjetosPorEquipe(equipeId) {
+  if (!equipeId) return [];
+  try {
+    const resp = await fetch(`/backend/v1/projetos?equipe_id=${equipeId}&ativo=true`);
+    if (!resp.ok) throw new Error('Erro ao buscar projetos por equipe');
+    const data = await resp.json();
+    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+/**
+ * Busca todos os projetos disponíveis para autocomplete
  * @returns {Promise<Array<{ id: number, nome: string }>>}
  */
 export async function buscarTodosProjetos() {
   try {
+    // Use endpoint de listagem para listar todos
     const resp = await fetch(`/backend/v1/projetos?ativo=true`);
     if (!resp.ok) throw new Error('Erro ao buscar projetos');
     const data = await resp.json();
-    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    const raw = Array.isArray(data) ? data : (data.items || []);
+    return raw.map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -215,17 +238,19 @@ export async function buscarProjetosPorNome(termo, recursoId = null) {
 }
 
 /**
- * Busca projetos por recurso
+ * Busca projetos por recurso para autocomplete
  * @param {number} recursoId - ID do recurso
  * @returns {Promise<Array<{ id: number, nome: string }>>}
  */
 export async function buscarProjetosPorRecurso(recursoId) {
   if (!recursoId) return [];
   try {
+    // Use endpoint de listagem com filtro por recurso
     const resp = await fetch(`/backend/v1/projetos?recurso_id=${recursoId}&ativo=true`);
     if (!resp.ok) throw new Error('Erro ao buscar projetos por recurso');
     const data = await resp.json();
-    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    const raw = Array.isArray(data) ? data : (data.items || []);
+    return raw.map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];

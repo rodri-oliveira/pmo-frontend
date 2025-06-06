@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { buscarRecursosPorNome, buscarRecursosPorEquipe } from '../../utils/autocomplete';
+import { buscarRecursosPorNome, buscarRecursosPorEquipe, buscarTodosRecursos } from '../../utils/autocomplete';
 
 /**
  * Componente de autocomplete para selecionar recurso pelo nome
@@ -16,32 +16,27 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
   const [loading, setLoading] = useState(false);
   const timeoutRef = useRef();
 
-  // Carregar recursos quando a equipe mudar
+  // Carregar recursos ao montar e quando a equipe mudar
   useEffect(() => {
     const carregarRecursos = async () => {
       setLoading(true);
       try {
-        if (equipeId) {
-          const recursos = await buscarRecursosPorEquipe(equipeId);
-          setTodosRecursos(recursos);
-          setSugestoes(recursos);
-        } else {
-          setTodosRecursos([]);
-          setSugestoes([]);
-        }
+        const recursos = equipeId
+          ? await buscarRecursosPorEquipe(equipeId)
+          : await buscarTodosRecursos();
+        setTodosRecursos(recursos);
+        setSugestoes(recursos);
       } catch (error) {
         console.error('Erro ao carregar recursos:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    // Limpar o valor selecionado quando a equipe mudar
+    // Limpar seleção ao mudar a equipe
     if (value && onChange) {
       onChange(null);
       setInputValue('');
     }
-
     carregarRecursos();
   }, [equipeId]);
 
@@ -63,6 +58,7 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
       // Se o campo estiver vazio, mostrar todos os recursos da equipe
       setSugestoes(todosRecursos);
       setShowSugestoes(true);
+      if (onChange) onChange(null);
       return;
     }
     
@@ -110,17 +106,17 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
         value={inputValue}
         onChange={handleInputChange}
         onFocus={handleFocus}
-        placeholder={equipeId ? placeholder : 'Digite o nome da equipe...'}
+        placeholder={placeholder}
         style={{ 
           width: '100%', 
           padding: '8px 12px', 
           borderRadius: 6, 
           border: '1.5px solid #E0E3E7', 
           fontSize: 15,
-          background: loading || !equipeId ? '#f5f5f5' : '#fff'
+          background: loading ? '#f5f5f5' : '#fff'
         }}
         onBlur={() => setTimeout(() => setShowSugestoes(false), 150)}
-        disabled={loading || !equipeId}
+        disabled={loading}
       />
       {showSugestoes && sugestoes.length > 0 && (
         <div style={{
