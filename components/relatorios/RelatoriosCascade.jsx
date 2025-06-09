@@ -57,7 +57,6 @@ const RELATORIOS = [
       { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD)', type: 'text', width: 140 },
       { name: 'secao_id', type: 'secao' },
       { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' },
       { name: 'projeto_id', type: 'projeto' }
     ],
     agrupamentos: [{ name: 'agrupar_por_recurso', value: true, hidden: true }]
@@ -293,6 +292,11 @@ export default function RelatoriosCascade() {
         delete paramsAjustados.recurso_id;
       }
       
+      // Remover recurso_id para Horas por Recurso (endpoint não aceita)
+      if (tipoRelatorio === 'horas-por-recurso') {
+        delete paramsAjustados.recurso_id;
+      }
+
       const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
       const qs = buildQueryString(paramsAjustados);
       console.log('DEBUG params ajustados:', paramsAjustados);
@@ -422,8 +426,11 @@ export default function RelatoriosCascade() {
     }
     
     let columns;
-    if (tipoRelatorio === 'horas-por-projeto') {
-      // Colunas: Nome e Total de Horas (sem código)
+    if (tipoRelatorio === 'horas-por-recurso') {
+      // Colunas para Horas por Recurso
+      columns = ['recurso_nome', 'equipe_nome', 'secao_nome', 'total_horas'];
+    } else if (tipoRelatorio === 'horas-por-projeto') {
+      // Colunas para Horas por Projeto
       columns = ['projeto_nome', 'total_horas'];
     } else {
       columns = Object.keys(dataRows[0] || {}).filter(col => col !== 'total' && col !== 'mes_nome');
@@ -431,11 +438,11 @@ export default function RelatoriosCascade() {
     
     // Ao agrupar em Horas Apontadas, remover colunas de ID
     if (tipoRelatorio === 'horas-apontadas') {
+      // Remover colunas de projeto sempre
+      columns = columns.filter(col => col !== 'projeto_id' && col !== 'projeto_nome');
+      // Remover coluna de recurso_id se estiver agrupado
       if (params.agrupar_por_recurso) {
         columns = columns.filter(col => col !== 'recurso_id');
-      }
-      if (params.agrupar_por_projeto) {
-        columns = columns.filter(col => col !== 'projeto_id');
       }
     }
     
@@ -666,7 +673,7 @@ export default function RelatoriosCascade() {
               placeholder="Selecione a equipe"
             />
           </div>
-          {tipoRelatorio !== 'horas-por-projeto' && (
+          {tipoRelatorio !== 'horas-por-projeto' && tipoRelatorio !== 'horas-por-recurso' && (
             <div style={{ flex: '1 1 0', minWidth: 150 }}>
               <AutocompleteRecursoCascade
                 key="recurso_id"
@@ -685,6 +692,7 @@ export default function RelatoriosCascade() {
                 value={params.projeto_id}
                 onChange={handleProjetoChange}
                 secaoId={params.secao_id ? params.secao_id.id : null}
+                filterBySecaoOnly={tipoRelatorio === 'horas-por-recurso'}
                 equipeId={params.equipe_id ? params.equipe_id.id : null}
                 recursoId={params.recurso_id ? (params.recurso_id.id || params.recurso_id) : null}
                 label="Projeto"

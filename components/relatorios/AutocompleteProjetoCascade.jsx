@@ -9,8 +9,9 @@ import { buscarProjetosPorNome, buscarProjetosPorRecurso, buscarProjetosPorEquip
  *   secaoId: ID da seção para filtrar projetos (opcional)
  *   recursoId: ID do recurso para filtrar projetos (opcional)
  *   equipeId: ID da equipe para filtrar projetos (opcional)
+ *   filterBySecaoOnly: flag para filtrar apenas por seção (opcional)
  */
-export default function AutocompleteProjetoCascade({ value, onChange, secaoId, recursoId, equipeId, placeholder = 'Digite o nome do projeto...' }) {
+export default function AutocompleteProjetoCascade({ value, onChange, secaoId, recursoId, equipeId, filterBySecaoOnly = false, placeholder = 'Digite o nome do projeto...' }) {
   const [inputValue, setInputValue] = useState(value && value.nome ? value.nome : '');
   const [sugestoes, setSugestoes] = useState([]);
   const [showSugestoes, setShowSugestoes] = useState(false);
@@ -28,14 +29,22 @@ export default function AutocompleteProjetoCascade({ value, onChange, secaoId, r
     console.log(`[AutocompleteProjetoCascade] carregarProjetos: secaoId=${currentSecaoId}, equipeId=${currentEquipeId}, recursoId=${currentRecursoId}`);
     try {
       let projetos;
-      if (currentEquipeId) {
-        projetos = await buscarProjetosPorEquipe(currentEquipeId);
-      } else if (currentRecursoId) {
-        projetos = await buscarProjetosPorRecurso(currentRecursoId);
-      } else if (currentSecaoId) {
-        projetos = await buscarProjetosPorSecao(currentSecaoId);
+      if (filterBySecaoOnly) {
+        if (currentSecaoId) {
+          projetos = await buscarProjetosPorSecao(currentSecaoId);
+        } else {
+          projetos = await buscarTodosProjetos();
+        }
       } else {
-        projetos = await buscarTodosProjetos();
+        if (currentEquipeId) {
+          projetos = await buscarProjetosPorEquipe(currentEquipeId);
+        } else if (currentRecursoId) {
+          projetos = await buscarProjetosPorRecurso(currentRecursoId);
+        } else if (currentSecaoId) {
+          projetos = await buscarProjetosPorSecao(currentSecaoId);
+        } else {
+          projetos = await buscarTodosProjetos();
+        }
       }
       console.log(`[AutocompleteProjetoCascade] projetos carregados (${projetos.length}):`, projetos);
       setTodosProjetos(projetos);
@@ -55,7 +64,7 @@ export default function AutocompleteProjetoCascade({ value, onChange, secaoId, r
     setInputValue('');
     if (onChange) onChange(null);
     carregarProjetos();
-  }, [currentSecaoId, currentEquipeId, currentRecursoId]);
+  }, [currentSecaoId, currentEquipeId, currentRecursoId, filterBySecaoOnly]);
 
   // Atualizar o valor do input quando o value mudar externamente
   useEffect(() => {
