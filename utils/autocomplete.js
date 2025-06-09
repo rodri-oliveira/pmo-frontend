@@ -212,6 +212,26 @@ export async function buscarProjetosPorEquipe(equipeId) {
 }
 
 /**
+ * Busca projetos por seção
+ * @param {number} secaoId - ID da seção
+ * @returns {Promise<Array<{ id: number, nome: string }>>}
+ */
+export async function buscarProjetosPorSecao(secaoId) {
+  if (!secaoId) return [];
+  try {
+    // Filtrar por seção
+    const resp = await fetch(`/backend/v1/projetos?secao_id=${secaoId}&ativo=true`);
+    if (!resp.ok) throw new Error('Erro ao buscar projetos por seção');
+    const data = await resp.json();
+    const raw = Array.isArray(data) ? data : data.items || [];
+    return raw.map(item => ({ id: item.id, nome: item.nome }));
+  } catch (e) {
+    console.error('Erro ao buscar projetos por seção:', e);
+    return [];
+  }
+}
+
+/**
  * Buscar todos os projetos sem filtro
  * @returns {Promise<Array<{ id: number, nome: string }>>}
  */

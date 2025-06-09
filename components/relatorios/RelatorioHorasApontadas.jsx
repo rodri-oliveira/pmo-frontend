@@ -8,7 +8,6 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import AutocompleteSecaoCascade from './AutocompleteSecaoCascade';
 import AutocompleteEquipeCascade from './AutocompleteEquipeCascade';
-import AutocompleteProjetoCascade from './AutocompleteProjetoCascade';
 import AutocompleteRecursoCascade from './AutocompleteRecursoCascade';
 import axios from 'axios';
 
@@ -48,7 +47,6 @@ export default function RelatorioHorasApontadas() {
   const [dataFim, setDataFim] = useState(null);
   const [secao, setSecao] = useState(null);
   const [equipe, setEquipe] = useState(null);
-  const [projeto, setProjeto] = useState(null);
   const [recurso, setRecurso] = useState(null);
   const [fonte, setFonte] = useState('JIRA');
   const [agrupRecurso, setAgrupRecurso] = useState(false);
@@ -71,7 +69,6 @@ export default function RelatorioHorasApontadas() {
         data_fim: dataFim,
         ...(secao && { secao_id: secao }),
         ...(equipe && { equipe_id: equipe }),
-        ...(projeto && { projeto_id: projeto }),
         ...(recurso && { recurso_id: recurso }),
         ...(fonte && { fonte_apontamento: fonte }),
         ...(agrupRecurso && { agrupar_por_recurso: true }),
@@ -115,7 +112,6 @@ export default function RelatorioHorasApontadas() {
       return [
         { key: 'data', label: 'Data' },
         { key: 'recurso', label: 'Recurso' },
-        { key: 'projeto', label: 'Projeto' },
         { key: 'fonte', label: 'Fonte' },
         { key: 'horas', label: 'Horas' },
         { key: 'quantidade', label: 'Qtd. Registros' },
@@ -125,16 +121,15 @@ export default function RelatorioHorasApontadas() {
     const cols = [];
     if (agrupData && !agrupMes) cols.push({ key: 'data', label: 'Data' });
     if (agrupRecurso) cols.push({ key: 'recurso', label: 'Recurso' });
-    if (agrupProjeto) cols.push({ key: 'projeto', label: 'Projeto' });
     cols.push({ key: 'horas', label: 'Horas' });
-    if (agrupData || agrupRecurso || agrupProjeto) cols.push({ key: 'quantidade', label: 'Qtd. Registros' });
+    if (agrupData || agrupRecurso) cols.push({ key: 'quantidade', label: 'Qtd. Registros' });
     return cols;
   }, [agrupData, agrupMes, agrupProjeto, agrupRecurso]);
 
   return (
     <Paper style={{ padding: 16 }}>
       <h2>Relatório: Horas Apontadas</h2>
-      <p>Detalhamento e agregação de horas lançadas, com filtros por recurso, projeto, equipe, seção e fonte.</p>
+      <p>Detalhamento e agregação de horas lançadas, com filtros por recurso, equipe, seção e fonte.</p>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
         <DatePicker
           label="Data Início*"
@@ -150,7 +145,6 @@ export default function RelatorioHorasApontadas() {
         />
         <AutocompleteSecaoCascade value={secao} onChange={setSecao} />
         <AutocompleteEquipeCascade value={equipe} secaoId={secao?.id} onChange={setEquipe} />
-        <AutocompleteProjetoCascade value={projeto} recursoId={recurso?.id} equipeId={equipe?.id} secaoId={secao?.id} onChange={setProjeto} />
         <AutocompleteRecursoCascade value={recurso} equipeId={equipe?.id} secaoId={secao?.id} onChange={setRecurso} />
         <FormControl style={{ minWidth: 120 }}>
           <InputLabel>Fonte</InputLabel>

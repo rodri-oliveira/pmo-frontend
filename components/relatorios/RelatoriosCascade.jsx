@@ -670,19 +670,23 @@ export default function RelatoriosCascade() {
               placeholder="Selecione o recurso"
             />
           </div>
-          {/* Projeto */}
-          <div style={{ flex: '2 1 0', minWidth: 200 }}>
-            <AutocompleteProjetoCascade
-              key="projeto_id"
-              value={params.projeto_id}
-              onChange={handleProjetoChange}
-              secaoId={params.secao_id ? params.secao_id.id : null}
-              equipeId={params.equipe_id ? params.equipe_id.id : null}
-              recursoId={params.recurso_id ? (params.recurso_id.id || params.recurso_id) : null}
-              label="Projeto"
-              placeholder="Selecione o projeto"
-            />
-          </div>
+          {tipoRelatorio !== 'horas-apontadas' && (
+            <>
+              {/* Projeto */}
+              <div style={{ flex: '2 1 0', minWidth: 200 }}>
+                <AutocompleteProjetoCascade
+                  key="projeto_id"
+                  value={params.projeto_id}
+                  onChange={handleProjetoChange}
+                  secaoId={params.secao_id ? params.secao_id.id : null}
+                  equipeId={params.equipe_id ? params.equipe_id.id : null}
+                  recursoId={params.recurso_id ? (params.recurso_id.id || params.recurso_id) : null}
+                  label="Projeto"
+                  placeholder="Selecione o projeto"
+                />
+              </div>
+            </>
+          )}
         </div>
         {rel.filtros.map(filtro => {
           const skip = ['data_inicio','data_fim','secao_id','equipe_id','recurso_id','projeto_id'];
