@@ -26,7 +26,12 @@ const RELATORIOS = [
       { name: 'secao_id', type: 'secao' },
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
-      { name: 'projeto_id', type: 'projeto' }
+      { name: 'projeto_id', type: 'projeto' },
+      { name: 'fonte_apontamento', type: 'text', placeholder: 'Fonte Apontamento', width: 180 },
+      { name: 'agrupar_por_recurso', type: 'checkbox', label: 'Agrupar por Recurso' },
+      { name: 'agrupar_por_projeto', type: 'checkbox', label: 'Agrupar por Projeto' },
+      { name: 'agrupar_por_data', type: 'checkbox', label: 'Agrupar por Data' },
+      { name: 'agrupar_por_mes', type: 'checkbox', label: 'Agrupar por Mês' }
     ],
     agrupamentos: []
   },
@@ -490,7 +495,10 @@ export default function RelatoriosCascade() {
                         return name.charAt(0).toUpperCase() + name.slice(1);
                       }
                       if (col === 'horas') {
-                        return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false });
+                        const num = Number(val);
+                        return Number.isInteger(num)
+                          ? num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false })
+                          : num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                       }
                       if (col === 'qtd_lancamentos') {
                         return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
