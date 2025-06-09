@@ -27,7 +27,6 @@ const RELATORIOS = [
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
       { name: 'projeto_id', type: 'projeto' },
-      { name: 'fonte_apontamento', type: 'text', placeholder: 'Fonte Apontamento', width: 180 },
       { name: 'agrupar_por_recurso', type: 'checkbox', label: 'Agrupar por Recurso' },
       { name: 'agrupar_por_projeto', type: 'checkbox', label: 'Agrupar por Projeto' },
       { name: 'agrupar_por_data', type: 'checkbox', label: 'Agrupar por Data' },
@@ -240,6 +239,12 @@ export default function RelatoriosCascade() {
     setParams(novosParams);
   }
 
+  // Maneja o envio do formulário e dispara a geração do relatório
+  function handleSubmit(e) {
+    e.preventDefault();
+    gerarRelatorio(params);
+  }
+
   function buildQueryString(params) {
     return Object.entries(params)
       .filter(([_, v]) => v !== null && v !== undefined && v !== '')
@@ -335,11 +340,6 @@ export default function RelatoriosCascade() {
     }
   }
   
-  function handleSubmit(e) {
-    e.preventDefault();
-    gerarRelatorio(params);
-  }
-  
   // Função para formatar valores numéricos
   function formatNumber(value) {
     if (typeof value === 'number') {
@@ -422,6 +422,16 @@ export default function RelatoriosCascade() {
       columns = Object.keys(dataRows[0] || {}).filter(col => col !== 'total' && col !== 'mes_nome');
     }
     
+    // Ao agrupar em Horas Apontadas, remover colunas de ID
+    if (tipoRelatorio === 'horas-apontadas') {
+      if (params.agrupar_por_recurso) {
+        columns = columns.filter(col => col !== 'recurso_id');
+      }
+      if (params.agrupar_por_projeto) {
+        columns = columns.filter(col => col !== 'projeto_id');
+      }
+    }
+    
     // Cálculo de totais automaticamente a partir dos dados
     let hasTotals = totalRows.length > 0 || columns.some(col => typeof dataRows[0][col] === 'number');
     let totals = {};
@@ -446,7 +456,7 @@ export default function RelatoriosCascade() {
     }
 
     return (
-      <div style={{width:'100%', overflowX:'auto', borderRadius: '12px', boxShadow:'0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8}}>
+      <div style={{width:'100%', maxHeight: '500px', overflow: 'auto', borderRadius: '12px', boxShadow:'0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8}}>
         <table style={{width:'100%', borderCollapse:'separate', borderSpacing:0, minWidth:700}}>
           <thead style={{position: 'sticky', top: 0, zIndex: 2}}>
             <tr style={{background:WEG_AZUL, color:WEG_BRANCO}}>
@@ -598,84 +608,89 @@ export default function RelatoriosCascade() {
           border: `2px solid ${CINZA_BORDA}`
         }}
       >
-        {/* Campos de data - Obrigatórios */}
-        <div className="flex flex-col md:flex-row gap-4 mb-4" style={{ width: '100%' }}>
-          <TextField
-            label="Data Início"
-            type="date"
-            name="data_inicio"
-            value={params.data_inicio}
-            onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            required
-            helperText="Obrigatório: Período inicial do relatório"
-            error={!params.data_inicio}
-          />
-          <TextField
-            label="Data Fim"
-            type="date"
-            name="data_fim"
-            value={params.data_fim}
-            onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            required
-            helperText="Obrigatório: Período final do relatório"
-            error={!params.data_fim}
-          />
+        {/* Campos de filtro principal: Data Inicial, Data Final, Seção, Equipe, Recurso, Projeto */}
+        <div style={{ display: 'flex', gap: 24, width: '100%', marginBottom: 18 }}>
+          {/* Data Inicial */}
+          <div style={{ flex: '1 1 0', minWidth: 150 }}>
+            <TextField
+              label="Data Inicial"
+              type="date"
+              name="data_inicio"
+              value={params.data_inicio}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+              required
+              helperText="Obrigatório: Período inicial do relatório"
+              error={!params.data_inicio}
+            />
+          </div>
+          {/* Data Final */}
+          <div style={{ flex: '1 1 0', minWidth: 150 }}>
+            <TextField
+              label="Data Final"
+              type="date"
+              name="data_fim"
+              value={params.data_fim}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+              required
+              helperText="Obrigatório: Período final do relatório"
+              error={!params.data_fim}
+            />
+          </div>
+          {/* Seção */}
+          <div style={{ flex: '1 1 0', minWidth: 150 }}>
+            <AutocompleteSecaoCascade
+              key="secao_id"
+              value={params.secao_id}
+              onChange={handleSecaoChange}
+              placeholder="Selecione a seção"
+            />
+          </div>
+          {/* Equipe */}
+          <div style={{ flex: '1 1 0', minWidth: 150 }}>
+            <AutocompleteEquipeCascade
+              key="equipe_id"
+              value={params.equipe_id}
+              onChange={handleEquipeChange}
+              secaoId={params.secao_id ? params.secao_id.id : null}
+              placeholder="Selecione a equipe"
+            />
+          </div>
+          {/* Recurso */}
+          <div style={{ flex: '1 1 0', minWidth: 150 }}>
+            <AutocompleteRecursoCascade
+              key="recurso_id"
+              value={params.recurso_id}
+              onChange={handleRecursoChange}
+              equipeId={params.equipe_id ? params.equipe_id.id : null}
+              secaoId={params.secao_id ? params.secao_id.id : null}
+              placeholder="Selecione o recurso"
+            />
+          </div>
+          {/* Projeto */}
+          <div style={{ flex: '2 1 0', minWidth: 200 }}>
+            <AutocompleteProjetoCascade
+              key="projeto_id"
+              value={params.projeto_id}
+              onChange={handleProjetoChange}
+              secaoId={params.secao_id ? params.secao_id.id : null}
+              equipeId={params.equipe_id ? params.equipe_id.id : null}
+              recursoId={params.recurso_id ? (params.recurso_id.id || params.recurso_id) : null}
+              label="Projeto"
+              placeholder="Selecione o projeto"
+            />
+          </div>
         </div>
         {rel.filtros.map(filtro => {
-          if (filtro.type === 'secao') {
-            return (
-              <AutocompleteSecaoCascade
-                key={filtro.name}
-                value={params.secao_id}
-                onChange={handleSecaoChange}
-                placeholder="Selecione a seção"
-              />
-            );
-          }
-          if (filtro.type === 'equipe') {
-            return (
-              <AutocompleteEquipeCascade
-                key={filtro.name}
-                value={params.equipe_id}
-                onChange={handleEquipeChange}
-                secaoId={params.secao_id ? params.secao_id.id : null}
-                placeholder="Selecione a equipe"
-              />
-            );
-          }
-          if (filtro.type === 'projeto') {
-            return (
-              <AutocompleteProjetoCascade
-                key={filtro.name}
-                value={params.projeto_id}
-                onChange={handleProjetoChange}
-                equipeId={params.equipe_id ? params.equipe_id.id : null}
-                secaoId={params.secao_id ? params.secao_id.id : null}
-                placeholder="Selecione o projeto"
-              />
-            );
-          }
-          if (filtro.type === 'recurso') {
-            return (
-              <AutocompleteRecursoCascade
-                key={filtro.name}
-                value={params.recurso_id}
-                onChange={handleRecursoChange}
-                equipeId={params.equipe_id ? params.equipe_id.id : null}
-                secaoId={params.secao_id ? params.secao_id.id : null}
-                placeholder="Selecione o recurso"
-              />
-            );
-          }
+          const skip = ['data_inicio','data_fim','secao_id','equipe_id','recurso_id','projeto_id'];
+          if (skip.includes(filtro.name)) return null;
           if (filtro.type === 'checkbox') {
-            return (
-              <label key={filtro.name} style={{
-                display: 'flex', alignItems: 'center', gap: 4, color: WEG_AZUL, fontWeight: 500
-              }}>
+            // agrupamentos: quebra antes do primeiro checkbox
+            const checkbox = (
+              <label key={filtro.name} style={{ display: 'flex', alignItems: 'center', gap: 4, color: WEG_AZUL, fontWeight: 500 }}>
                 <input
                   type="checkbox"
                   name={filtro.name}
@@ -686,6 +701,15 @@ export default function RelatoriosCascade() {
                 {filtro.label}
               </label>
             );
+            if (filtro.name === 'agrupar_por_recurso') {
+              return (
+                <>
+                  <div style={{ flexBasis: '100%', height: 0 }} />
+                  {checkbox}
+                </>
+              );
+            }
+            return checkbox;
           }
           // Campo padrão
           return (
