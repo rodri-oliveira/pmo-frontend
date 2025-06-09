@@ -287,6 +287,12 @@ export default function RelatoriosCascade() {
         paramsAjustados.agrupar_por_mes = true; // Agrupar por mês por padrão
       }
       
+      // Remover filtros não suportados em Horas por Projeto
+      if (tipoRelatorio === 'horas-por-projeto') {
+        delete paramsAjustados.projeto_id;
+        delete paramsAjustados.recurso_id;
+      }
+      
       const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
       const qs = buildQueryString(paramsAjustados);
       console.log('DEBUG params ajustados:', paramsAjustados);
@@ -417,6 +423,7 @@ export default function RelatoriosCascade() {
     
     let columns;
     if (tipoRelatorio === 'horas-por-projeto') {
+      // Colunas: Nome e Total de Horas (sem código)
       columns = ['projeto_nome', 'total_horas'];
     } else {
       columns = Object.keys(dataRows[0] || {}).filter(col => col !== 'total' && col !== 'mes_nome');
@@ -456,7 +463,7 @@ export default function RelatoriosCascade() {
     }
 
     return (
-      <div style={{width:'100%', maxHeight: '500px', overflow: 'auto', borderRadius: '12px', boxShadow:'0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8}}>
+      <div style={{width:'100%', maxHeight: '500px', overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', boxShadow:'0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8}}>
         <table style={{width:'100%', borderCollapse:'separate', borderSpacing:0, minWidth:700}}>
           <thead style={{position: 'sticky', top: 0, zIndex: 2}}>
             <tr style={{background:WEG_AZUL, color:WEG_BRANCO}}>
@@ -659,33 +666,31 @@ export default function RelatoriosCascade() {
               placeholder="Selecione a equipe"
             />
           </div>
-          {/* Recurso */}
-          <div style={{ flex: '1 1 0', minWidth: 150 }}>
-            <AutocompleteRecursoCascade
-              key="recurso_id"
-              value={params.recurso_id}
-              onChange={handleRecursoChange}
-              equipeId={params.equipe_id ? params.equipe_id.id : null}
-              secaoId={params.secao_id ? params.secao_id.id : null}
-              placeholder="Selecione o recurso"
-            />
-          </div>
-          {tipoRelatorio !== 'horas-apontadas' && (
-            <>
-              {/* Projeto */}
-              <div style={{ flex: '2 1 0', minWidth: 200 }}>
-                <AutocompleteProjetoCascade
-                  key="projeto_id"
-                  value={params.projeto_id}
-                  onChange={handleProjetoChange}
-                  secaoId={params.secao_id ? params.secao_id.id : null}
-                  equipeId={params.equipe_id ? params.equipe_id.id : null}
-                  recursoId={params.recurso_id ? (params.recurso_id.id || params.recurso_id) : null}
-                  label="Projeto"
-                  placeholder="Selecione o projeto"
-                />
-              </div>
-            </>
+          {tipoRelatorio !== 'horas-por-projeto' && (
+            <div style={{ flex: '1 1 0', minWidth: 150 }}>
+              <AutocompleteRecursoCascade
+                key="recurso_id"
+                value={params.recurso_id}
+                onChange={handleRecursoChange}
+                equipeId={params.equipe_id ? params.equipe_id.id : null}
+                secaoId={params.secao_id ? params.secao_id.id : null}
+                placeholder="Selecione o recurso"
+              />
+            </div>
+          )}
+          {tipoRelatorio !== 'horas-apontadas' && tipoRelatorio !== 'horas-por-projeto' && (
+            <div style={{ flex: '2 1 0', minWidth: 200 }}>
+              <AutocompleteProjetoCascade
+                key="projeto_id"
+                value={params.projeto_id}
+                onChange={handleProjetoChange}
+                secaoId={params.secao_id ? params.secao_id.id : null}
+                equipeId={params.equipe_id ? params.equipe_id.id : null}
+                recursoId={params.recurso_id ? (params.recurso_id.id || params.recurso_id) : null}
+                label="Projeto"
+                placeholder="Selecione o projeto"
+              />
+            </div>
           )}
         </div>
         {rel.filtros.map(filtro => {
