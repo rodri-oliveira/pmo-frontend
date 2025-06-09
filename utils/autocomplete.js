@@ -198,36 +198,57 @@ export async function buscarRecursosPorSecao(secaoId) {
 export async function buscarProjetosPorEquipe(equipeId) {
   if (!equipeId) return [];
   try {
+    // Filtrar por equipe
     const resp = await fetch(`/backend/v1/projetos?equipe_id=${equipeId}&ativo=true`);
     if (!resp.ok) throw new Error('Erro ao buscar projetos por equipe');
     const data = await resp.json();
-    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    // Suporta array raiz ou objeto com items
+    const raw = Array.isArray(data) ? data : data.items || [];
+    return raw.map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
-    console.error(e);
+    console.error('Erro ao buscar projetos por equipe:', e);
     return [];
   }
 }
 
 /**
- * Busca todos os projetos disponíveis para autocomplete
+ * Buscar todos os projetos sem filtro
  * @returns {Promise<Array<{ id: number, nome: string }>>}
  */
 export async function buscarTodosProjetos() {
   try {
-    // Use endpoint de listagem para listar todos
     const resp = await fetch(`/backend/v1/projetos?ativo=true`);
-    if (!resp.ok) throw new Error('Erro ao buscar projetos');
+    if (!resp.ok) throw new Error('Erro ao buscar todos projetos');
     const data = await resp.json();
-    const raw = Array.isArray(data) ? data : (data.items || []);
+    const raw = Array.isArray(data) ? data : data.items || [];
     return raw.map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
-    console.error(e);
+    console.error('Erro ao buscar todos projetos:', e);
     return [];
   }
 }
 
 /**
- * Busca projetos pelo nome (autocomplete)
+ * Buscar projetos por recurso
+ * @param {number} recursoId - ID do recurso
+ * @returns {Promise<Array<{ id: number, nome: string }>>}
+ */
+export async function buscarProjetosPorRecurso(recursoId) {
+  if (!recursoId) return [];
+  try {
+    const resp = await fetch(`/backend/v1/projetos?recurso_id=${recursoId}&ativo=true`);
+    if (!resp.ok) throw new Error('Erro ao buscar projetos por recurso');
+    const data = await resp.json();
+    const raw = Array.isArray(data) ? data : data.items || [];
+    return raw.map(item => ({ id: item.id, nome: item.nome }));
+  } catch (e) {
+    console.error('Erro ao buscar projetos por recurso:', e);
+    return [];
+  }
+}
+
+/**
+ * Buscar projetos por nome (autocomplete)
  * @param {string} termo
  * @param {number} recursoId - ID do recurso para filtrar projetos (opcional)
  * @returns {Promise<Array<{ id: number, nome: string }>>}
@@ -235,42 +256,15 @@ export async function buscarTodosProjetos() {
 export async function buscarProjetosPorNome(termo, recursoId = null) {
   if (!termo || termo.length < 2) return [];
   try {
-    // Endpoint de busca de projetos com filtro opcional por recurso
     let url = `/backend/v1/projetos/autocomplete?search=${encodeURIComponent(termo)}`;
-    if (recursoId) {
-      url += `&recurso_id=${recursoId}`;
-    }
-    
+    if (recursoId) url += `&recurso_id=${recursoId}`;
     const resp = await fetch(url);
-    if (!resp.ok) throw new Error('Erro ao buscar projetos');
+    if (!resp.ok) throw new Error('Erro ao buscar projetos por nome');
     const data = await resp.json();
-    // Aceita resposta como array raiz OU objeto com items
-    return (Array.isArray(data)
-      ? data.map(item => ({ id: item.id, nome: item.nome }))
-      : (data.items || []).map(item => ({ id: item.id, nome: item.nome }))
-    );
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
-}
-
-/**
- * Busca projetos por recurso para autocomplete
- * @param {number} recursoId - ID do recurso
- * @returns {Promise<Array<{ id: number, nome: string }>>}
- */
-export async function buscarProjetosPorRecurso(recursoId) {
-  if (!recursoId) return [];
-  try {
-    // Use endpoint de listagem com filtro por recurso
-    const resp = await fetch(`/backend/v1/projetos?recurso_id=${recursoId}&ativo=true`);
-    if (!resp.ok) throw new Error('Erro ao buscar projetos por recurso');
-    const data = await resp.json();
-    const raw = Array.isArray(data) ? data : (data.items || []);
+    const raw = Array.isArray(data) ? data : data.items || [];
     return raw.map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
-    console.error(e);
+    console.error('Erro ao buscar projetos por nome:', e);
     return [];
   }
 }

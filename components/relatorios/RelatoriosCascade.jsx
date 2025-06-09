@@ -31,21 +31,6 @@ const RELATORIOS = [
     agrupamentos: []
   },
   {
-    label: 'Relatório Comparativo',
-    value: 'comparativo-planejado-realizado',
-    endpoint: '/backend/v1/relatorios/comparativo-planejado-realizado',
-    descricao: 'Relatório Comparativo',
-    filtros: [
-      { name: 'ano', placeholder: 'Ano', type: 'text', width: 120 },
-      { name: 'mes', placeholder: 'Mês', type: 'text', width: 80 },
-      { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' },
-      { name: 'projeto_id', type: 'projeto' }
-    ],
-    agrupamentos: []
-  },
-  {
     label: 'Horas por Projeto',
     value: 'horas-por-projeto',
     endpoint: '/backend/v1/relatorios/horas-por-projeto',
@@ -426,9 +411,12 @@ export default function RelatoriosCascade() {
       );
     }
     
-    // Descobre as colunas dinamicamente a partir dos dados retornados
-    // Ignora propriedades especiais como 'total'
-    let columns = Object.keys(dataRows[0] || {}).filter(col => col !== 'total' && col !== 'mes_nome');
+    let columns;
+    if (tipoRelatorio === 'horas-por-projeto') {
+      columns = ['projeto_nome', 'total_horas'];
+    } else {
+      columns = Object.keys(dataRows[0] || {}).filter(col => col !== 'total' && col !== 'mes_nome');
+    }
     
     // Cálculo de totais automaticamente a partir dos dados
     let hasTotals = totalRows.length > 0 || columns.some(col => typeof dataRows[0][col] === 'number');
@@ -507,6 +495,12 @@ export default function RelatoriosCascade() {
                       }
                       if (col === 'qtd_lancamentos') {
                         return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                      }
+                      if (col === 'total_horas') {
+                        const num = Number(val);
+                        return Number.isInteger(num)
+                          ? num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false })
+                          : num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                       }
                       if (typeof val === 'number') {
                         return formatNumber(val);

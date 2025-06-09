@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { buscarProjetosPorNome, buscarProjetosPorRecurso, buscarTodosProjetos } from '../../utils/autocomplete';
+import { buscarProjetosPorNome, buscarProjetosPorRecurso, buscarProjetosPorEquipe, buscarTodosProjetos } from '../../utils/autocomplete';
 
 /**
  * Componente de autocomplete para selecionar projeto pelo nome
@@ -7,8 +7,9 @@ import { buscarProjetosPorNome, buscarProjetosPorRecurso, buscarTodosProjetos } 
  *   value: valor atual (id do projeto ou objeto {id, nome})
  *   onChange: função chamada com o objeto {id, nome} do projeto selecionado
  *   recursoId: ID do recurso para filtrar projetos (opcional)
+ *   equipeId: ID da equipe para filtrar projetos (opcional)
  */
-export default function AutocompleteProjetoCascade({ value, onChange, recursoId, placeholder = 'Digite o nome do projeto...' }) {
+export default function AutocompleteProjetoCascade({ value, onChange, recursoId, equipeId, placeholder = 'Digite o nome do projeto...' }) {
   const [inputValue, setInputValue] = useState(value && value.nome ? value.nome : '');
   const [sugestoes, setSugestoes] = useState([]);
   const [showSugestoes, setShowSugestoes] = useState(false);
@@ -17,14 +18,22 @@ export default function AutocompleteProjetoCascade({ value, onChange, recursoId,
   const timeoutRef = useRef();
 
   const currentRecursoId = recursoId && recursoId.id ? recursoId.id : recursoId;
+  const currentEquipeId = equipeId;
 
-  // Função para carregar projetos disponível em todo o componente
+  // Carrega projetos filtrados por equipe ou recurso
   const carregarProjetos = async () => {
     setLoading(true);
+    console.log(`[AutocompleteProjetoCascade] carregarProjetos: equipeId=${currentEquipeId}, recursoId=${currentRecursoId}`);
     try {
-      const projetos = currentRecursoId
-        ? await buscarProjetosPorRecurso(currentRecursoId)
-        : await buscarTodosProjetos();
+      let projetos;
+      if (currentEquipeId) {
+        projetos = await buscarProjetosPorEquipe(currentEquipeId);
+      } else if (currentRecursoId) {
+        projetos = await buscarProjetosPorRecurso(currentRecursoId);
+      } else {
+        projetos = await buscarTodosProjetos();
+      }
+      console.log(`[AutocompleteProjetoCascade] projetos carregados (${projetos.length}):`, projetos);
       setTodosProjetos(projetos);
       setSugestoes(projetos);
       setShowSugestoes(true);
@@ -35,13 +44,14 @@ export default function AutocompleteProjetoCascade({ value, onChange, recursoId,
     }
   };
 
-  // Carregar projetos ao montar e quando o recurso mudar
+  // Carregar projetos ao montar e quando o recurso ou equipe mudar
   useEffect(() => {
-    // Limpar seleção de projeto ao mudar recurso
+    console.log(`[AutocompleteProjetoCascade] useEffect mount/update: equipeId=${currentEquipeId}, recursoId=${currentRecursoId}`);
+    // Limpar seleção ao mudar recurso ou equipe
     setInputValue('');
     if (onChange) onChange(null);
     carregarProjetos();
-  }, [currentRecursoId]);
+  }, [currentRecursoId, currentEquipeId]);
 
   // Atualizar o valor do input quando o value mudar externamente
   useEffect(() => {
@@ -65,11 +75,12 @@ export default function AutocompleteProjetoCascade({ value, onChange, recursoId,
     }
     
     if (val.length >= 2) {
-      timeoutRef.current = setTimeout(async () => {
-        const sugests = await buscarProjetosPorNome(val, currentRecursoId);
-        setSugestoes(sugests);
-        setShowSugestoes(true);
-      }, 300);
+      // Filtra localmente projetos já carregados
+      const filtered = todosProjetos.filter(p =>
+        p.nome.toLowerCase().includes(val.toLowerCase())
+      );
+      setSugestoes(filtered);
+      setShowSugestoes(true);
     } else {
       setSugestoes([]);
       setShowSugestoes(false);
@@ -77,18 +88,8 @@ export default function AutocompleteProjetoCascade({ value, onChange, recursoId,
   }
 
   function handleFocus() {
-    // Ao focar, sempre mostrar sugestões disponíveis
-    if (inputValue && currentRecursoId) {
-      // Se já tem um valor, buscar por esse valor
-      console.log('AutocompleteProjetoCascade.handleFocus filtro por nome', inputValue, currentRecursoId);
-      buscarProjetosPorNome(inputValue, currentRecursoId).then(projetos => {
-        console.log('AutocompleteProjetoCascade.handleFocus resultados nome', projetos);
-        setSugestoes(projetos.length > 0 ? projetos : todosProjetos);
-        setShowSugestoes(true);
-      });
-    } else if (todosProjetos.length > 0) {
-      console.log('AutocompleteProjetoCascade.handleFocus mostra todosProjetos', todosProjetos);
-      // Se não tem valor mas tem projetos, mostrar todos os projetos
+    // Ao focar, mostrar todos os projetos disponíveis
+    if (todosProjetos.length > 0) {
       setSugestoes(todosProjetos);
       setShowSugestoes(true);
     }
