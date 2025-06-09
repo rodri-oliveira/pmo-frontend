@@ -39,8 +39,7 @@ const RELATORIOS = [
       { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD)', type: 'text', width: 140 },
       { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD)', type: 'text', width: 140 },
       { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' },
-      { name: 'projeto_id', type: 'projeto' }
+      { name: 'equipe_id', type: 'equipe' }
     ],
     agrupamentos: [{ name: 'agrupar_por_projeto', value: true, hidden: true }]
   },
