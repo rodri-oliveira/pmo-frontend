@@ -362,7 +362,7 @@ export default function RelatoriosCascade() {
   // Função para obter o nome amigável da coluna
   function getColumnLabel(col) {
     const columnLabels = {
-      'quantidade': 'Qtd. Lançamentos',
+      'quantidade': 'Qtd. Apontamentos',
       // IDs
       'recurso_id': 'ID Recurso',
       'projeto_id': 'ID Projeto',
@@ -664,6 +664,8 @@ export default function RelatoriosCascade() {
                 key={filtro.name}
                 value={params.recurso_id}
                 onChange={handleRecursoChange}
+                equipeId={params.equipe_id ? params.equipe_id.id : null}
+                secaoId={params.secao_id ? params.secao_id.id : null}
                 placeholder="Selecione o recurso"
               />
             );

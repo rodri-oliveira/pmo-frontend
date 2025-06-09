@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { buscarRecursosPorNome, buscarRecursosPorEquipe, buscarTodosRecursos } from '../../utils/autocomplete';
+import { buscarRecursosPorNome, buscarRecursosPorEquipe, buscarRecursosPorSecao, buscarTodosRecursos } from '../../utils/autocomplete';
 
 /**
  * Componente de autocomplete para selecionar recurso pelo nome
@@ -7,8 +7,9 @@ import { buscarRecursosPorNome, buscarRecursosPorEquipe, buscarTodosRecursos } f
  *   value: valor atual (id do recurso ou objeto {id, nome})
  *   onChange: função chamada com o objeto {id, nome} do recurso selecionado
  *   equipeId: ID da equipe para filtrar recursos (opcional)
+ *   secaoId: ID da seção para filtrar recursos (opcional)
  */
-export default function AutocompleteRecursoCascade({ value, onChange, equipeId, placeholder = 'Digite o nome do recurso...' }) {
+export default function AutocompleteRecursoCascade({ value, onChange, equipeId, secaoId, placeholder = 'Digite o nome do recurso...' }) {
   const [inputValue, setInputValue] = useState(value && value.nome ? value.nome : '');
   const [sugestoes, setSugestoes] = useState([]);
   const [showSugestoes, setShowSugestoes] = useState(false);
@@ -16,14 +17,19 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
   const [loading, setLoading] = useState(false);
   const timeoutRef = useRef();
 
-  // Carregar recursos ao montar e quando a equipe mudar
+  // Carregar recursos ao montar e quando a equipe ou seção mudar
   useEffect(() => {
     const carregarRecursos = async () => {
       setLoading(true);
       try {
-        const recursos = equipeId
-          ? await buscarRecursosPorEquipe(equipeId)
-          : await buscarTodosRecursos();
+        let recursos;
+        if (equipeId) {
+          recursos = await buscarRecursosPorEquipe(equipeId);
+        } else if (secaoId) {
+          recursos = await buscarRecursosPorSecao(secaoId);
+        } else {
+          recursos = await buscarTodosRecursos();
+        }
         setTodosRecursos(recursos);
         setSugestoes(recursos);
       } catch (error) {
@@ -32,13 +38,13 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
         setLoading(false);
       }
     };
-    // Limpar seleção ao mudar a equipe
+    // Limpar seleção ao mudar a equipe ou seção
     if (value && onChange) {
       onChange(null);
       setInputValue('');
     }
     carregarRecursos();
-  }, [equipeId]);
+  }, [equipeId, secaoId]);
 
   // Atualizar o valor do input quando o value mudar externamente
   useEffect(() => {
@@ -53,18 +59,16 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
     const val = e.target.value;
     setInputValue(val);
     clearTimeout(timeoutRef.current);
-    
     if (!val) {
-      // Se o campo estiver vazio, mostrar todos os recursos da equipe
+      // Se o campo estiver vazio, mostrar todos os recursos filtrados
       setSugestoes(todosRecursos);
       setShowSugestoes(true);
       if (onChange) onChange(null);
       return;
     }
-    
     if (val.length >= 2) {
       timeoutRef.current = setTimeout(async () => {
-        const sugests = await buscarRecursosPorNome(val, equipeId);
+        const sugests = await buscarRecursosPorNome(val, equipeId, secaoId);
         setSugestoes(sugests);
         setShowSugestoes(true);
       }, 300);
@@ -75,15 +79,12 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
   }
 
   function handleFocus() {
-    // Ao focar, sempre mostrar sugestões disponíveis
-    if (inputValue && equipeId) {
-      // Se já tem um valor, buscar por esse valor
-      buscarRecursosPorNome(inputValue, equipeId).then(recursos => {
+    if (inputValue && (equipeId || secaoId)) {
+      buscarRecursosPorNome(inputValue, equipeId, secaoId).then(recursos => {
         setSugestoes(recursos.length > 0 ? recursos : todosRecursos);
         setShowSugestoes(true);
       });
     } else if (todosRecursos.length > 0) {
-      // Se não tem valor mas tem recursos, mostrar todos os recursos
       setSugestoes(todosRecursos);
       setShowSugestoes(true);
     }

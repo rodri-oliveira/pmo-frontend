@@ -149,9 +149,9 @@ export default function RelatorioHorasApontadas() {
           renderInput={(params) => <TextField {...params} />}
         />
         <AutocompleteSecaoCascade value={secao} onChange={setSecao} />
-        <AutocompleteEquipeCascade value={equipe} parentId={secao} onChange={setEquipe} />
-        <AutocompleteProjetoCascade value={projeto} recursoId={recurso} equipeId={equipe} secaoId={secao} onChange={setProjeto} />
-        <AutocompleteRecursoCascade value={recurso} equipeId={equipe} secaoId={secao} onChange={setRecurso} />
+        <AutocompleteEquipeCascade value={equipe} secaoId={secao?.id} onChange={setEquipe} />
+        <AutocompleteProjetoCascade value={projeto} recursoId={recurso?.id} equipeId={equipe?.id} secaoId={secao?.id} onChange={setProjeto} />
+        <AutocompleteRecursoCascade value={recurso} equipeId={equipe?.id} secaoId={secao?.id} onChange={setRecurso} />
         <FormControl style={{ minWidth: 120 }}>
           <InputLabel>Fonte</InputLabel>
           <Select value={fonte} label="Fonte" onChange={e => setFonte(e.target.value)}>
