@@ -6,6 +6,7 @@ import AutocompleteSecaoCascade from './AutocompleteSecaoCascade';
 import AutocompleteEquipeCascade from './AutocompleteEquipeCascade';
 import AutocompleteProjetoCascade from './AutocompleteProjetoCascade';
 import AutocompleteRecursoCascade from './AutocompleteRecursoCascade';
+import { buscarRecursosPorEquipe } from '../../utils/autocomplete';
 
 // Paleta WEG
 const WEG_AZUL = "#00579D";
@@ -155,6 +156,20 @@ export default function RelatoriosCascade() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [recursoMap, setRecursoMap] = useState({});
+
+  useEffect(() => {
+    const equipeIdVal = params.equipe_id?.id || null;
+    if (equipeIdVal) {
+      buscarRecursosPorEquipe(equipeIdVal).then(recursos => {
+        const map = {};
+        recursos.forEach(r => { map[r.id] = r.nome; });
+        setRecursoMap(map);
+      });
+    } else {
+      setRecursoMap({});
+    }
+  }, [params.equipe_id]);
 
   // Manipuladores para os campos de autocomplete em cascata
   function handleSecaoChange(secao) {
@@ -363,7 +378,7 @@ export default function RelatoriosCascade() {
     const columnLabels = {
       'quantidade': 'Qtd. Apontamentos',
       // IDs
-      'recurso_id': 'ID Recurso',
+      'recurso_id': 'Recurso',
       'projeto_id': 'ID Projeto',
       'equipe_id': 'ID Equipe',
       'secao_id': 'ID Seção',
@@ -532,6 +547,14 @@ export default function RelatoriosCascade() {
                         return Number.isInteger(num)
                           ? num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false })
                           : num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                      }
+                      if (col === 'id') {
+                        const num = Number(val);
+                        return num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                      }
+                      if (col === 'recurso_id') {
+                        const idVal = Number(val);
+                        return recursoMap[idVal] ?? idVal;
                       }
                       if (typeof val === 'number') {
                         return formatNumber(val);
