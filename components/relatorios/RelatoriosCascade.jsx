@@ -6,7 +6,7 @@ import AutocompleteSecaoCascade from './AutocompleteSecaoCascade';
 import AutocompleteEquipeCascade from './AutocompleteEquipeCascade';
 import AutocompleteProjetoCascade from './AutocompleteProjetoCascade';
 import AutocompleteRecursoCascade from './AutocompleteRecursoCascade';
-import { buscarRecursosPorEquipe } from '../../utils/autocomplete';
+import { buscarRecursosPorEquipe, buscarTodosRecursos } from '../../utils/autocomplete';
 
 // Paleta WEG
 const WEG_AZUL = "#00579D";
@@ -158,6 +158,7 @@ export default function RelatoriosCascade() {
   const [error, setError] = useState('');
   const [recursoMap, setRecursoMap] = useState({});
 
+  // Atualiza mapa de recursos ao mudar equipe ou carregar inicial
   useEffect(() => {
     const equipeIdVal = params.equipe_id?.id || null;
     if (equipeIdVal) {
@@ -167,7 +168,11 @@ export default function RelatoriosCascade() {
         setRecursoMap(map);
       });
     } else {
-      setRecursoMap({});
+      buscarTodosRecursos().then(recursos => {
+        const map = {};
+        recursos.forEach(r => { map[r.id] = r.nome; });
+        setRecursoMap(map);
+      });
     }
   }, [params.equipe_id]);
 
@@ -453,12 +458,16 @@ export default function RelatoriosCascade() {
     
     // Ao agrupar em Horas Apontadas, remover colunas de ID
     if (tipoRelatorio === 'horas-apontadas') {
-      // Remover colunas de projeto sempre
-      columns = columns.filter(col => col !== 'projeto_id' && col !== 'projeto_nome');
+      // Remover colunas de projeto se NÃO estiver agrupado por projeto
+      if (!params.agrupar_por_projeto) {
+        columns = columns.filter(col => col !== 'projeto_id' && col !== 'projeto_nome');
+      }
       // Remover coluna de recurso_id se estiver agrupado
       if (params.agrupar_por_recurso) {
         columns = columns.filter(col => col !== 'recurso_id');
       }
+      // Remover coluna de fonte do apontamento para Horas Apontadas
+      columns = columns.filter(col => col !== 'fonte_apontamento');
     }
     
     // Cálculo de totais automaticamente a partir dos dados
@@ -549,12 +558,17 @@ export default function RelatoriosCascade() {
                           : num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                       }
                       if (col === 'id') {
-                        const num = Number(val);
-                        return num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                        return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false });
                       }
                       if (col === 'recurso_id') {
                         const idVal = Number(val);
                         return recursoMap[idVal] ?? idVal;
+                      }
+                      if (col === 'projeto_id') {
+                        return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false });
+                      }
+                      if (/_id$/.test(col)) {
+                        return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false });
                       }
                       if (typeof val === 'number') {
                         return formatNumber(val);
@@ -696,7 +710,7 @@ export default function RelatoriosCascade() {
               placeholder="Selecione a equipe"
             />
           </div>
-          {tipoRelatorio !== 'horas-por-projeto' && tipoRelatorio !== 'horas-por-recurso' && (
+          {tipoRelatorio !== 'horas-por-recurso' && tipoRelatorio !== 'horas-por-projeto' && (
             <div style={{ flex: '1 1 0', minWidth: 150 }}>
               <AutocompleteRecursoCascade
                 key="recurso_id"
@@ -708,7 +722,7 @@ export default function RelatoriosCascade() {
               />
             </div>
           )}
-          {tipoRelatorio !== 'horas-apontadas' && tipoRelatorio !== 'horas-por-projeto' && (
+          {tipoRelatorio !== 'horas-por-projeto' && (
             <div style={{ flex: '2 1 0', minWidth: 200 }}>
               <AutocompleteProjetoCascade
                 key="projeto_id"
