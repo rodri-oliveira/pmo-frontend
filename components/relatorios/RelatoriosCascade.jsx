@@ -157,6 +157,11 @@ export default function RelatoriosCascade() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [recursoMap, setRecursoMap] = useState({});
+  
+  // Flags de habilitação para filtros em cascata
+  const [secaoDisabled, setSecaoDisabled] = useState(false);
+  const [equipeDisabled, setEquipeDisabled] = useState(false);
+  const [projetoDisabled, setProjetoDisabled] = useState(false);
 
   // Atualiza mapa de recursos ao mudar equipe ou carregar inicial
   useEffect(() => {
@@ -175,6 +180,23 @@ export default function RelatoriosCascade() {
       });
     }
   }, [params.equipe_id]);
+
+  // Efeitos de cascata entre filtros
+  useEffect(() => {
+    setParams(prev => ({ ...prev, equipe_id: null, projeto_id: null, recurso_id: null }));
+    setSecaoDisabled(false); setEquipeDisabled(false); setProjetoDisabled(false);
+  }, [params.secao_id]);
+
+  useEffect(() => {
+    if (params.equipe_id) {
+      setParams(prev => ({ ...prev, projeto_id: null, recurso_id: null }));
+      setSecaoDisabled(true); setEquipeDisabled(false); setProjetoDisabled(false);
+    } else {
+      setSecaoDisabled(false);
+    }
+  }, [params.equipe_id]);
+
+
 
   // Manipuladores para os campos de autocomplete em cascata
   function handleSecaoChange(secao) {
@@ -199,28 +221,29 @@ export default function RelatoriosCascade() {
     // Removida a geração automática de relatório para evitar erros
   }
 
-  function handleProjetoChange(projeto) {
-    setParams(prev => ({
-      ...prev,
-      projeto_id: projeto
+  const handleProjetoChange = (projeto) => {
+    setParams(prevParams => ({
+      ...prevParams,
+      projeto_id: projeto,
     }));
-    
-    // Removida a geração automática de relatório para evitar erros
-  }
+  };
 
   function handleRecursoChange(recurso) {
     setParams(prev => ({
       ...prev,
-      recurso_id: recurso
+      recurso_id: recurso,
+      projeto_id: null // Limpar projeto quando o recurso mudar
     }));
   }
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
-    setParams((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    setParams(prev => {
+      const newParams = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      if (name === 'agrupar_por_data' && checked) newParams.agrupar_por_mes = false;
+      if (name === 'agrupar_por_mes' && checked) newParams.agrupar_por_data = false;
+      return newParams;
+    });
   }
 
   function handleTipoRelatorioChange(e) {
@@ -606,6 +629,8 @@ export default function RelatoriosCascade() {
   
   const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
   
+  const isDateValid = params.data_inicio && params.data_fim && params.data_inicio <= params.data_fim;
+
   return (
     <div style={{
       width: '100%', 
@@ -659,7 +684,11 @@ export default function RelatoriosCascade() {
           border: `2px solid ${CINZA_BORDA}`
         }}
       >
-        {/* Campos de filtro principal: Data Inicial, Data Final, Seção, Equipe, Recurso, Projeto */}
+        {!isDateValid && (
+          <div style={{ width: '100%', color: 'red', marginBottom: 12 }}>
+            Data inicial deve ser menor ou igual à data final
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 24, width: '100%', marginBottom: 18 }}>
           {/* Data Inicial */}
           <div style={{ flex: '1 1 0', minWidth: 150 }}>
@@ -697,6 +726,7 @@ export default function RelatoriosCascade() {
               key="secao_id"
               value={params.secao_id}
               onChange={handleSecaoChange}
+              disabled={secaoDisabled}
               placeholder="Selecione a seção"
             />
           </div>
@@ -707,6 +737,7 @@ export default function RelatoriosCascade() {
               value={params.equipe_id}
               onChange={handleEquipeChange}
               secaoId={params.secao_id ? params.secao_id.id : null}
+              disabled={equipeDisabled}
               placeholder="Selecione a equipe"
             />
           </div>
@@ -732,7 +763,10 @@ export default function RelatoriosCascade() {
                 filterBySecaoOnly={tipoRelatorio === 'horas-por-recurso'}
                 equipeId={params.equipe_id ? params.equipe_id.id : null}
                 recursoId={params.recurso_id ? (params.recurso_id.id || params.recurso_id) : null}
+                data_inicio={params.data_inicio}
+                data_fim={params.data_fim}
                 label="Projeto"
+                disabled={projetoDisabled}
                 placeholder="Selecione o projeto"
               />
             </div>
@@ -797,7 +831,7 @@ export default function RelatoriosCascade() {
         <div style={{ minWidth: 180, flex: '1 1 220px', display: 'flex', alignItems: 'center', marginTop: 8 }}>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !isDateValid}
             style={{
               padding: '10px 24px',
               background: WEG_AZUL,

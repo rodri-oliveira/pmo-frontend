@@ -1,17 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { buscarProjetosPorNome, buscarProjetosPorRecurso, buscarProjetosPorEquipe, buscarProjetosPorSecao, buscarTodosProjetos } from '../../utils/autocomplete';
 
-/**
- * Componente de autocomplete para selecionar projeto pelo nome
- * Props:
- *   value: valor atual (id do projeto ou objeto {id, nome})
- *   onChange: função chamada com o objeto {id, nome} do projeto selecionado
- *   secaoId: ID da seção para filtrar projetos (opcional)
- *   recursoId: ID do recurso para filtrar projetos (opcional)
- *   equipeId: ID da equipe para filtrar projetos (opcional)
- *   filterBySecaoOnly: flag para filtrar apenas por seção (opcional)
- */
-export default function AutocompleteProjetoCascade({ value, onChange, secaoId, recursoId, equipeId, filterBySecaoOnly = false, placeholder = 'Digite o nome do projeto...' }) {
+export default function AutocompleteProjetoCascade({ value, onChange, secaoId, recursoId, equipeId, data_inicio, data_fim, filterBySecaoOnly = false, placeholder = 'Digite o nome do projeto...' }) {
   const [inputValue, setInputValue] = useState(value && value.nome ? value.nome : '');
   const [sugestoes, setSugestoes] = useState([]);
   const [showSugestoes, setShowSugestoes] = useState(false);
@@ -23,48 +12,44 @@ export default function AutocompleteProjetoCascade({ value, onChange, secaoId, r
   const currentEquipeId = equipeId;
   const currentSecaoId = secaoId && secaoId.id ? secaoId.id : secaoId;
 
-  // Carrega projetos filtrados por equipe ou recurso
+  // Carrega projetos via endpoint com todos filtros de contexto
   const carregarProjetos = async () => {
     setLoading(true);
-    console.log(`[AutocompleteProjetoCascade] carregarProjetos: secaoId=${currentSecaoId}, equipeId=${currentEquipeId}, recursoId=${currentRecursoId}`);
+    setTodosProjetos([]);
+    setSugestoes([]);
+    setShowSugestoes(false);
     try {
-      let projetos;
-      if (filterBySecaoOnly) {
-        if (currentSecaoId) {
-          projetos = await buscarProjetosPorSecao(currentSecaoId);
-        } else {
-          projetos = await buscarTodosProjetos();
-        }
-      } else {
-        if (currentEquipeId) {
-          projetos = await buscarProjetosPorEquipe(currentEquipeId);
-        } else if (currentRecursoId) {
-          projetos = await buscarProjetosPorRecurso(currentRecursoId);
-        } else if (currentSecaoId) {
-          projetos = await buscarProjetosPorSecao(currentSecaoId);
-        } else {
-          projetos = await buscarTodosProjetos();
-        }
-      }
-      console.log(`[AutocompleteProjetoCascade] projetos carregados (${projetos.length}):`, projetos);
+      const params = new URLSearchParams();
+      params.append('ativo', 'true');
+      if (currentSecaoId) params.append('secao_id', currentSecaoId);
+      if (currentEquipeId) params.append('equipe_id', currentEquipeId);
+      if (currentRecursoId) params.append('recurso_id', currentRecursoId);
+      if (data_inicio) params.append('data_inicio', data_inicio); // Adicionado
+      if (data_fim) params.append('data_fim', data_fim);           // Adicionado
+
+      const url = `/backend/v1/projetos/filtrar?${params.toString()}`;
+      console.log(`[AutocompleteProjetoCascade] URL projetos: ${url}`);
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('Erro ao buscar projetos');
+      const data = await resp.json();
+      const raw = Array.isArray(data) ? data : data.items || [];
+      const projetos = raw.map(item => ({ id: item.id, nome: item.nome }));
       setTodosProjetos(projetos);
       setSugestoes(projetos);
       setShowSugestoes(true);
     } catch (error) {
-      console.error('Erro ao carregar projetos:', error);
+      console.error('Erro ao carregar projetos filtrados:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Carregar projetos ao montar e quando o recurso ou equipe mudar
+  // Carregar projetos ao montar e quando qualquer contexto mudar
   useEffect(() => {
-    console.log(`[AutocompleteProjetoCascade] useEffect mount/update: secaoId=${currentSecaoId}, equipeId=${currentEquipeId}, recursoId=${currentRecursoId}`);
-    // Limpar seleção ao mudar recurso, equipe ou seção
     setInputValue('');
     if (onChange) onChange(null);
     carregarProjetos();
-  }, [currentSecaoId, currentEquipeId, currentRecursoId, filterBySecaoOnly]);
+  }, [currentSecaoId, currentEquipeId, currentRecursoId, data_inicio, data_fim]); // Adicionado data_inicio e data_fim
 
   // Atualizar o valor do input quando o value mudar externamente
   useEffect(() => {
