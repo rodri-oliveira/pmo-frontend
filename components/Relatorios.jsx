@@ -288,7 +288,7 @@ export default function Relatorios() {
   // Função para obter o nome amigável da coluna
   function getColumnLabel(col) {
     const columnLabels = {
-      'quantidade': 'Qtd. Apontamentos',
+      'quantidade': 'Qtd. Lançamentos',
       // IDs
       'recurso_id': 'ID Recurso',
       'projeto_id': 'ID Projeto',

@@ -5,8 +5,6 @@ import { TextField } from '@mui/material';
 import AutocompleteSecaoCascade from './AutocompleteSecaoCascade';
 import AutocompleteEquipeCascade from './AutocompleteEquipeCascade';
 import AutocompleteProjetoCascade from './AutocompleteProjetoCascade';
-import AutocompleteRecursoCascade from './AutocompleteRecursoCascade';
-import { buscarRecursosPorEquipe, buscarTodosRecursos } from '../../utils/autocomplete';
 
 // Paleta WEG
 const WEG_AZUL = "#00579D";
@@ -17,110 +15,189 @@ const CINZA_BORDA = "#E0E3E7";
 
 const RELATORIOS = [
   {
-    label: 'Horas Apontadas',
-    value: 'horas-apontadas',
-    endpoint: '/backend/v1/relatorios/horas-apontadas',
-    descricao: 'Relatório Horas Apontadas',
+    label: 'Horas por Recurso',
+    value: 'cascade-horas-por-recurso',
+    endpoint: '/backend/v1/relatorios/horas-por-recurso',
+    descricao: 'Total de horas apontadas por cada recurso no período selecionado',
     filtros: [
-      { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD)', type: 'text', width: 140 },
-      { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD)', type: 'text', width: 140 },
       { name: 'secao_id', type: 'secao' },
       { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' },
       { name: 'projeto_id', type: 'projeto' },
-      { name: 'agrupar_por_recurso', type: 'checkbox', label: 'Agrupar por Recurso' },
-      { name: 'agrupar_por_projeto', type: 'checkbox', label: 'Agrupar por Projeto' },
-      { name: 'agrupar_por_data', type: 'checkbox', label: 'Agrupar por Data' },
-      { name: 'agrupar_por_mes', type: 'checkbox', label: 'Agrupar por Mês' }
+      { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 140 },
+      { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 140 },
     ],
-    agrupamentos: []
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: true, hidden: true },
+    ],
   },
   {
     label: 'Horas por Projeto',
-    value: 'horas-por-projeto',
+    value: 'cascade-horas-por-projeto',
     endpoint: '/backend/v1/relatorios/horas-por-projeto',
-    descricao: 'Get Horas Por Projeto',
+    descricao: 'Total de horas apontadas por projeto no período selecionado',
     filtros: [
       { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD)', type: 'text', width: 140 },
-      { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD)', type: 'text', width: 140 },
-      { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' }
+      { name: 'data_fim',    placeholder: 'Data fim (YYYY-MM-DD)',    type: 'text', width: 140 },
+      { name: 'secao_id',    type: 'secao' },
+      { name: 'equipe_id',   type: 'equipe' },
+      { name: 'projeto_id',  type: 'projeto' },
     ],
-    agrupamentos: [{ name: 'agrupar_por_projeto', value: true, hidden: true }]
+    agrupamentos: [
+      { name: 'agrupar_por_projeto', value: true, hidden: true }
+    ],
   },
   {
-    label: 'Horas por Recurso',
-    value: 'horas-por-recurso',
-    endpoint: '/backend/v1/relatorios/horas-por-recurso',
-    descricao: 'Get Horas Por Recurso',
+    label: 'Horas por Recurso e Projeto',
+    value: 'cascade-horas-por-recurso-projeto',
+    endpoint: '/backend/v1/relatorios/horas-apontadas',
+    descricao: 'Matriz mostrando horas apontadas por cada recurso em cada projeto',
     filtros: [
-      { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD)', type: 'text', width: 140 },
-      { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD)', type: 'text', width: 140 },
-      { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' },
-      { name: 'projeto_id', type: 'projeto' }
-    ],
-    agrupamentos: [{ name: 'agrupar_por_recurso', value: true, hidden: true }]
-  },
-  {
-    label: 'Planejado vs Realizado',
-    value: 'planejado-vs-realizado',
-    endpoint: '/backend/v1/relatorios/planejado-vs-realizado',
-    descricao: 'Get Planejado Vs Realizado',
-    filtros: [
-      { name: 'ano', placeholder: 'Ano', type: 'text', width: 120 },
-      { name: 'mes', placeholder: 'Mês', type: 'text', width: 80 },
-      { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' },
-      { name: 'projeto_id', type: 'projeto' }
-    ],
-    agrupamentos: []
-  },
-  {
-    label: 'Disponibilidade Recursos',
-    value: 'disponibilidade-recursos',
-    endpoint: '/backend/v1/relatorios/disponibilidade-recursos',
-    descricao: 'Get Disponibilidade Recursos Endpoint',
-    filtros: [
-      { name: 'ano', placeholder: 'Ano', type: 'text', width: 120 },
-      { name: 'mes', placeholder: 'Mês', type: 'text', width: 80 },
-      { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' }
-    ],
-    agrupamentos: []
-  },
-  {
-    label: 'Relatório Dinâmico de Horas',
-    value: 'dinamico',
-    endpoint: '/backend/v1/relatorios/dinamico',
-    descricao: 'Relatório Dinâmico de Horas',
-    filtros: [
-      { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD)', type: 'text', width: 140 },
-      { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD)', type: 'text', width: 140 },
       { name: 'secao_id', type: 'secao' },
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
       { name: 'projeto_id', type: 'projeto' },
-      { name: 'agrupar_por', placeholder: 'Ex: recurso,equipe,projeto,mes,ano', type: 'text', width: 200 }
     ],
-    agrupamentos: []
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: true, hidden: true },
+      { name: 'agrupar_por_projeto', value: true, hidden: true },
+      { name: 'agrupar_por_data', value: false, hidden: true },
+      { name: 'agrupar_por_mes', value: false, hidden: true },
+    ],
+  },
+  {
+    label: 'Horas por Período (Mensal)',
+    value: 'cascade-horas-por-periodo-mensal',
+    endpoint: '/backend/v1/relatorios/horas-apontadas',
+    descricao: 'Total de horas apontadas por mês no período selecionado',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+    ],
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: false, hidden: true },
+      { name: 'agrupar_por_projeto', value: false, hidden: true },
+      { name: 'agrupar_por_data', value: false, hidden: true },
+      { name: 'agrupar_por_mes', value: true, hidden: true },
+    ],
+  },
+  {
+    label: 'Horas por Recurso e Período',
+    value: 'cascade-horas-por-recurso-periodo',
+    endpoint: '/backend/v1/relatorios/horas-apontadas',
+    descricao: 'Horas apontadas por cada recurso em cada mês',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+    ],
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: true, hidden: true },
+      { name: 'agrupar_por_projeto', value: false, hidden: true },
+      { name: 'agrupar_por_data', value: false, hidden: true },
+      { name: 'agrupar_por_mes', value: true, hidden: true },
+    ],
+  },
+  {
+    label: 'Horas por Projeto e Período',
+    value: 'cascade-horas-por-projeto-periodo',
+    endpoint: '/backend/v1/relatorios/horas-apontadas',
+    descricao: 'Horas apontadas para cada projeto em cada mês',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+      { name: 'ano', placeholder: 'Ano de referência (opcional)', type: 'text', width: 120 },
+      { name: 'mes', placeholder: 'Mês (1-12, opcional)', type: 'text', width: 80 },
+    ],
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: false, hidden: true },
+      { name: 'agrupar_por_projeto', value: false, hidden: true },
+      { name: 'agrupar_por_data', value: false, hidden: true },
+      { name: 'agrupar_por_mes', value: true, hidden: true },
+    ],
+  },
+  {
+    label: 'Planejado vs Realizado',
+    value: 'cascade-planejado-vs-realizado',
+    endpoint: '/backend/v1/relatorios/planejado-vs-realizado',
+    descricao: 'Relatório comparativo entre horas planejadas e realizadas',
+    filtros: [
+      { name: 'ano', placeholder: 'Ano de referência (obrigatório)', type: 'text', width: 120 },
+      { name: 'mes', placeholder: 'Mês (1-12)', type: 'text', width: 80 },
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+    ],
+  },
+  {
+    label: 'Relatório Dinâmico de Horas',
+    value: 'cascade-relatorio-dinamico',
+    endpoint: '/backend/v1/relatorios/dinamico',
+    descricao: 'Relatório dinâmico de horas com agrupamentos customizáveis',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+      { name: 'data_inicio', placeholder: 'Data início (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 140 },
+      { name: 'data_fim', placeholder: 'Data fim (YYYY-MM-DD ou DD/MM/YYYY)', type: 'text', width: 140 },
+      { name: 'agrupar_por', placeholder: 'Ex: recurso, equipe, secao, projeto, mes, ano', type: 'text', width: 200 },
+    ],
+  },
+  {
+    label: 'Apontamentos Detalhados',
+    value: 'cascade-apontamentos-detalhados',
+    endpoint: '/backend/v1/relatorios/apontamentos-detalhados',
+    descricao: 'Lista detalhada de todos os apontamentos no período',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+    ],
+    agrupamentos: [],
   },
   {
     label: 'Horas Disponíveis do Recurso',
     value: 'horas-disponiveis',
     endpoint: '/backend/v1/relatorios/horas-disponiveis',
-    descricao: 'Horas Disponíveis do Recurso',
     filtros: [
-      { name: 'ano', placeholder: 'Ano', type: 'text', width: 120 },
-      { name: 'mes', placeholder: 'Mês', type: 'text', width: 80 },
       { name: 'secao_id', type: 'secao' },
       { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' }
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'ano', placeholder: 'ano', type: 'text', width: 100 },
+      { name: 'mes', placeholder: 'mes', type: 'text', width: 100 },
     ],
-    agrupamentos: []
-  }
+  },
+  {
+    label: 'Horas por Projeto',
+    value: 'horas-por-projeto',
+    endpoint: '/backend/v1/relatorios/horas-por-projeto',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'data_inicio', placeholder: 'Data início', type: 'text', width: 140 },
+      { name: 'data_fim', placeholder: 'Data fim', type: 'text', width: 140 },
+    ],
+  },
+  {
+    label: 'Horas por Recurso',
+    value: 'horas-por-recurso',
+    endpoint: '/backend/v1/relatorios/horas-por-recurso',
+    filtros: [
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', type: 'projeto' },
+      { name: 'data_inicio', placeholder: 'Data início', type: 'text', width: 140 },
+      { name: 'data_fim', placeholder: 'Data fim', type: 'text', width: 140 },
+    ],
+  },
 ];
 
 export default function RelatoriosCascade() {
@@ -156,47 +233,6 @@ export default function RelatoriosCascade() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const [recursoMap, setRecursoMap] = useState({});
-  
-  // Flags de habilitação para filtros em cascata
-  const [secaoDisabled, setSecaoDisabled] = useState(false);
-  const [equipeDisabled, setEquipeDisabled] = useState(false);
-  const [projetoDisabled, setProjetoDisabled] = useState(false);
-
-  // Atualiza mapa de recursos ao mudar equipe ou carregar inicial
-  useEffect(() => {
-    const equipeIdVal = params.equipe_id?.id || null;
-    if (equipeIdVal) {
-      buscarRecursosPorEquipe(equipeIdVal).then(recursos => {
-        const map = {};
-        recursos.forEach(r => { map[r.id] = r.nome; });
-        setRecursoMap(map);
-      });
-    } else {
-      buscarTodosRecursos().then(recursos => {
-        const map = {};
-        recursos.forEach(r => { map[r.id] = r.nome; });
-        setRecursoMap(map);
-      });
-    }
-  }, [params.equipe_id]);
-
-  // Efeitos de cascata entre filtros
-  useEffect(() => {
-    setParams(prev => ({ ...prev, equipe_id: null, projeto_id: null, recurso_id: null }));
-    setSecaoDisabled(false); setEquipeDisabled(false); setProjetoDisabled(false);
-  }, [params.secao_id]);
-
-  useEffect(() => {
-    if (params.equipe_id) {
-      setParams(prev => ({ ...prev, projeto_id: null, recurso_id: null }));
-      setSecaoDisabled(true); setEquipeDisabled(false); setProjetoDisabled(false);
-    } else {
-      setSecaoDisabled(false);
-    }
-  }, [params.equipe_id]);
-
-
 
   // Manipuladores para os campos de autocomplete em cascata
   function handleSecaoChange(secao) {
@@ -221,29 +257,21 @@ export default function RelatoriosCascade() {
     // Removida a geração automática de relatório para evitar erros
   }
 
-  const handleProjetoChange = (projeto) => {
-    setParams(prevParams => ({
-      ...prevParams,
-      projeto_id: projeto,
-    }));
-  };
-
-  function handleRecursoChange(recurso) {
+  function handleProjetoChange(projeto) {
     setParams(prev => ({
       ...prev,
-      recurso_id: recurso,
-      projeto_id: null // Limpar projeto quando o recurso mudar
+      projeto_id: projeto
     }));
+    
+    // Removida a geração automática de relatório para evitar erros
   }
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
-    setParams(prev => {
-      const newParams = { ...prev, [name]: type === 'checkbox' ? checked : value };
-      if (name === 'agrupar_por_data' && checked) newParams.agrupar_por_mes = false;
-      if (name === 'agrupar_por_mes' && checked) newParams.agrupar_por_data = false;
-      return newParams;
-    });
+    setParams((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   }
 
   function handleTipoRelatorioChange(e) {
@@ -279,12 +307,6 @@ export default function RelatoriosCascade() {
     
     // Atualizar os parâmetros
     setParams(novosParams);
-  }
-
-  // Maneja o envio do formulário e dispara a geração do relatório
-  function handleSubmit(e) {
-    e.preventDefault();
-    gerarRelatorio(params);
   }
 
   function buildQueryString(params) {
@@ -329,17 +351,6 @@ export default function RelatoriosCascade() {
         paramsAjustados.agrupar_por_mes = true; // Agrupar por mês por padrão
       }
       
-      // Remover filtros não suportados em Horas por Projeto
-      if (tipoRelatorio === 'horas-por-projeto') {
-        delete paramsAjustados.projeto_id;
-        delete paramsAjustados.recurso_id;
-      }
-      
-      // Remover recurso_id para Horas por Recurso (endpoint não aceita)
-      if (tipoRelatorio === 'horas-por-recurso') {
-        delete paramsAjustados.recurso_id;
-      }
-
       const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
       const qs = buildQueryString(paramsAjustados);
       console.log('DEBUG params ajustados:', paramsAjustados);
@@ -393,6 +404,11 @@ export default function RelatoriosCascade() {
     }
   }
   
+  function handleSubmit(e) {
+    e.preventDefault();
+    gerarRelatorio(params);
+  }
+  
   // Função para formatar valores numéricos
   function formatNumber(value) {
     if (typeof value === 'number') {
@@ -404,9 +420,9 @@ export default function RelatoriosCascade() {
   // Função para obter o nome amigável da coluna
   function getColumnLabel(col) {
     const columnLabels = {
-      'quantidade': 'Qtd. Apontamentos',
+      'quantidade': 'Qtd. Lançamentos',
       // IDs
-      'recurso_id': 'Recurso',
+      'recurso_id': 'ID Recurso',
       'projeto_id': 'ID Projeto',
       'equipe_id': 'ID Equipe',
       'secao_id': 'ID Seção',
@@ -468,30 +484,9 @@ export default function RelatoriosCascade() {
       );
     }
     
-    let columns;
-    if (tipoRelatorio === 'horas-por-recurso') {
-      // Colunas para Horas por Recurso
-      columns = ['recurso_nome', 'equipe_nome', 'secao_nome', 'total_horas'];
-    } else if (tipoRelatorio === 'horas-por-projeto') {
-      // Colunas para Horas por Projeto
-      columns = ['projeto_nome', 'total_horas'];
-    } else {
-      columns = Object.keys(dataRows[0] || {}).filter(col => col !== 'total' && col !== 'mes_nome');
-    }
-    
-    // Ao agrupar em Horas Apontadas, remover colunas de ID
-    if (tipoRelatorio === 'horas-apontadas') {
-      // Remover colunas de projeto se NÃO estiver agrupado por projeto
-      if (!params.agrupar_por_projeto) {
-        columns = columns.filter(col => col !== 'projeto_id' && col !== 'projeto_nome');
-      }
-      // Remover coluna de recurso_id se estiver agrupado
-      if (params.agrupar_por_recurso) {
-        columns = columns.filter(col => col !== 'recurso_id');
-      }
-      // Remover coluna de fonte do apontamento para Horas Apontadas
-      columns = columns.filter(col => col !== 'fonte_apontamento');
-    }
+    // Descobre as colunas dinamicamente a partir dos dados retornados
+    // Ignora propriedades especiais como 'total'
+    let columns = Object.keys(dataRows[0] || {}).filter(col => col !== 'total');
     
     // Cálculo de totais automaticamente a partir dos dados
     let hasTotals = totalRows.length > 0 || columns.some(col => typeof dataRows[0][col] === 'number');
@@ -517,7 +512,7 @@ export default function RelatoriosCascade() {
     }
 
     return (
-      <div style={{width:'100%', maxHeight: '500px', overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', boxShadow:'0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8}}>
+      <div style={{width:'100%', overflowX:'auto', borderRadius: '12px', boxShadow:'0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8}}>
         <table style={{width:'100%', borderCollapse:'separate', borderSpacing:0, minWidth:700}}>
           <thead style={{position: 'sticky', top: 0, zIndex: 2}}>
             <tr style={{background:WEG_AZUL, color:WEG_BRANCO}}>
@@ -556,48 +551,7 @@ export default function RelatoriosCascade() {
                     color: '#232b36',
                     fontWeight: 500
                   }}>
-                    {(() => {
-                      const val = row[col];
-                      if (col === 'ano') {
-                        return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false });
-                      }
-                      if (col === 'mes') {
-                        const name = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date(0, row.mes - 1, 1));
-                        return name.charAt(0).toUpperCase() + name.slice(1);
-                      }
-                      if (col === 'horas') {
-                        const num = Number(val);
-                        return Number.isInteger(num)
-                          ? num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false })
-                          : num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                      }
-                      if (col === 'qtd_lancamentos') {
-                        return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                      }
-                      if (col === 'total_horas') {
-                        const num = Number(val);
-                        return Number.isInteger(num)
-                          ? num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false })
-                          : num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                      }
-                      if (col === 'id') {
-                        return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false });
-                      }
-                      if (col === 'recurso_id') {
-                        const idVal = Number(val);
-                        return recursoMap[idVal] ?? idVal;
-                      }
-                      if (col === 'projeto_id') {
-                        return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false });
-                      }
-                      if (/_id$/.test(col)) {
-                        return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: false });
-                      }
-                      if (typeof val === 'number') {
-                        return formatNumber(val);
-                      }
-                      return val ?? '-';
-                    })()}
+                    {typeof row[col] === 'number' ? formatNumber(row[col]) : (row[col] ?? '-')}
                   </td>
                 ))}
               </tr>
@@ -629,8 +583,6 @@ export default function RelatoriosCascade() {
   
   const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
   
-  const isDateValid = params.data_inicio && params.data_fim && params.data_inicio <= params.data_fim;
-
   return (
     <div style={{
       width: '100%', 
@@ -684,101 +636,72 @@ export default function RelatoriosCascade() {
           border: `2px solid ${CINZA_BORDA}`
         }}
       >
-        {!isDateValid && (
-          <div style={{ width: '100%', color: 'red', marginBottom: 12 }}>
-            Data inicial deve ser menor ou igual à data final
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: 24, width: '100%', marginBottom: 18 }}>
-          {/* Data Inicial */}
-          <div style={{ flex: '1 1 0', minWidth: 150 }}>
-            <TextField
-              label="Data Inicial"
-              type="date"
-              name="data_inicio"
-              value={params.data_inicio}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-              required
-              helperText="Obrigatório: Período inicial do relatório"
-              error={!params.data_inicio}
-            />
-          </div>
-          {/* Data Final */}
-          <div style={{ flex: '1 1 0', minWidth: 150 }}>
-            <TextField
-              label="Data Final"
-              type="date"
-              name="data_fim"
-              value={params.data_fim}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-              required
-              helperText="Obrigatório: Período final do relatório"
-              error={!params.data_fim}
-            />
-          </div>
-          {/* Seção */}
-          <div style={{ flex: '1 1 0', minWidth: 150 }}>
-            <AutocompleteSecaoCascade
-              key="secao_id"
-              value={params.secao_id}
-              onChange={handleSecaoChange}
-              disabled={secaoDisabled}
-              placeholder="Selecione a seção"
-            />
-          </div>
-          {/* Equipe */}
-          <div style={{ flex: '1 1 0', minWidth: 150 }}>
-            <AutocompleteEquipeCascade
-              key="equipe_id"
-              value={params.equipe_id}
-              onChange={handleEquipeChange}
-              secaoId={params.secao_id ? params.secao_id.id : null}
-              disabled={equipeDisabled}
-              placeholder="Selecione a equipe"
-            />
-          </div>
-          {tipoRelatorio !== 'horas-por-recurso' && tipoRelatorio !== 'horas-por-projeto' && (
-            <div style={{ flex: '1 1 0', minWidth: 150 }}>
-              <AutocompleteRecursoCascade
-                key="recurso_id"
-                value={params.recurso_id}
-                onChange={handleRecursoChange}
-                equipeId={params.equipe_id ? params.equipe_id.id : null}
-                secaoId={params.secao_id ? params.secao_id.id : null}
-                placeholder="Selecione o recurso"
-              />
-            </div>
-          )}
-          {tipoRelatorio !== 'horas-por-projeto' && (
-            <div style={{ flex: '2 1 0', minWidth: 200 }}>
-              <AutocompleteProjetoCascade
-                key="projeto_id"
-                value={params.projeto_id}
-                onChange={handleProjetoChange}
-                secaoId={params.secao_id ? params.secao_id.id : null}
-                filterBySecaoOnly={tipoRelatorio === 'horas-por-recurso'}
-                equipeId={params.equipe_id ? params.equipe_id.id : null}
-                recursoId={params.recurso_id ? (params.recurso_id.id || params.recurso_id) : null}
-                data_inicio={params.data_inicio}
-                data_fim={params.data_fim}
-                label="Projeto"
-                disabled={projetoDisabled}
-                placeholder="Selecione o projeto"
-              />
-            </div>
-          )}
+        {/* Campos de data - Obrigatórios */}
+        <div className="flex flex-col md:flex-row gap-4 mb-4" style={{ width: '100%' }}>
+          <TextField
+            label="Data Início"
+            type="date"
+            name="data_inicio"
+            value={params.data_inicio}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            required
+            helperText="Obrigatório: Período inicial do relatório"
+            error={!params.data_inicio}
+          />
+          <TextField
+            label="Data Fim"
+            type="date"
+            name="data_fim"
+            value={params.data_fim}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            required
+            helperText="Obrigatório: Período final do relatório"
+            error={!params.data_fim}
+          />
         </div>
         {rel.filtros.map(filtro => {
-          const skip = ['data_inicio','data_fim','secao_id','equipe_id','recurso_id','projeto_id'];
-          if (skip.includes(filtro.name)) return null;
+          if (filtro.type === 'secao') {
+            return (
+              <AutocompleteSecaoCascade
+                key={filtro.name}
+                value={params.secao_id}
+                onChange={handleSecaoChange}
+                placeholder="Selecione a seção"
+              />
+            );
+          }
+          if (filtro.type === 'equipe') {
+            return (
+              <AutocompleteEquipeCascade
+                key={filtro.name}
+                value={params.equipe_id}
+                onChange={handleEquipeChange}
+                secaoId={params.secao_id ? params.secao_id.id : null}
+                placeholder="Selecione a equipe"
+              />
+            );
+          }
+          if (filtro.type === 'projeto') {
+            return (
+              <AutocompleteProjetoCascade
+                key={filtro.name}
+                value={params.projeto_id}
+                onChange={handleProjetoChange}
+                equipeId={params.equipe_id ? params.equipe_id.id : null}
+                secaoId={params.secao_id ? params.secao_id.id : null}
+                placeholder="Selecione o projeto"
+              />
+            );
+          }
           if (filtro.type === 'checkbox') {
-            // agrupamentos: quebra antes do primeiro checkbox
-            const checkbox = (
-              <label key={filtro.name} style={{ display: 'flex', alignItems: 'center', gap: 4, color: WEG_AZUL, fontWeight: 500 }}>
+            return (
+              <label key={filtro.name} style={{
+                display: 'flex', alignItems: 'center', gap: 4, color: WEG_AZUL, fontWeight: 500
+              }}>
                 <input
                   type="checkbox"
                   name={filtro.name}
@@ -789,15 +712,6 @@ export default function RelatoriosCascade() {
                 {filtro.label}
               </label>
             );
-            if (filtro.name === 'agrupar_por_recurso') {
-              return (
-                <>
-                  <div style={{ flexBasis: '100%', height: 0 }} />
-                  {checkbox}
-                </>
-              );
-            }
-            return checkbox;
           }
           // Campo padrão
           return (
@@ -831,7 +745,7 @@ export default function RelatoriosCascade() {
         <div style={{ minWidth: 180, flex: '1 1 220px', display: 'flex', alignItems: 'center', marginTop: 8 }}>
           <button
             type="submit"
-            disabled={loading || !isDateValid}
+            disabled={loading}
             style={{
               padding: '10px 24px',
               background: WEG_AZUL,

@@ -54,7 +54,7 @@ export default function ConfiguracoesPage() {
   const fetchConfiguracoes = async () => {
     setLoading(true);
     try {
-      const data = await apiGet('/configuracoes');
+      const data = await apiGet<{ items: Configuracao[] }>('/configuracoes');
       setConfiguracoes(data.items || []); // Aplicando operador || [] para garantir que sempre seja um array
       setLoading(false);
     } catch (error) {
@@ -101,7 +101,7 @@ export default function ConfiguracoesPage() {
     
     setLoading(true);
     try {
-      await apiPut(`/configuracoes/${configuracaoAtual.chave}`, {
+      await apiPut<Configuracao>(`/configuracoes/${configuracaoAtual.chave}`, {
         valor: formData.valor,
         descricao: formData.descricao
       });
