@@ -5,6 +5,7 @@ import { TextField } from '@mui/material';
 import AutocompleteSecaoCascade from './AutocompleteSecaoCascade';
 import AutocompleteEquipeCascade from './AutocompleteEquipeCascade';
 import AutocompleteProjetoCascade from './AutocompleteProjetoCascade';
+import HorasApontadasPage from './HorasApontadasPage'; // Importa a nova página
 
 // Paleta WEG
 const WEG_AZUL = "#00579D";
@@ -14,6 +15,13 @@ const CINZA_CLARO = "#F4F6F8";
 const CINZA_BORDA = "#E0E3E7";
 
 const RELATORIOS = [
+  {
+    label: 'Horas Apontadas (Nova)',
+    value: 'horas-apontadas-nova',
+    descricao: 'Nova página de relatório de horas apontadas, construída do zero.',
+    filtros: [], // Define filtros vazios para evitar erros
+    agrupamentos: [],
+  },
   {
     label: 'Horas por Recurso',
     value: 'cascade-horas-por-recurso',
@@ -582,14 +590,14 @@ export default function RelatoriosCascade() {
   }
   
   const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
-  
+
   return (
     <div style={{
-      width: '100%', 
+      width: '100%',
       boxSizing: 'border-box',
-      padding: '32px 32px 24px 32px', 
+      padding: '32px 32px 24px 32px',
       background: '#f8fafc',
-      borderRadius: 18, 
+      borderRadius: 18,
       boxShadow: '0 4px 24px #0003'
     }}>
       <h2 style={{
@@ -613,177 +621,152 @@ export default function RelatoriosCascade() {
           {RELATORIOS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
       </div>
-      
+
       {/* Descrição do relatório selecionado */}
       <div style={{marginBottom: 26, color: '#555', fontSize: 15, fontStyle: 'italic'}}>
         {RELATORIOS.find(r => r.value === tipoRelatorio)?.descricao || ''}
       </div>
 
-      {/* Bloco visual de filtros */}
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'flex-end',
-          gap: 24,
-          rowGap: 18,
-          marginBottom: 36,
-          background: CINZA_CLARO,
-          borderRadius: 14,
-          padding: '22px 24px 14px 24px',
-          boxShadow: '0 2px 12px #0001',
-          border: `2px solid ${CINZA_BORDA}`
-        }}
-      >
-        {/* Campos de data - Obrigatórios */}
-        <div className="flex flex-col md:flex-row gap-4 mb-4" style={{ width: '100%' }}>
-          <TextField
-            label="Data Início"
-            type="date"
-            name="data_inicio"
-            value={params.data_inicio}
-            onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            required
-            helperText="Obrigatório: Período inicial do relatório"
-            error={!params.data_inicio}
-          />
-          <TextField
-            label="Data Fim"
-            type="date"
-            name="data_fim"
-            value={params.data_fim}
-            onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            required
-            helperText="Obrigatório: Período final do relatório"
-            error={!params.data_fim}
-          />
-        </div>
-        {rel.filtros.map(filtro => {
-          if (filtro.type === 'secao') {
-            return (
-              <AutocompleteSecaoCascade
-                key={filtro.name}
-                value={params.secao_id}
-                onChange={handleSecaoChange}
-                placeholder="Selecione a seção"
-              />
-            );
-          }
-          if (filtro.type === 'equipe') {
-            return (
-              <AutocompleteEquipeCascade
-                key={filtro.name}
-                value={params.equipe_id}
-                onChange={handleEquipeChange}
-                secaoId={params.secao_id ? params.secao_id.id : null}
-                placeholder="Selecione a equipe"
-              />
-            );
-          }
-          if (filtro.type === 'projeto') {
-            return (
-              <AutocompleteProjetoCascade
-                key={filtro.name}
-                value={params.projeto_id}
-                onChange={handleProjetoChange}
-                equipeId={params.equipe_id ? params.equipe_id.id : null}
-                secaoId={params.secao_id ? params.secao_id.id : null}
-                placeholder="Selecione o projeto"
-              />
-            );
-          }
-          if (filtro.type === 'checkbox') {
-            return (
-              <label key={filtro.name} style={{
-                display: 'flex', alignItems: 'center', gap: 4, color: WEG_AZUL, fontWeight: 500
-              }}>
-                <input
-                  type="checkbox"
-                  name={filtro.name}
-                  checked={!!params[filtro.name]}
-                  onChange={handleChange}
-                  style={{ accentColor: WEG_AZUL, width: 18, height: 18, marginRight: 4 }}
+      {/* Renderização condicional: Nova página ou relatórios antigos */}
+      {tipoRelatorio === 'horas-apontadas-nova' ? (
+        <HorasApontadasPage />
+      ) : (
+        <>
+          {/* Formulário de Filtros para relatórios antigos */}
+          <form onSubmit={handleSubmit} style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '24px',
+            padding: '24px',
+            background: WEG_BRANCO,
+            borderRadius: 12,
+            boxShadow: '0 4px 12px #00000014',
+            marginBottom: 24,
+            alignItems: 'flex-end'
+          }}>
+            <div className="flex flex-col md:flex-row gap-4 mb-4" style={{ width: '100%' }}>
+                <TextField
+                    label="Data Início"
+                    type="date"
+                    name="data_inicio"
+                    value={params.data_inicio}
+                    onChange={handleChange}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    required
+                    helperText="Obrigatório: Período inicial do relatório"
+                    error={!params.data_inicio}
                 />
-                {filtro.label}
-              </label>
-            );
-          }
-          // Campo padrão
-          return (
-            <div key={filtro.name} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontWeight: 600, fontSize: 14, color: '#00579D' }}>
-                {filtro.placeholder.split(' ')[0]}
-              </label>
-              <input
-                name={filtro.name}
-                value={params[filtro.name] || ''}
-                onChange={handleChange}
-                placeholder={filtro.placeholder}
-                style={{
-                  width: filtro.width,
-                  padding: '8px 12px',
-                  borderRadius: 6,
-                  border: `1.5px solid ${CINZA_BORDA}`,
-                  fontSize: 15,
-                  background: WEG_BRANCO,
-                  color: WEG_AZUL,
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  boxShadow: '0 1px 4px #0001'
-                }}
-                onFocus={e => e.target.style.borderColor = WEG_AZUL}
-                onBlur={e => e.target.style.borderColor = CINZA_BORDA}
-              />
+                <TextField
+                    label="Data Fim"
+                    type="date"
+                    name="data_fim"
+                    value={params.data_fim}
+                    onChange={handleChange}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    required
+                    helperText="Obrigatório: Período final do relatório"
+                    error={!params.data_fim}
+                />
             </div>
-          );
-        })}
-        <div style={{ minWidth: 180, flex: '1 1 220px', display: 'flex', alignItems: 'center', marginTop: 8 }}>
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              padding: '10px 24px',
-              background: WEG_AZUL,
-              color: WEG_BRANCO,
-              border: 'none',
-              borderRadius: 8,
-              fontWeight: 600,
-              fontSize: 16,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px #0003',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              transition: 'all 0.2s',
-              opacity: loading ? 0.7 : 1,
-            }}
-          >
-            {loading ? 'Carregando...' : 'Gerar Relatório'}
-          </button>
-        </div>
-      </form>
 
-      {/* Exibir mensagem de erro */}
-      {error && (
-        <div style={{ 
-          padding: '12px 16px', 
-          background: '#FEE2E2', 
-          color: '#B91C1C', 
-          borderRadius: 8, 
-          marginBottom: 16,
-          fontWeight: 500
-        }}>
-          {error}
-        </div>
+            {rel && rel.filtros && rel.filtros.map((filtro) => {
+              if (filtro.type === 'date') return null; // Já renderizado acima
+
+              if (filtro.type === 'secao') {
+                return (
+                  <AutocompleteSecaoCascade
+                    key={filtro.name}
+                    value={params.secao_id}
+                    onChange={handleSecaoChange}
+                    placeholder="Selecione a seção"
+                  />
+                );
+              }
+              if (filtro.type === 'equipe') {
+                return (
+                  <AutocompleteEquipeCascade
+                    key={filtro.name}
+                    value={params.equipe_id}
+                    onChange={handleEquipeChange}
+                    secaoId={params.secao_id ? params.secao_id.id : null}
+                    placeholder="Selecione a equipe"
+                  />
+                );
+              }
+              if (filtro.type === 'projeto') {
+                return (
+                  <AutocompleteProjetoCascade
+                    key={filtro.name}
+                    value={params.projeto_id}
+                    onChange={handleProjetoChange}
+                    equipeId={params.equipe_id ? params.equipe_id.id : null}
+                    secaoId={params.secao_id ? params.secao_id.id : null}
+                    placeholder="Selecione o projeto"
+                  />
+                );
+              }
+              if (filtro.type === 'checkbox') {
+                return (
+                  <label key={filtro.name} style={{
+                    display: 'flex', alignItems: 'center', gap: 4, color: WEG_AZUL, fontWeight: 500
+                  }}>
+                    <input
+                      type="checkbox"
+                      name={filtro.name}
+                      checked={!!params[filtro.name]}
+                      onChange={handleChange}
+                      style={{ accentColor: WEG_AZUL, width: 18, height: 18, marginRight: 4 }}
+                    />
+                    {filtro.label}
+                  </label>
+                );
+              }
+              return null;
+            })}
+            <div style={{ minWidth: 180, flex: '1 1 220px', display: 'flex', alignItems: 'center', marginTop: 8 }}>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  padding: '10px 24px',
+                  background: WEG_AZUL,
+                  color: WEG_BRANCO,
+                  border: 'none',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 16,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px #0003',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  transition: 'all 0.2s',
+                  opacity: loading ? 0.7 : 1,
+                }}
+              >
+                {loading ? 'Carregando...' : 'Gerar Relatório'}
+              </button>
+            </div>
+          </form>
+
+          {error && (
+            <div style={{ 
+              padding: '12px 16px', 
+              background: '#FEE2E2', 
+              color: '#B91C1C', 
+              borderRadius: 8, 
+              marginBottom: 16,
+              fontWeight: 500
+            }}>
+              {error}
+            </div>
+          )}
+
+          {result && renderTable()}
+        </>
       )}
-
-      {/* Exibir resultados */}
-      {result && renderTable()}
     </div>
   );
 }
