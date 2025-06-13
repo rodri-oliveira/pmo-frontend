@@ -17,7 +17,7 @@ const CINZA_BORDA = "#E0E3E7";
 
 const RELATORIOS = [
   {
-    label: 'Horas Apontadas (Nova)',
+    label: 'Horas Apontadas',
     value: 'horas-apontadas-nova',
     descricao: 'Nova página de relatório de horas apontadas.',
     filtros: [],

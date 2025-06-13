@@ -156,22 +156,33 @@ export default function HorasApontadasPage() {
   };
 
   // Função para traduzir o nome do mês
-  const traduzirMes = (mesEmIngles) => {
+  const traduzirMes = (mes) => {
     const meses = {
       'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
       'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
       'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
       'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
     };
-    return meses[mesEmIngles] || mesEmIngles;
+    if (typeof mes === 'number') {
+      const idx = mes - 1;
+      const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+      return nomes[idx] || mes;
+    }
+    return meses[mes] || mes;
   };
 
   // Função para formatar os cabeçalhos da tabela
   const formatHeader = (key) => {
     const labels = {
-      'horas': 'Horas', 'ano': 'Ano', 'mes_nome': 'Mês',
-      'qtd_lancamentos': 'Qtd. Lançamentos', 'recurso_nome': 'Recurso',
-      'projeto_nome': 'Projeto', 'data': 'Data',
+      'secao_nome': 'Seção',
+      'equipe_nome': 'Equipe',
+      'recurso_nome': 'Recurso',
+      'projeto_nome': 'Projeto',
+      'ano': 'Ano',
+      'mes_nome': 'Mês',
+      'horas': 'Horas',
+      'qtd_lancamentos': 'Qtd. Lançamentos',
+      'data': 'Data',
     };
     return labels[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
@@ -182,16 +193,28 @@ export default function HorasApontadasPage() {
       return <Box sx={{ display: 'flex', justifyContent: 'center', padding: 4 }}><CircularProgress /></Box>;
     }
 
-    if (!reportData || reportData.length === 0) {
+    // Pré-processa o dataset para garantir coluna 'mes_nome' em português
+    const dataProcessada = reportData.map((row) => {
+      const novo = { ...row };
+      // Se vier campo 'mes' numérico, converte para mês em português
+      if (novo.mes !== undefined && novo.mes_nome === undefined) {
+        novo.mes_nome = traduzirMes(Number(novo.mes));
+      } else if (novo.mes_nome) {
+        novo.mes_nome = traduzirMes(String(novo.mes_nome).trim());
+      }
+      return novo;
+    });
+
+    if (!dataProcessada || dataProcessada.length === 0) {
       return <Typography>Nenhum dado encontrado para os filtros selecionados.</Typography>;
     }
 
-    const colunasOrdenadas = ['ano', 'mes_nome', 'horas', 'qtd_lancamentos'];
-    const todasColunas = Object.keys(reportData[0]);
-    const headers = [...colunasOrdenadas, ...todasColunas.filter(h => !colunasOrdenadas.includes(h) && h !== 'mes')];
+    const ordemBase = ['secao_nome', 'equipe_nome', 'recurso_nome', 'projeto_nome', 'ano', 'mes_nome', 'horas', 'qtd_lancamentos'];
+    const todasColunas = Object.keys(dataProcessada[0]).filter(c => !['recurso_id', 'projeto_id', 'mes'].includes(c));
+    const headers = [...ordemBase.filter(c => todasColunas.includes(c)), ...todasColunas.filter(c => !ordemBase.includes(c))];
 
     return (
-      <TableContainer component={Paper} sx={{ boxShadow: '0 4px 12px #00000014', borderRadius: '12px' }}>
+      <TableContainer component={Paper} sx={{ boxShadow: '0 4px 12px #00000014', borderRadius: '12px', maxHeight: '70vh', overflowY: 'auto' }}>
         <Table sx={{ tableLayout: 'fixed' }}>
           <TableHead>
             <TableRow>
@@ -208,7 +231,7 @@ export default function HorasApontadasPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {reportData.map((row, index) => (
+            {dataProcessada.map((row, index) => (
               <TableRow key={index} sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f9f9f9' } }}>
                 {headers.map((header) => {
                   const value = row[header];
@@ -226,8 +249,8 @@ export default function HorasApontadasPage() {
                         : numHoras.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                       break;
                     case 'mes_nome':
-                      formattedValue = traduzirMes(value);
-                      break;
+                    formattedValue = traduzirMes(String(value).trim());
+                    break;
                     default:
                       formattedValue = value;
                   }
