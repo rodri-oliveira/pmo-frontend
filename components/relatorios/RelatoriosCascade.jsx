@@ -49,21 +49,18 @@ const RELATORIOS = [
       { name: 'agrupar_por_recurso', value: true, hidden: true },
     ],
   },
+
   {
-    label: 'Matriz Recurso x Projeto',
-    value: 'cascade-matriz-recurso-projeto',
-    endpoint: '/backend/v1/relatorios/matriz-recurso-projeto',
-    descricao: 'Matriz de horas por recurso em cada projeto.',
+    label: 'Disponibilidade de Recursos',
+    value: 'cascade-disponibilidade-recursos',
+    endpoint: '/backend/v1/relatorios/disponibilidade-recursos',
+    descricao: 'Relatório de disponibilidade dos recursos (RH, planejado, realizado, livres e percentuais).',
     filtros: [
-      { name: 'data_inicio', placeholder: 'Data Início', type: 'date' },
-      { name: 'data_fim', placeholder: 'Data Fim', type: 'date' },
+      { name: 'ano', placeholder: 'Ano', type: 'text' },
+      { name: 'mes', placeholder: 'Mês', type: 'text' },
       { name: 'secao_id', type: 'secao' },
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
-    ],
-    agrupamentos: [
-      { name: 'agrupar_por_recurso', value: true, hidden: true },
-      { name: 'agrupar_por_projeto', value: true, hidden: true },
     ],
   },
   {
@@ -465,6 +462,58 @@ export default function RelatoriosCascade() {
                   let value = row[col] ?? '-';
                   if (col === 'horas' || col === 'qtd_lancamentos') {
                     value = formatNumber(value);
+                  }
+                  return (
+                    <td key={col} style={{ padding: '11px 14px', textAlign: 'center', fontSize: 15, borderBottom: '1px solid #e3e7ee', color: '#232b36', fontWeight: 500 }}>
+                      {value}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // Renderização específica para Disponibilidade de Recursos
+  if (tipoRelatorio === 'cascade-disponibilidade-recursos') {
+    const colunasOrdenadas = ['recurso', 'ano', 'mes', 'horas_disponiveis_rh', 'horas_planejadas', 'horas_realizadas', 'horas_livres', 'percentual_alocacao_rh', 'percentual_utilizacao_planejado', 'percentual_utilizacao_disponivel'];
+    const dataOrdenada = result.map(r => ({
+      recurso: r.recurso_nome ?? r.recurso ?? '-',
+      ano: String(r.ano).replace('.', ''),
+      mes: getPortugueseMonth(r.mes),
+      horas_disponiveis_rh: r.horas_disponiveis_rh,
+      horas_planejadas: r.horas_planejadas,
+      horas_realizadas: r.horas_realizadas,
+      horas_livres: r.horas_livres,
+      percentual_alocacao_rh: r.percentual_alocacao_rh,
+      percentual_utilizacao_planejado: r.percentual_utilizacao_sobre_planejado,
+      percentual_utilizacao_disponivel: r.percentual_utilizacao_sobre_disponivel_rh,
+    }));
+
+    return (
+      <div style={{ overflowX: 'auto', marginTop: 24 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: WEG_AZUL, color: WEG_BRANCO }}>
+              {colunasOrdenadas.map(col => (
+                <th key={col} style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 'bold', fontSize: 15 }}>
+                  {getColumnLabel(col)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {dataOrdenada.map((row, idx) => (
+              <tr key={idx} style={{ background: idx % 2 ? '#F4F8FB' : WEG_BRANCO }}>
+                {colunasOrdenadas.map(col => {
+                  let value = row[col] ?? '-';
+                  if (col.startsWith('horas')) {
+                    value = formatNumber(value);
+                  } else if (col.startsWith('percentual')) {
+                    value = `${formatNumber(value)}%`;
                   }
                   return (
                     <td key={col} style={{ padding: '11px 14px', textAlign: 'center', fontSize: 15, borderBottom: '1px solid #e3e7ee', color: '#232b36', fontWeight: 500 }}>
