@@ -1,18 +1,18 @@
+// Full file content for RelatoriosCascade.jsx
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { TextField } from '@mui/material';
 import AutocompleteSecaoCascade from './AutocompleteSecaoCascade';
 import AutocompleteEquipeCascade from './AutocompleteEquipeCascade';
-
 import AutocompleteRecursoCascade from './AutocompleteRecursoCascade';
-import HorasApontadasPage from './HorasApontadasPage'; // Importa a nova página
+import AutocompleteProjetoCascade from './AutocompleteProjetoCascade';
+import HorasApontadasPage from './HorasApontadasPage';
 
 // Paleta WEG
 const WEG_AZUL = "#00579D";
-const WEG_AZUL_CLARO = "#E3F1FC";
 const WEG_BRANCO = "#FFFFFF";
-const CINZA_CLARO = "#F4F6F8";
 const CINZA_BORDA = "#E0E3E7";
 
 const RELATORIOS = [
@@ -40,23 +40,6 @@ const RELATORIOS = [
     ],
   },
   {
-    label: 'Matriz Recurso x Projeto',
-    value: 'cascade-matriz-recurso-projeto',
-    endpoint: '/backend/v1/relatorios/matriz-recurso-projeto',
-    descricao: 'Matriz de horas por recurso em cada projeto.',
-    filtros: [
-      { name: 'data_inicio', placeholder: 'Data Início', type: 'date' },
-      { name: 'data_fim', placeholder: 'Data Fim', type: 'date' },
-      { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' },
-    ],
-    agrupamentos: [
-      { name: 'agrupar_por_recurso', value: true, hidden: true },
-      { name: 'agrupar_por_projeto', value: true, hidden: true },
-    ],
-  },
-  {
     label: 'Planejado vs Realizado',
     value: 'cascade-planejado-vs-realizado',
     endpoint: '/backend/v1/relatorios/planejado-vs-realizado',
@@ -67,19 +50,7 @@ const RELATORIOS = [
       { name: 'secao_id', type: 'secao' },
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
-    ],
-  },
-  {
-    label: 'Apontamentos Detalhados',
-    value: 'cascade-apontamentos-detalhados',
-    endpoint: '/backend/v1/relatorios/apontamentos-detalhados',
-    descricao: 'Lista detalhada de todos os apontamentos no período.',
-    filtros: [
-      { name: 'data_inicio', placeholder: 'Data Início', type: 'date' },
-      { name: 'data_fim', placeholder: 'Data Fim', type: 'date' },
-      { name: 'secao_id', type: 'secao' },
-      { name: 'equipe_id', type: 'equipe' },
-      { name: 'recurso_id', type: 'recurso' },
+      { name: 'projeto_id', placeholder: 'Projeto', type: 'projeto' },
     ],
   },
   {
@@ -102,21 +73,18 @@ const RELATORIOS = [
 export default function RelatoriosCascade() {
   const [tipoRelatorio, setTipoRelatorio] = useState(RELATORIOS[0].value);
   
-  // Função para obter o primeiro dia do mês anterior
   function getPrimeirodiaMesAnterior() {
     const dataInicio = new Date();
     dataInicio.setMonth(dataInicio.getMonth() - 1);
     dataInicio.setDate(1);
-    return dataInicio.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    return dataInicio.toISOString().split('T')[0];
   }
   
-  // Função para obter o dia atual
   function getDiaAtual() {
     const dataFim = new Date();
-    return dataFim.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    return dataFim.toISOString().split('T')[0];
   }
   
-  // Estado para armazenar os parâmetros do relatório
   const [params, setParams] = useState({
     secao_id: null,
     equipe_id: null,
@@ -132,77 +100,61 @@ export default function RelatoriosCascade() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
-  // Manipuladores para os campos de autocomplete em cascata
   function handleSecaoChange(secao) {
-    // Apenas atualizar os parâmetros, sem gerar relatório automaticamente
-    setParams(prev => ({
-      ...prev,
-      secao_id: secao,
-      equipe_id: null,  // Limpar equipe quando a seção mudar
-      recurso_id: null, // Limpar recurso quando a seção mudar
-    }));
+    setParams(prev => ({ ...prev, secao_id: secao, equipe_id: null, recurso_id: null }));
   }
 
   function handleEquipeChange(equipe) {
-    setParams(prev => ({
-      ...prev,
-      equipe_id: equipe,
-      recurso_id: null, // Limpar recurso quando a equipe mudar
-    }));
+    setParams(prev => ({ ...prev, equipe_id: equipe, recurso_id: null }));
   }
 
   function handleRecursoChange(recurso) {
-    setParams(prev => ({
-      ...prev,
-      recurso_id: recurso,
-    }));
+    setParams(prev => ({ ...prev, recurso_id: recurso }));
   }
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
-    setParams((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    setParams((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   }
 
-  // Função para lidar com a submissão do formulário de filtros
   function handleSubmit(event) {
     event.preventDefault();
+    const relatorioAtivo = RELATORIOS.find(r => r.value === tipoRelatorio);
+    if (!relatorioAtivo) return;
+
+    const hasDateFilter = relatorioAtivo.filtros.some(f => f.type === 'date');
+    if (hasDateFilter && (!params.data_inicio || !params.data_fim)) {
+        setError('As datas de início e fim são obrigatórias para este relatório.');
+        return;
+    }
     gerarRelatorio(params);
   }
 
   function handleTipoRelatorioChange(e) {
     const novoTipo = e.target.value;
     setTipoRelatorio(novoTipo);
-    setResult(null); // Limpar resultados ao mudar o tipo de relatório
+    setResult(null);
     setError('');
     
-    // Encontrar o relatório selecionado
     const relatorioSelecionado = RELATORIOS.find(r => r.value === novoTipo);
     
-    // Criar novos parâmetros mantendo as datas
     const novosParams = {
       secao_id: null,
       equipe_id: null,
       recurso_id: null,
+      projeto_id: null,
       data_inicio: params.data_inicio || getPrimeirodiaMesAnterior(),
       data_fim: params.data_fim || getDiaAtual(),
-      agrupar_por_recurso: false,
-      agrupar_por_projeto: false,
-      agrupar_por_data: false,
-      agrupar_por_mes: true,
+      ano: new Date().getFullYear().toString(),
+      mes: (new Date().getMonth() + 1).toString(),
     };
     
-    // Aplicar os agrupamentos específicos deste tipo de relatório
     if (relatorioSelecionado && relatorioSelecionado.agrupamentos) {
-      // Aplicar os agrupamentos definidos para este tipo de relatório
       relatorioSelecionado.agrupamentos.forEach(agrupamento => {
         novosParams[agrupamento.name] = agrupamento.value;
       });
     }
     
-    // Atualizar os parâmetros
     setParams(novosParams);
   }
 
@@ -210,7 +162,6 @@ export default function RelatoriosCascade() {
     return Object.entries(params)
       .filter(([_, v]) => v !== null && v !== undefined && v !== '')
       .map(([k, v]) => {
-        // Se for um objeto com id (selecionado via autocomplete), extrair o id
         if (v && typeof v === 'object' && v.id) {
           return `${encodeURIComponent(k)}=${encodeURIComponent(v.id)}`;
         }
@@ -219,80 +170,33 @@ export default function RelatoriosCascade() {
       .join('&');
   }
   
-  // Função para gerar relatório com base nos parâmetros
   async function gerarRelatorio(parametros) {
     setLoading(true);
     setError('');
     setResult(null);
     
-    // Validar se as datas foram fornecidas
-    if (!parametros.data_inicio || !parametros.data_fim) {
-      setError('As datas de início e fim são obrigatórias para gerar o relatório.');
-      setLoading(false);
-      return;
-    }
-    
     try {
-      // Criar uma cópia dos parâmetros para não modificar o original
       const paramsAjustados = { ...parametros };
-      
-      if (tipoRelatorio === 'cascade-horas-por-recurso') {
-        if (paramsAjustados.agrupar_por_recurso === undefined) {
-          paramsAjustados.agrupar_por_recurso = true;
-        }
-        if (paramsAjustados.agrupar_por_projeto === undefined) {
-          paramsAjustados.agrupar_por_projeto = true;
-        }
-      }
-      
-      if (['cascade-horas-por-recurso', 'cascade-horas-por-projeto'].includes(tipoRelatorio)) {
-        if (paramsAjustados.agrupar_por_mes === undefined) {
-          paramsAjustados.agrupar_por_mes = true;
-        }
-      }
-      
       const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
       const qs = buildQueryString(paramsAjustados);
-      console.log('DEBUG params ajustados:', paramsAjustados);
-      console.log('DEBUG qs:', qs);
-      console.log('DEBUG endpoint:', `${rel.endpoint}?${qs}`);
       
       const res = await fetch(`${rel.endpoint}?${qs}`);
-      console.log('DEBUG status:', res.status, res.statusText);
       
       if (!res.ok) {
         throw new Error(`Erro ao buscar relatório: ${res.status} ${res.statusText}`);
       }
       
       const data = await res.json();
-      console.log('DEBUG resposta completa:', data);
       
-      // Verificar se a resposta é válida e contém dados
       if (Array.isArray(data)) {
-        console.log('DEBUG dados em array:', data.length, 'itens');
         setResult(data);
       } else if (data && data.items && Array.isArray(data.items)) {
-        console.log('DEBUG dados em data.items:', data.items.length, 'itens');
-        
-        // Verificar se é uma resposta de apontamentos individuais
-        const isIndividualItems = data.items.length > 0 && data.items[0].id !== undefined && data.items[0].recurso_id !== undefined;
-        
-        if (isIndividualItems) {
-          console.log('DEBUG detectado resposta de apontamentos individuais');
-          setResult(data.items);
+        const resultData = data.items;
+        if (data.total_horas !== undefined) {
+            resultData.push({ total: true, horas: data.total_horas });
         }
-        // Caso normal com agrupamentos
-        else if (data.total_horas !== undefined) {
-          setResult([
-            ...data.items,
-            // Adicionar uma linha de total se houver total_horas
-            { total: true, horas: data.total_horas }
-          ]);
-        } else {
-          setResult(data.items);
-        }
+        setResult(resultData);
       } else {
-        console.log('DEBUG sem dados válidos na resposta');
         setResult([]);
       }
     } catch (err) {
@@ -304,7 +208,6 @@ export default function RelatoriosCascade() {
     }
   }
   
-  // Função para formatar valores numéricos
   function formatNumber(value) {
     if (typeof value === 'number') {
       const opts = Number.isInteger(value)
@@ -315,53 +218,52 @@ export default function RelatoriosCascade() {
     return value;
   }
   
-  // Função para obter o nome amigável da coluna
   function getColumnLabel(col) {
-    const columnLabels = {
-      'quantidade': 'Qtd. Lançamentos',
-      // IDs
-      'recurso_id': 'ID Recurso',
-      'projeto_id': 'ID Projeto',
-      'equipe_id': 'ID Equipe',
-      'secao_id': 'ID Seção',
-      
-      // Nomes
+    const labels = {
+      'recurso': 'Recurso',
+      'projeto': 'Projeto',
+      'secao': 'Seção',
+      'equipe': 'Equipe',
+      'horas': 'Horas',
+      'mes': 'Mês',
+      'ano': 'Ano',
+      'qtd_lancamentos': 'Qtd. Lançamentos',
       'recurso_nome': 'Recurso',
       'projeto_nome': 'Projeto',
-      'equipe_nome': 'Equipe',
       'secao_nome': 'Seção',
-      'projeto_codigo': 'Código do Projeto',
-      
-      // Datas e períodos
-      'ano': 'Ano',
-      'mes': 'Mês',
-      'data': 'Data',
-      'data_inicio': 'Data Início',
-      'data_fim': 'Data Fim',
-      
-      // Horas
-      'total_horas': 'Horas',
+      'equipe_nome': 'Equipe',
       'horas_planejadas': 'Horas Planejadas',
       'horas_realizadas': 'Horas Realizadas',
-      'horas_disponiveis': 'Horas Disponíveis',
-      'horas_disponiveis_mes': 'Horas Disponíveis no Mês',
-      'horas_disponiveis_rh': 'Horas Disponíveis (RH)',
-      'horas_livres': 'Horas Livres',
-      
-      // Métricas
-      'diferenca': 'Diferença (horas)',
-      'percentual_realizado': 'Realizado (%)',
-      'percentual_alocacao_rh': 'Alocação (%)',
-      'percentual_utilizacao_sobre_planejado': 'Utilização s/ Planejado (%)',
-      'percentual_utilizacao_sobre_disponivel_rh': 'Utilização s/ Disponível (%)',
+      'diferenca_horas': 'Diferença (Horas)',
+      'realizado_percentual': 'Realizado (%)',
     };
-    
-    return columnLabels[col] || col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return labels[col] || col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
-  
-  // Renderiza tabela dinâmica
+
+  const getFiltroStyle = (filtro) => {
+    if (tipoRelatorio === 'cascade-planejado-vs-realizado') {
+      switch (filtro.name) {
+        case 'ano':
+        case 'mes':
+          return { flex: '1 1 100px', minWidth: '100px' };
+        case 'secao_id':
+        case 'equipe_id':
+        case 'recurso_id':
+        case 'projeto_id':
+          return { flex: '1 1 200px', minWidth: '200px' };
+        default:
+          return { flex: '1 1 150px' };
+      }
+    }
+    // Default styles for other reports
+    if (filtro.type === 'date') {
+        return { flex: '1 1 150px', maxWidth: '180px' };
+    }
+    return { flex: '1 1 200px' };
+  };
+
   function renderTable() {
-    if (!result || !Array.isArray(result) || result.length === 0) {
+    if (!result || result.length === 0) {
       return (
         <div style={{ marginTop: 24, color: WEG_AZUL, fontWeight: 500, fontSize: 18 }}>
           Nenhum resultado encontrado para os filtros selecionados.
@@ -369,106 +271,120 @@ export default function RelatoriosCascade() {
       );
     }
 
-    const getPortugueseMonth = (monthNumber) => {
-      const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-      return months[monthNumber - 1] || monthNumber;
+    const getPortugueseMonth = (month) => {
+        if (month === null || month === undefined || month === '') return month;
+        const num = typeof month === 'string' ? parseInt(month, 10) : month;
+
+        if (typeof month === 'number') {
+            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            return months[month - 1] || month;
+        }
+        return month; // Return as is if not a number
     };
 
-    let processedData = result.filter(row => !row.total);
-    const totalRows = result.filter(row => row.total);
+    if (tipoRelatorio === 'cascade-planejado-vs-realizado') {
+      const dataProcessada = result.map(row => {
+        const horas_planejadas = row.horas_planejadas || 0;
+        const horas_realizadas = row.horas_realizadas || 0;
+        const diferenca_horas = horas_realizadas - horas_planejadas;
+        const realizado = horas_planejadas > 0 ? (horas_realizadas / horas_planejadas) * 100 : 0;
+        return {
+          ...row,
+          // Garantir que as colunas de identificação sejam populadas corretamente
+          secao: row.secao_nome ?? row.secao ?? '-',
+          equipe: row.equipe_nome ?? row.equipe ?? '-',
+          recurso: row.recurso_nome ?? row.recurso ?? '-',
+          projeto: row.projeto_nome ?? row.projeto ?? '-',
+          diferenca_horas,
+          realizado_percentual: realizado,
+        };
+      });
 
-    if (processedData.length === 0) {
+      const colunasOrdenadas = ['secao', 'equipe', 'recurso', 'projeto', 'ano', 'mes', 'horas_planejadas', 'horas_realizadas', 'diferenca_horas', 'realizado_percentual'];
+      
       return (
-        <div style={{ marginTop: 24, color: WEG_AZUL, fontWeight: 500, fontSize: 18 }}>
-          Nenhum resultado encontrado para os filtros selecionados.
+        <div style={{ overflowX: 'auto', marginTop: 24 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: WEG_AZUL, color: WEG_BRANCO }}>
+                {colunasOrdenadas.map(col => (
+                  <th key={col} style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 'bold', fontSize: 15, whiteSpace: 'nowrap' }}>
+                    {getColumnLabel(col)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {dataProcessada.map((row, idx) => (
+                <tr key={idx} style={{ background: idx % 2 ? '#F4F8FB' : WEG_BRANCO }}>
+                  {colunasOrdenadas.map(col => {
+                    let value = row[col] ?? '-';
+                    const cellStyle = {
+                      padding: '11px 16px',
+                      textAlign: 'center',
+                      fontSize: 15,
+                      borderBottom: '1px solid #e3e7ee',
+                      color: '#232b36',
+                      fontWeight: 500,
+                    };
+
+                    if (col === 'diferenca_horas' && typeof value === 'number' && value < 0) {
+                      cellStyle.color = 'red';
+                    }
+                    
+                    if (col === 'ano') {
+                      // Ano deve ser exibido como inteiro sem pontuação
+                      value = String(value);
+                    } else if (col === 'realizado_percentual') {
+                        value = `${formatNumber(value)}%`;
+                    } else if (typeof value === 'number' && col !== 'ano') {
+                        value = formatNumber(value);
+                    } else if (col === 'mes') {
+                        value = getPortugueseMonth(value);
+                    }
+
+                    return <td key={col} style={cellStyle}>{value}</td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       );
     }
 
-    let columns;
-
-    if (tipoRelatorio === 'cascade-horas-por-recurso') {
-      // 1. Transformar dados (mês e horas)
-      processedData = processedData.map(row => ({
-        ...row,
-        mes: getPortugueseMonth(row.mes),
-        total_horas: row.total_horas !== undefined ? row.total_horas : row.horas,
-      }));
-
-      // 2. Definir colunas a serem removidas
-      const columnsToRemove = ['recurso_id', 'projeto_id', 'equipe_id', 'secao_id', 'horas', 'mes_nome'];
-      if (!params.equipe_id) {
-        columnsToRemove.push('equipe_nome');
-      }
-      columns = Object.keys(processedData[0] || {}).filter(col => !columnsToRemove.includes(col) && col !== 'total');
-
-      // 3. Ordenar colunas
-      let desiredOrder = ['secao_nome', 'equipe_nome', 'recurso_nome', 'projeto_nome', 'ano', 'mes', 'total_horas', 'quantidade'];
-      desiredOrder = desiredOrder.filter(col => columns.includes(col));
-      const remainingColumns = columns.filter(c => !desiredOrder.includes(c));
-      columns = [...desiredOrder, ...remainingColumns];
-    } else if (tipoRelatorio === 'cascade-horas-por-projeto') {
-      processedData = processedData.map(row => ({
-        ...row,
-        mes: row.mes ? getPortugueseMonth(row.mes) : row.mes,
-        total_horas: row.total_horas !== undefined ? row.total_horas : row.horas,
-      }));
-
-      const columnsToRemove = ['projeto_id', 'horas', 'mes_nome'];
-      columns = Object.keys(processedData[0] || {}).filter(col => !columnsToRemove.includes(col) && col !== 'total');
-
-      let desiredOrder = ['projeto_nome', 'ano', 'mes', 'total_horas'];
-      desiredOrder = desiredOrder.filter(col => columns.includes(col));
-      const remainingColumns = columns.filter(c => !desiredOrder.includes(c));
-      columns = [...desiredOrder, ...remainingColumns];
-    } else {
-      columns = Object.keys(processedData[0] || {}).filter(col => col !== 'total');
-    }
-
-    // Cálculo de totais
-    let hasTotals = totalRows.length > 0 || columns.some(col => typeof processedData[0][col] === 'number');
-    let totals = {};
-    if (totalRows.length > 0) {
-      totalRows.forEach(row => {
-        Object.keys(row).forEach(key => {
-          if (key !== 'total') totals[key] = row[key];
-        });
-      });
-    } else if (columns.some(col => typeof processedData[0][col] === 'number')) {
-      columns.forEach(col => {
-        if (typeof processedData[0][col] === 'number') {
-          totals[col] = processedData.reduce((acc, row) => acc + (typeof row[col] === 'number' ? row[col] : 0), 0);
-        }
-      });
-    }
+    // Default table rendering for other reports
+    const columns = Object.keys(result[0] || {}).filter(key => key !== 'total' && key !== 'recurso_id' && key !== 'projeto_id');
+    const dataToRender = result.filter(r => !r.total);
+    const totalsRow = result.find(r => r.total);
 
     return (
-      <div style={{width:'100%', overflowX:'auto', overflowY:'auto', maxHeight:'70vh', borderRadius: '12px', boxShadow:'0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8}}>
-        <table style={{width:'100%', borderCollapse:'separate', borderSpacing:0, minWidth:700}}>
-          <thead style={{position: 'sticky', top: 0, zIndex: 2}}>
-            <tr style={{background:WEG_AZUL, color:WEG_BRANCO}}>
-              {columns.map((col, idx) => (
-                <th key={col} style={{ padding:'14px 14px', fontWeight:800, fontSize:15, textAlign:'center', width: `${100 / columns.length}%`, minWidth: 90, borderTopLeftRadius: idx === 0 ? 10 : 0, borderTopRightRadius: idx === columns.length-1 ? 10 : 0, borderBottom: '2px solid #004170', letterSpacing: 0.4 }} title={col}>
+      <div style={{ overflowX: 'auto', marginTop: 24, border: `1px solid ${CINZA_BORDA}`, borderRadius: 8 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: WEG_AZUL, color: WEG_BRANCO }}>
+              {columns.map(col => (
+                <th key={col} style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 'bold', fontSize: 15, borderRight: '1px solid #004a8a' }}>
                   {getColumnLabel(col)}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {processedData.map((row, idx) => (
-              <tr key={idx} style={{background: idx%2 ? '#F4F8FB' : WEG_BRANCO}}>
-                {columns.map((col) => (
-                  <td key={col} style={{ padding:'11px 14px', textAlign:'center', width: `${100 / columns.length}%`, minWidth: 90, fontSize: 15, borderBottom: '1px solid #e3e7ee', color: '#232b36', fontWeight: 500 }}>
-                    {(col === 'ano') ? row[col] : (typeof row[col] === 'number' ? formatNumber(row[col]) : (row[col] ?? '-'))}
+            {dataToRender.map((row, idx) => (
+              <tr key={idx} style={{ background: idx % 2 ? '#F4F8FB' : WEG_BRANCO }}>
+                {columns.map(col => (
+                  <td key={col} style={{ padding: '11px 14px', textAlign: 'center', fontSize: 15, borderBottom: '1px solid #e3e7ee', color: '#232b36', fontWeight: 500 }}>
+                    {(col === 'mes') ? getPortugueseMonth(row[col]) : (typeof row[col] === 'number' ? formatNumber(row[col]) : (row[col] ?? '-'))}
                   </td>
                 ))}
               </tr>
             ))}
-            {hasTotals && (
-              <tr style={{background:'#E3F1FC', fontWeight:800, borderTop: '2px solid #b6d6f6'}}>
-                {columns.map((col, idx) => (
-                  <td key={col} style={{ padding:'13px 14px', textAlign:'center', width: `${100 / columns.length}%`, minWidth: 90, color: idx === 0 ? WEG_AZUL : '#00325a', fontWeight: idx === 0 ? 900 : 700, fontSize: 15, borderBottomLeftRadius: idx === 0 ? 10 : 0, borderBottomRightRadius: idx === columns.length-1 ? 10 : 0 }}>
-                    {totals[col] !== undefined ? (col === 'ano' ? totals[col] : formatNumber(totals[col])) : (col === columns[0] ? 'Total' : '')}
+            {totalsRow && (
+              <tr style={{ background: '#E3F1FC', fontWeight: 'bold' }}>
+                {columns.map(col => (
+                  <td key={col} style={{ padding: '12px 14px', textAlign: 'center', fontSize: 15, borderTop: `2px solid ${WEG_AZUL}` }}>
+                    {totalsRow[col] !== undefined ? (col === 'horas' ? formatNumber(totalsRow[col]) : totalsRow[col]) : ''}
                   </td>
                 ))}
               </tr>
@@ -497,7 +413,6 @@ export default function RelatoriosCascade() {
         Relatórios
       </h2>
 
-      {/* Seleção do relatório */}
       <div style={{marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16}}>
         <label style={{fontWeight: 700, color: WEG_AZUL, fontSize: 17, marginRight: 8}}>Tipo de Relatório:</label>
         <select
@@ -525,135 +440,58 @@ export default function RelatoriosCascade() {
                 {relatorioSelecionado.descricao}
               </p>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start', marginBottom: '20px', width: '100%' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end', marginBottom: '20px', width: '100%' }}>
                 {relatorioSelecionado.filtros.map((filtro) => {
-                  let sxProps = { flexGrow: 1, minWidth: '180px', flexBasis: 0 };
+                  const style = getFiltroStyle(filtro);
+                  const commonProps = { fullWidth: true, size: "small", variant: "outlined" };
 
-                  if (filtro.type === 'date') {
-                    sxProps = { flexGrow: 1, minWidth: '150px', maxWidth: '180px', flexBasis: '150px' };
-                  } else if (['secao', 'equipe', 'recurso'].includes(filtro.type)) {
-                    sxProps = { flexGrow: 3, minWidth: '220px', flexBasis: 0 };
+                  let component;
+                  switch (filtro.type) {
+                    case 'date':
+                      component = <TextField {...commonProps} name={filtro.name} type="date" label={filtro.placeholder} value={params[filtro.name] || ''} onChange={handleChange} InputLabelProps={{ shrink: true }} />;
+                      break;
+                    case 'secao':
+                      component = <AutocompleteSecaoCascade {...commonProps} value={params.secao_id} onChange={handleSecaoChange} placeholder="Selecione a seção" />;
+                      break;
+                    case 'equipe':
+                      component = <AutocompleteEquipeCascade {...commonProps} value={params.equipe_id} onChange={handleEquipeChange} secaoId={params.secao_id?.id} placeholder="Selecione a equipe" />;
+                      break;
+                    case 'recurso':
+                      component = <AutocompleteRecursoCascade {...commonProps} value={params.recurso_id} onChange={handleRecursoChange} equipeId={params.equipe_id?.id} placeholder="Selecione o recurso" />;
+                      break;
+                    case 'projeto':
+                      component = <AutocompleteProjetoCascade {...commonProps} value={params.projeto_id} onChange={(p) => setParams(prev => ({ ...prev, projeto_id: p }))} placeholder="Selecione o projeto" />;
+                      break;
+                    default:
+                      component = <TextField {...commonProps} name={filtro.name} label={filtro.placeholder} value={params[filtro.name] || ''} onChange={handleChange} />;
                   }
-
-                  const commonProps = { key: filtro.name, sx: sxProps, fullWidth: true };
-
-                  if (filtro.type === 'date') {
-                    return (
-                      <TextField
-                        {...commonProps}
-                        label={filtro.placeholder}
-                        name={filtro.name}
-                        type="date"
-                        value={params[filtro.name] || ''}
-                        onChange={handleChange}
-                        InputLabelProps={{ shrink: true }}
-                        variant="outlined"
-                        size="small"
-                      />
-                    );
-                  }
-                  if (filtro.type === 'secao') {
-                    return (
-                      <AutocompleteSecaoCascade
-                        {...commonProps}
-                        value={params.secao_id}
-                        onChange={handleSecaoChange}
-                        placeholder="Selecione a seção"
-                      />
-                    );
-                  }
-                  if (filtro.type === 'equipe') {
-                    return (
-                      <AutocompleteEquipeCascade
-                        {...commonProps}
-                        value={params.equipe_id}
-                        onChange={handleEquipeChange}
-                        secaoId={params.secao_id ? params.secao_id.id : null}
-                        placeholder="Selecione a equipe"
-                      />
-                    );
-                  }
-                  if (filtro.type === 'recurso') {
-                    return (
-                      <AutocompleteRecursoCascade
-                        {...commonProps}
-                        value={params.recurso_id}
-                        onChange={handleRecursoChange}
-                        equipeId={params.equipe_id ? params.equipe_id.id : null}
-                        placeholder="Selecione o recurso"
-                      />
-                    );
-                  }
-                  return (
-                    <TextField
-                      {...commonProps}
-                      label={filtro.placeholder}
-                      name={filtro.name}
-                      value={params[filtro.name] || ''}
-                      onChange={handleChange}
-                      variant="outlined"
-                      size="small"
-                    />
-                  );
+                  return <div key={filtro.name} style={style}>{component}</div>;
                 })}
               </div>
 
               <div style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '20px' }}>
                 {tipoRelatorio === 'cascade-horas-por-recurso' && (
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      name="agrupar_por_projeto"
-                      checked={params.agrupar_por_projeto || false}
-                      onChange={handleChange}
-                      style={{ width: 18, height: 18 }}
-                    />
+                    <input type="checkbox" name="agrupar_por_projeto" checked={params.agrupar_por_projeto || false} onChange={handleChange} style={{ width: 18, height: 18 }} />
                     Agrupar por Projeto
                   </label>
                 )}
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    name="agrupar_por_mes"
-                    checked={params.agrupar_por_mes || false}
-                    onChange={handleChange}
-                    style={{ width: 18, height: 18 }}
-                  />
-                  Agrupar por Mês
-                </label>
+                {tipoRelatorio !== 'cascade-planejado-vs-realizado' && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input type="checkbox" name="agrupar_por_mes" checked={params.agrupar_por_mes || false} onChange={handleChange} style={{ width: 18, height: 18 }} />
+                    Agrupar por Mês
+                  </label>
+                )}
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  backgroundColor: WEG_AZUL,
-                  color: WEG_BRANCO,
-                  border: 'none',
-                  padding: '10px 24px',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: 16,
-                  opacity: loading ? 0.6 : 1,
-                  transition: 'background-color 0.3s ease',
-                  height: '40px',
-                }}
-              >
+              <button type="submit" disabled={loading} style={{ backgroundColor: WEG_AZUL, color: WEG_BRANCO, border: 'none', padding: '10px 24px', borderRadius: 8, cursor: 'pointer', fontWeight: 'bold', fontSize: 16, opacity: loading ? 0.6 : 1, transition: 'background-color 0.3s ease', height: '40px' }}>
                 {loading ? 'Gerando...' : 'Gerar Relatório'}
               </button>
             </form>
           )}
 
           {error && (
-            <div style={{ 
-              padding: '12px 16px', 
-              background: '#FEE2E2', 
-              color: '#B91C1C', 
-              borderRadius: 8, 
-              marginBottom: 16,
-              fontWeight: 500
-            }}>
+            <div style={{ padding: '12px 16px', background: '#FEE2E2', color: '#B91C1C', borderRadius: 8, marginBottom: 16, fontWeight: 500 }}>
               {error}
             </div>
           )}
