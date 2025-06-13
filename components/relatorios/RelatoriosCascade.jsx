@@ -10,6 +10,16 @@ import AutocompleteRecursoCascade from './AutocompleteRecursoCascade';
 import AutocompleteProjetoCascade from './AutocompleteProjetoCascade';
 import HorasApontadasPage from './HorasApontadasPage';
 
+// Função auxiliar movida para o escopo do módulo para garantir estabilidade.
+const getPortugueseMonth = (month) => {
+  const monthNumber = parseInt(month, 10);
+  if (!isNaN(monthNumber) && monthNumber >= 1 && monthNumber <= 12) {
+    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    return months[monthNumber - 1];
+  }
+  return month; // Retorna o valor original se não for um número de mês válido
+};
+
 // Paleta WEG
 const WEG_AZUL = "#00579D";
 const WEG_BRANCO = "#FFFFFF";
@@ -301,30 +311,26 @@ export default function RelatoriosCascade() {
       );
     }
 
-    const getPortugueseMonth = (month) => {
-      const monthNumber = parseInt(month, 10);
-      if (!isNaN(monthNumber) && monthNumber >= 1 && monthNumber <= 12) {
-        const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-        return months[monthNumber - 1];
-      }
-      return month; // Retorna o valor original se não for um número de mês válido
-    };
+    
 
     if (tipoRelatorio === 'cascade-planejado-vs-realizado') {
       const dataProcessada = result.map(row => {
         const horas_planejadas = row.horas_planejadas || 0;
         const horas_realizadas = row.horas_realizadas || 0;
         const diferenca_horas = horas_realizadas - horas_planejadas;
-        const realizado = horas_planejadas > 0 ? (horas_realizadas / horas_planejadas) * 100 : 0;
+        const realizado_percentual = horas_planejadas > 0 ? (horas_realizadas / horas_planejadas) * 100 : 0;
+
         return {
-          ...row,
-          // Garantir que as colunas de identificação sejam populadas corretamente
           secao: row.secao_nome ?? row.secao ?? '-',
           equipe: row.equipe_nome ?? row.equipe ?? '-',
           recurso: row.recurso_nome ?? row.recurso ?? '-',
           projeto: row.projeto_nome ?? row.projeto ?? '-',
-          diferenca_horas,
-          realizado_percentual: realizado,
+          ano: row.ano,
+          mes: getPortugueseMonth(row.mes),
+          horas_planejadas: horas_planejadas,
+          horas_realizadas: horas_realizadas,
+          diferenca_horas: diferenca_horas,
+          realizado_percentual: realizado_percentual,
         };
       });
 
@@ -366,8 +372,7 @@ export default function RelatoriosCascade() {
 
                     if (col === 'realizado_percentual') {
                       formattedValue = `${formatNumber(value)}%`;
-                    } else if (col === 'mes') {
-                      formattedValue = getPortugueseMonth(value);
+                    
                     } else if (typeof value === 'number' && col !== 'ano') {
                       formattedValue = formatNumber(value);
                     } else if (col === 'ano') {
