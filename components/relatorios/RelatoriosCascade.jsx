@@ -40,6 +40,23 @@ const RELATORIOS = [
     ],
   },
   {
+    label: 'Matriz Recurso x Projeto',
+    value: 'cascade-matriz-recurso-projeto',
+    endpoint: '/backend/v1/relatorios/matriz-recurso-projeto',
+    descricao: 'Matriz de horas por recurso em cada projeto.',
+    filtros: [
+      { name: 'data_inicio', placeholder: 'Data Início', type: 'date' },
+      { name: 'data_fim', placeholder: 'Data Fim', type: 'date' },
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
+    ],
+    agrupamentos: [
+      { name: 'agrupar_por_recurso', value: true, hidden: true },
+      { name: 'agrupar_por_projeto', value: true, hidden: true },
+    ],
+  },
+  {
     label: 'Planejado vs Realizado',
     value: 'cascade-planejado-vs-realizado',
     endpoint: '/backend/v1/relatorios/planejado-vs-realizado',
@@ -51,6 +68,19 @@ const RELATORIOS = [
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
       { name: 'projeto_id', placeholder: 'Projeto', type: 'projeto' },
+    ],
+  },
+  {
+    label: 'Apontamentos Detalhados',
+    value: 'cascade-apontamentos-detalhados',
+    endpoint: '/backend/v1/relatorios/apontamentos-detalhados',
+    descricao: 'Lista detalhada de todos os apontamentos no período.',
+    filtros: [
+      { name: 'data_inicio', placeholder: 'Data Início', type: 'date' },
+      { name: 'data_fim', placeholder: 'Data Fim', type: 'date' },
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+      { name: 'recurso_id', type: 'recurso' },
     ],
   },
   {
@@ -272,14 +302,12 @@ export default function RelatoriosCascade() {
     }
 
     const getPortugueseMonth = (month) => {
-        if (month === null || month === undefined || month === '') return month;
-        const num = typeof month === 'string' ? parseInt(month, 10) : month;
-
-        if (typeof month === 'number') {
-            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-            return months[month - 1] || month;
-        }
-        return month; // Return as is if not a number
+      const monthNumber = parseInt(month, 10);
+      if (!isNaN(monthNumber) && monthNumber >= 1 && monthNumber <= 12) {
+        const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        return months[monthNumber - 1];
+      }
+      return month; // Retorna o valor original se não for um número de mês válido
     };
 
     if (tipoRelatorio === 'cascade-planejado-vs-realizado') {
@@ -321,7 +349,7 @@ export default function RelatoriosCascade() {
                     let value = row[col] ?? '-';
                     const cellStyle = {
                       padding: '11px 16px',
-                      textAlign: 'center',
+                      textAlign: 'left',
                       fontSize: 15,
                       borderBottom: '1px solid #e3e7ee',
                       color: '#232b36',
@@ -332,18 +360,21 @@ export default function RelatoriosCascade() {
                       cellStyle.color = 'red';
                     }
                     
-                    if (col === 'ano') {
-                      // Ano deve ser exibido como inteiro sem pontuação
-                      value = String(value);
-                    } else if (col === 'realizado_percentual') {
-                        value = `${formatNumber(value)}%`;
-                    } else if (typeof value === 'number' && col !== 'ano') {
-                        value = formatNumber(value);
+                    
+
+                    let formattedValue = value;
+
+                    if (col === 'realizado_percentual') {
+                      formattedValue = `${formatNumber(value)}%`;
                     } else if (col === 'mes') {
-                        value = getPortugueseMonth(value);
+                      formattedValue = getPortugueseMonth(value);
+                    } else if (typeof value === 'number' && col !== 'ano') {
+                      formattedValue = formatNumber(value);
+                    } else if (col === 'ano') {
+                      formattedValue = String(value).replace('.', '');
                     }
 
-                    return <td key={col} style={cellStyle}>{value}</td>;
+                    return <td key={col} style={{ ...cellStyle, textAlign: 'center' }}>{formattedValue}</td>;
                   })}
                 </tr>
               ))}
