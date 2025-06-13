@@ -82,6 +82,21 @@ const RELATORIOS = [
       { name: 'recurso_id', type: 'recurso' },
     ],
   },
+  {
+    label: 'Horas por Projeto',
+    value: 'cascade-horas-por-projeto',
+    endpoint: '/backend/v1/relatorios/horas-por-projeto',
+    descricao: 'Total de horas apontadas por projeto, com opção opcional de agrupamento por mês.',
+    filtros: [
+      { name: 'data_inicio', placeholder: 'Data Início', type: 'date' },
+      { name: 'data_fim', placeholder: 'Data Fim', type: 'date' },
+      { name: 'secao_id', type: 'secao' },
+      { name: 'equipe_id', type: 'equipe' },
+    ],
+    agrupamentos: [
+      { name: 'agrupar_por_mes', value: true, hidden: false },
+    ],
+  },
 ];
 
 export default function RelatoriosCascade() {
@@ -220,17 +235,20 @@ export default function RelatoriosCascade() {
     try {
       // Criar uma cópia dos parâmetros para não modificar o original
       const paramsAjustados = { ...parametros };
-      // Adicionar parâmetros de agrupamento se não estiverem definidos
-      if (paramsAjustados.agrupar_por_recurso === undefined) {
-        paramsAjustados.agrupar_por_recurso = true; // Agrupar por recurso por padrão
+      
+      if (tipoRelatorio === 'cascade-horas-por-recurso') {
+        if (paramsAjustados.agrupar_por_recurso === undefined) {
+          paramsAjustados.agrupar_por_recurso = true;
+        }
+        if (paramsAjustados.agrupar_por_projeto === undefined) {
+          paramsAjustados.agrupar_por_projeto = true;
+        }
       }
       
-      if (paramsAjustados.agrupar_por_projeto === undefined) {
-        paramsAjustados.agrupar_por_projeto = true; // Agrupar por projeto por padrão
-      }
-      
-      if (paramsAjustados.agrupar_por_mes === undefined) {
-        paramsAjustados.agrupar_por_mes = true; // Agrupar por mês por padrão
+      if (['cascade-horas-por-recurso', 'cascade-horas-por-projeto'].includes(tipoRelatorio)) {
+        if (paramsAjustados.agrupar_por_mes === undefined) {
+          paramsAjustados.agrupar_por_mes = true;
+        }
       }
       
       const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
@@ -389,6 +407,20 @@ export default function RelatoriosCascade() {
       desiredOrder = desiredOrder.filter(col => columns.includes(col));
       const remainingColumns = columns.filter(c => !desiredOrder.includes(c));
       columns = [...desiredOrder, ...remainingColumns];
+    } else if (tipoRelatorio === 'cascade-horas-por-projeto') {
+      processedData = processedData.map(row => ({
+        ...row,
+        mes: row.mes ? getPortugueseMonth(row.mes) : row.mes,
+        total_horas: row.total_horas !== undefined ? row.total_horas : row.horas,
+      }));
+
+      const columnsToRemove = ['projeto_id', 'horas', 'mes_nome'];
+      columns = Object.keys(processedData[0] || {}).filter(col => !columnsToRemove.includes(col) && col !== 'total');
+
+      let desiredOrder = ['projeto_nome', 'ano', 'mes', 'total_horas'];
+      desiredOrder = desiredOrder.filter(col => columns.includes(col));
+      const remainingColumns = columns.filter(c => !desiredOrder.includes(c));
+      columns = [...desiredOrder, ...remainingColumns];
     } else {
       columns = Object.keys(processedData[0] || {}).filter(col => col !== 'total');
     }
@@ -411,7 +443,7 @@ export default function RelatoriosCascade() {
     }
 
     return (
-      <div style={{width:'100%', overflowX:'auto', borderRadius: '12px', boxShadow:'0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8}}>
+      <div style={{width:'100%', overflowX:'auto', overflowY:'auto', maxHeight:'70vh', borderRadius: '12px', boxShadow:'0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8}}>
         <table style={{width:'100%', borderCollapse:'separate', borderSpacing:0, minWidth:700}}>
           <thead style={{position: 'sticky', top: 0, zIndex: 2}}>
             <tr style={{background:WEG_AZUL, color:WEG_BRANCO}}>
@@ -427,7 +459,7 @@ export default function RelatoriosCascade() {
               <tr key={idx} style={{background: idx%2 ? '#F4F8FB' : WEG_BRANCO}}>
                 {columns.map((col) => (
                   <td key={col} style={{ padding:'11px 14px', textAlign:'center', width: `${100 / columns.length}%`, minWidth: 90, fontSize: 15, borderBottom: '1px solid #e3e7ee', color: '#232b36', fontWeight: 500 }}>
-                    {typeof row[col] === 'number' ? formatNumber(row[col]) : (row[col] ?? '-')}
+                    {(col === 'ano') ? row[col] : (typeof row[col] === 'number' ? formatNumber(row[col]) : (row[col] ?? '-'))}
                   </td>
                 ))}
               </tr>
@@ -436,7 +468,7 @@ export default function RelatoriosCascade() {
               <tr style={{background:'#E3F1FC', fontWeight:800, borderTop: '2px solid #b6d6f6'}}>
                 {columns.map((col, idx) => (
                   <td key={col} style={{ padding:'13px 14px', textAlign:'center', width: `${100 / columns.length}%`, minWidth: 90, color: idx === 0 ? WEG_AZUL : '#00325a', fontWeight: idx === 0 ? 900 : 700, fontSize: 15, borderBottomLeftRadius: idx === 0 ? 10 : 0, borderBottomRightRadius: idx === columns.length-1 ? 10 : 0 }}>
-                    {totals[col] !== undefined ? formatNumber(totals[col]) : (col === columns[0] ? 'Total' : '')}
+                    {totals[col] !== undefined ? (col === 'ano' ? totals[col] : formatNumber(totals[col])) : (col === columns[0] ? 'Total' : '')}
                   </td>
                 ))}
               </tr>
@@ -495,15 +527,15 @@ export default function RelatoriosCascade() {
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start', marginBottom: '20px', width: '100%' }}>
                 {relatorioSelecionado.filtros.map((filtro) => {
-                  let sxProps = { flexGrow: 1, minWidth: '180px' };
+                  let sxProps = { flexGrow: 1, minWidth: '180px', flexBasis: 0 };
 
                   if (filtro.type === 'date') {
-                    sxProps = { flexGrow: 1, minWidth: '150px', maxWidth: '180px' };
+                    sxProps = { flexGrow: 1, minWidth: '150px', maxWidth: '180px', flexBasis: '150px' };
                   } else if (['secao', 'equipe', 'recurso'].includes(filtro.type)) {
-                    sxProps = { flexGrow: 3, minWidth: '220px' };
+                    sxProps = { flexGrow: 3, minWidth: '220px', flexBasis: 0 };
                   }
 
-                  const commonProps = { key: filtro.name, sx: sxProps };
+                  const commonProps = { key: filtro.name, sx: sxProps, fullWidth: true };
 
                   if (filtro.type === 'date') {
                     return (
@@ -567,16 +599,18 @@ export default function RelatoriosCascade() {
               </div>
 
               <div style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '20px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    name="agrupar_por_projeto"
-                    checked={params.agrupar_por_projeto || false}
-                    onChange={handleChange}
-                    style={{ width: 18, height: 18 }}
-                  />
-                  Agrupar por Projeto
-                </label>
+                {tipoRelatorio === 'cascade-horas-por-recurso' && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      name="agrupar_por_projeto"
+                      checked={params.agrupar_por_projeto || false}
+                      onChange={handleChange}
+                      style={{ width: 18, height: 18 }}
+                    />
+                    Agrupar por Projeto
+                  </label>
+                )}
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
