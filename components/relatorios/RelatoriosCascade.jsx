@@ -389,8 +389,99 @@ export default function RelatoriosCascade() {
       );
     }
 
-    // Default table rendering for other reports
-    const columns = Object.keys(result[0] || {}).filter(key => key !== 'total' && key !== 'recurso_id' && key !== 'projeto_id');
+    // Renderização específica para Horas por Recurso
+  if (tipoRelatorio === 'cascade-horas-por-recurso') {
+    const colunasOrdenadas = ['recurso', 'projeto', 'ano', 'mes', 'horas', 'qtd_lancamentos'];
+    const dataOrdenada = result.map(r => ({
+      recurso: r.recurso ?? r.recurso_nome ?? '-',
+      projeto: r.projeto ?? r.projeto_nome ?? '-',
+      ano: String(r.ano).replace('.', ''),
+      mes: getPortugueseMonth(r.mes),
+      horas: r.horas,
+      qtd_lancamentos: (r.qtd_lancamentos ?? r.qtd) || 0,
+    }));
+
+    return (
+      <div style={{ overflowX: 'auto', marginTop: 24 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: WEG_AZUL, color: WEG_BRANCO }}>
+              {colunasOrdenadas.map(col => (
+                <th key={col} style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 'bold', fontSize: 15 }}>
+                  {getColumnLabel(col)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {dataOrdenada.map((row, idx) => (
+              <tr key={idx} style={{ background: idx % 2 ? '#F4F8FB' : WEG_BRANCO }}>
+                {colunasOrdenadas.map(col => {
+                  let value = row[col] ?? '-';
+                  if (col === 'horas' || col === 'qtd_lancamentos') {
+                    value = formatNumber(value);
+                  }
+                  return (
+                    <td key={col} style={{ padding: '11px 14px', textAlign: 'center', fontSize: 15, borderBottom: '1px solid #e3e7ee', color: '#232b36', fontWeight: 500 }}>
+                      {value}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // Renderização específica para Horas por Projeto
+  if (tipoRelatorio === 'cascade-horas-por-projeto') {
+    const colunasOrdenadas = ['projeto', 'ano', 'mes', 'horas', 'qtd_lancamentos'];
+    const dataOrdenada = result.map(r => ({
+      projeto: r.projeto ?? r.projeto_nome ?? '-',
+      ano: String(r.ano).replace('.', ''),
+      mes: getPortugueseMonth(r.mes),
+      horas: r.horas,
+      qtd_lancamentos: (r.qtd_lancamentos ?? r.qtd) || 0,
+    }));
+
+    return (
+      <div style={{ overflowX: 'auto', marginTop: 24 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: WEG_AZUL, color: WEG_BRANCO }}>
+              {colunasOrdenadas.map(col => (
+                <th key={col} style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 'bold', fontSize: 15 }}>
+                  {getColumnLabel(col)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {dataOrdenada.map((row, idx) => (
+              <tr key={idx} style={{ background: idx % 2 ? '#F4F8FB' : WEG_BRANCO }}>
+                {colunasOrdenadas.map(col => {
+                  let value = row[col] ?? '-';
+                  if (col === 'horas' || col === 'qtd_lancamentos') {
+                    value = formatNumber(value);
+                  }
+                  return (
+                    <td key={col} style={{ padding: '11px 14px', textAlign: 'center', fontSize: 15, borderBottom: '1px solid #e3e7ee', color: '#232b36', fontWeight: 500 }}>
+                      {value}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // Default table rendering for other reports
+    const columns = Object.keys(result[0] || {}).filter(key => key !== 'total' && key !== 'recurso_id' && key !== 'projeto_id' && key !== 'mes_nome');
     const dataToRender = result.filter(r => !r.total);
     const totalsRow = result.find(r => r.total);
 
