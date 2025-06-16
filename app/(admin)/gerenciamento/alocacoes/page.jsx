@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from 'react';
 import { Box, Paper, Typography, Grid, Button, TextField, MenuItem, Snackbar, Alert } from '@mui/material';
 import { createAlocacao, getRecursos, getProjetos, getAlocacoes, getAlocacaoById, updateAlocacao } from '../../../services/alocacoes.jsx';
