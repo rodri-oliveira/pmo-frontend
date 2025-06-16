@@ -8,11 +8,9 @@ import CssBaseline from '@mui/material/CssBaseline';
 import NextAppDirEmotionCacheProvider from './EmotionCache'; // Vamos criar este arquivo também
 import theme from './theme.js'; // Seu arquivo de tema existente
 
-type ThemeRegistryProps = {
-  children: React.ReactNode;
-};
 
-export default function ThemeRegistry({ children }: ThemeRegistryProps) {
+
+export default function ThemeRegistry({ children }) {
   return (
     <NextAppDirEmotionCacheProvider options={{ key: 'mui' }}>
       <ThemeProvider theme={theme}>

@@ -30,18 +30,6 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { ptBR } from 'date-fns/locale/pt-BR';
 
-// Tipo para os logs
-interface Log {
-  id: number;
-  usuario: string;
-  acao: string;
-  entidade: string;
-  entidade_id: number;
-  detalhes: string;
-  data_hora: string;
-  ip: string;
-}
-
 // Tipos de ações possíveis
 const TIPOS_ACAO = ['Criar', 'Atualizar', 'Excluir', 'Login', 'Logout', 'Visualizar'];
 
@@ -50,7 +38,7 @@ const TIPOS_ENTIDADE = ['Usuário', 'Projeto', 'Recurso', 'Equipe', 'Seção', '
 
 export default function LogsAtividadePage() {
   // Estado para armazenar os logs
-  const [logs, setLogs] = useState<Log[]>([]);
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Estados para paginação
@@ -59,10 +47,10 @@ export default function LogsAtividadePage() {
   
   // Estados para filtros
   const [filtroUsuario, setFiltroUsuario] = useState('');
-  const [filtroAcao, setFiltroAcao] = useState<string>('');
-  const [filtroEntidade, setFiltroEntidade] = useState<string>('');
-  const [dataInicio, setDataInicio] = useState<Date | null>(null);
-  const [dataFim, setDataFim] = useState<Date | null>(null);
+  const [filtroAcao, setFiltroAcao] = useState('');
+  const [filtroEntidade, setFiltroEntidade] = useState('');
+  const [dataInicio, setDataInicio] = useState(null);
+  const [dataFim, setDataFim] = useState(null);
   
   // Carregar logs (simulação)
   useEffect(() => {
@@ -76,7 +64,7 @@ export default function LogsAtividadePage() {
         
         // Dados simulados para desenvolvimento
         setTimeout(() => {
-          const dadosSimulados: Log[] = Array.from({ length: 35 }, (_, i) => ({
+          const dadosSimulados = Array.from({ length: 35 }, (_, i) => ({
             id: i + 1,
             usuario: `usuario${i % 5 + 1}@weg.net`,
             acao: TIPOS_ACAO[i % TIPOS_ACAO.length],
@@ -100,11 +88,11 @@ export default function LogsAtividadePage() {
   }, [page, rowsPerPage]);
   
   // Manipuladores de eventos para paginação
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
   
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
@@ -144,13 +132,13 @@ export default function LogsAtividadePage() {
   });
   
   // Função para formatar data
-  const formatarData = (dataString: string) => {
+  const formatarData = (dataString) => {
     const data = new Date(dataString);
     return data.toLocaleString('pt-BR');
   };
   
   // Função para obter a cor do chip baseado na ação
-  const getChipColor = (acao: string) => {
+  const getChipColor = (acao) => {
     switch (acao) {
       case 'Criar':
         return 'success';
@@ -283,7 +271,7 @@ export default function LogsAtividadePage() {
                         <TableCell>
                           <Chip 
                             label={log.acao} 
-                            color={getChipColor(log.acao) as any}
+                            color={getChipColor(log.acao)}
                             size="small"
                           />
                         </TableCell>

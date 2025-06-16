@@ -22,10 +22,10 @@ import { usePathname } from 'next/navigation';
 
 const drawerWidth = 240;
 
-export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: () => void }) {
+export default function Header({ handleDrawerToggle }) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+  const [anchorElUser, setAnchorElUser] = useState(null);
   
   // Determinar qual tab está ativa com base no pathname
   const getActiveTab = () => {
@@ -36,7 +36,7 @@ export default function Header({ handleDrawerToggle }: { handleDrawerToggle?: ()
     return 0; // CORREÇÃO: Retornando 0 (primeira tab) em vez de -1
   };
   
-  const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+  const handleOpenUserMenu = (event) => {
     setAnchorElUser(event.currentTarget);
   };
 

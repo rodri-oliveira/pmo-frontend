@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, Typography, Paper, CircularProgress, 
   Table, TableBody, TableCell, TableContainer, 
@@ -9,20 +9,10 @@ import {
 import PersonIcon from '@mui/icons-material/Person';
 import { apiGet } from '@/services/api';
 
-interface Usuario {
-  id: number;
-  nome: string;
-  email: string;
-  ativo: boolean;
-  data_criacao: string;
-}
 
-export default function UsuariosPage() {
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  // Dados mockados para desenvolvimento (quando a API não estiver disponível)
-  const dadosMockUsuarios: Usuario[] = [
+// Dados mockados para desenvolvimento (quando a API não estiver disponível)
+const dadosMockUsuarios = [
     {
       id: 1,
       nome: 'João Silva',
@@ -46,10 +36,15 @@ export default function UsuariosPage() {
     }
   ];
 
-  const fetchUsuarios = async () => {
+export default function UsuariosPage() {
+  const [usuarios, setUsuarios] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+
+  const fetchUsuarios = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiGet<{ items: Usuario[] }>('/usuarios');
+            const data = await apiGet('/usuarios');
       setUsuarios(data.items || []);
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
@@ -58,11 +53,11 @@ export default function UsuariosPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUsuarios();
-  }, []);
+  }, [fetchUsuarios]);
 
   return (
     <Box>

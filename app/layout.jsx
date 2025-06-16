@@ -10,7 +10,7 @@ import { NextAuthSessionProvider } from "./providers"; // Importar o provedor de
 //   description: 'Gerado pelo Next.js',
 // };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">{/* Ou a linguagem que preferir */}
       <body>

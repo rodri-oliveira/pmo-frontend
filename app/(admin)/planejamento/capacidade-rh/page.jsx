@@ -13,13 +13,13 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import BusinessIcon from '@mui/icons-material/Business';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PieChartIcon from '@mui/icons-material/PieChart';
-import { getRelatorioAlocacaoRecursos, RelatorioAlocacaoRecursos } from '@/services/relatorios';
+import { getRelatorioAlocacaoRecursos } from '@/services/relatorios';
 
 // Registrar componentes do Chart.js
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 // Função auxiliar para obter o nome do mês
-const getNomeMes = (numeroMes: number) => {
+const getNomeMes = (numeroMes) => {
   const meses = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
@@ -29,17 +29,17 @@ const getNomeMes = (numeroMes: number) => {
 
 export default function CapacidadeRHPage() {
   const [loading, setLoading] = useState(false);
-  const [anoSelecionado, setAnoSelecionado] = useState<number>(new Date().getFullYear());
-  const [mesSelecionado, setMesSelecionado] = useState<number | ''>('');
-  const [dados, setDados] = useState<RelatorioAlocacaoRecursos | null>(null);
+  const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
+  const [mesSelecionado, setMesSelecionado] = useState('');
+  const [dados, setDados] = useState(null);
 
   // Função para buscar os dados de capacidade
   const fetchCapacidade = async () => {
     setLoading(true);
     try {
-      const params: { ano: number, mes?: number } = { ano: anoSelecionado };
+      const params = { ano: anoSelecionado };
       if (mesSelecionado !== '') {
-        params.mes = mesSelecionado as number;
+        params.mes = mesSelecionado;
       }
       
       const data = await getRelatorioAlocacaoRecursos(params);
@@ -89,7 +89,7 @@ export default function CapacidadeRHPage() {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        position: 'top',
       },
       title: {
         display: true,
@@ -110,7 +110,7 @@ export default function CapacidadeRHPage() {
   };
 
   // Calcular a porcentagem de alocação
-  const calcularPorcentagem = (valor: number, total: number) => {
+  const calcularPorcentagem = (valor, total) => {
     if (total === 0) return 0;
     return Math.round((valor / total) * 100);
   };
@@ -133,7 +133,7 @@ export default function CapacidadeRHPage() {
               <Select
                 value={anoSelecionado}
                 label="Ano"
-                onChange={(e) => setAnoSelecionado(e.target.value as number)}
+                onChange={(e) => setAnoSelecionado(Number(e.target.value))}
               >
                 {[new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1].map((ano) => (
                   <MenuItem key={ano} value={ano}>
@@ -150,7 +150,7 @@ export default function CapacidadeRHPage() {
               <Select
                 value={mesSelecionado}
                 label="Mês"
-                onChange={(e) => setMesSelecionado(e.target.value as number | '')}
+                onChange={(e) => setMesSelecionado(e.target.value)}
               >
                 <MenuItem value="">Todos os meses</MenuItem>
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((mes) => (

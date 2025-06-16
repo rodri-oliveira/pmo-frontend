@@ -3,43 +3,30 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Grid, Paper, Button, Link as MuiLink, CircularProgress, Snackbar, Alert } from '@mui/material';
 import NextLink from 'next/link';
-import { getProjetos, Projeto } from '@/services/projetos';
+import { getProjetos } from '@/services/projetos';
 import { getRecursos } from '@/services/recursos';
 import { getApontamentos } from '@/services/apontamentos';
 import { apiGet } from '@/services/api';
 import { format, parseISO } from 'date-fns';
 
-// Interface para o status da integração Jira
-interface JiraStatus {
-  status: 'Verde' | 'Amarelo' | 'Vermelho';
-  lastSync: string;
-  message: string;
-}
 
-// Interface para alertas de capacidade
-interface CapacityAlert {
-  id: number;
-  nome: string;
-  horasApontadas: number;
-  horasDisponiveis: number;
-  excesso: number;
-}
+
 
 export default function DashboardPage() {
   // Estado para projetos recentes
-  const [recentProjects, setRecentProjects] = useState<Projeto[]>([]);
+    const [recentProjects, setRecentProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   
   // Estado para status do Jira
-  const [jiraStatus, setJiraStatus] = useState<JiraStatus | null>(null);
+    const [jiraStatus, setJiraStatus] = useState(null);
   const [loadingJiraStatus, setLoadingJiraStatus] = useState(true);
   
   // Estado para alertas de capacidade
-  const [capacityAlerts, setCapacityAlerts] = useState<CapacityAlert[]>([]);
+    const [capacityAlerts, setCapacityAlerts] = useState([]);
   const [loadingCapacityAlerts, setLoadingCapacityAlerts] = useState(true);
   
   // Estado para feedback ao usuário
-  const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error' | 'info' | 'warning'}>({ 
+  const [snackbar, setSnackbar] = useState({ 
     open: false, 
     message: '', 
     severity: 'info' 
@@ -77,15 +64,8 @@ export default function DashboardPage() {
     fetchRecentProjects();
   }, []);
   
-  // Interface para a resposta do endpoint /health
-  interface HealthResponse {
-    status: string;
-    jira_integration?: {
-      status: string;
-      last_sync?: string;
-      message?: string;
-    };
-  }
+
+  
 
   // Busca status da integração Jira
   useEffect(() => {
@@ -93,7 +73,7 @@ export default function DashboardPage() {
       setLoadingJiraStatus(true);
       try {
         // Usando o endpoint /health para verificar o status da integração
-        const response = await apiGet<HealthResponse>('/health');
+                const response = await apiGet('/health');
         
         // Assumindo que a resposta tem informações sobre a integração Jira
         if (response && response.jira_integration) {
@@ -125,17 +105,8 @@ export default function DashboardPage() {
     fetchJiraStatus();
   }, []);
   
-  // Interface para o recurso
-  interface Recurso {
-    id: number;
-    nome: string;
-    horas_diarias: number;
-  }
 
-  // Interface para apontamento
-  interface Apontamento {
-    horas_apontadas: number;
-  }
+  
 
   // Busca alertas de capacidade (recursos com excesso de horas apontadas)
   useEffect(() => {
@@ -144,14 +115,14 @@ export default function DashboardPage() {
       try {
         // Busca todos os recursos ativos
         const recursosResponse = await getRecursos({ ativo: true });
-        const recursos = (recursosResponse?.items || []) as Recurso[];
+                const recursos = (recursosResponse?.items || []);
         
         // Para cada recurso, verifica as horas apontadas no mês atual
         const currentDate = new Date();
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth() + 1; // JavaScript meses são 0-indexed
         
-        const alerts: CapacityAlert[] = [];
+                const alerts = [];
         
         // Para cada recurso, busca apontamentos e calcula excesso
         for (const recurso of recursos) {
@@ -163,7 +134,7 @@ export default function DashboardPage() {
               ano: year
             });
             
-            const apontamentos = (apontamentosResponse?.items || []) as Apontamento[];
+                        const apontamentos = (apontamentosResponse?.items || []);
             
             // Calcula total de horas apontadas
             const horasApontadas = apontamentos.reduce(

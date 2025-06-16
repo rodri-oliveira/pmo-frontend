@@ -1,22 +1,17 @@
 import * as React from 'react';
-import createCache, { Options as EmotionCacheOptions } from '@emotion/cache';
+import createCache from '@emotion/cache';
 import { CacheProvider } from '@emotion/react';
 import { useServerInsertedHTML } from 'next/navigation';
 
-type NextAppDirEmotionCacheProviderProps = {
-  children: React.ReactNode;
-  options?: EmotionCacheOptions;
-};
 
-export default function NextAppDirEmotionCacheProvider({ children, options }: NextAppDirEmotionCacheProviderProps) {
-  const cache = React.useMemo(() => createCache({ key: 'mui', prepend: true, ...(options || {}) }), [options]);
-  return <CacheProvider value={cache}>{children}</CacheProvider>;
+
+export default function NextAppDirEmotionCacheProvider({ children, options }) {
 
   const [registry] = React.useState(() => {
     const cache = createCache({ key: 'mui', prepend: true, ...(options || {}) });
     cache.compat = true;
     const prevInsert = cache.insert;
-    let inserted: string[] = [];
+    let inserted = [];
     cache.insert = (...args) => {
       const serialized = args[1];
       if (cache.inserted[serialized.name] === undefined) {

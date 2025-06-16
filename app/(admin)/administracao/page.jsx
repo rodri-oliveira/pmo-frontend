@@ -6,7 +6,7 @@ import { Box, Typography, Container, Grid, Paper } from '@mui/material';
 import { Settings, Code, Person, History } from '@mui/icons-material';
 
 // Componente para os cards de navegação
-const NavCard = ({ title, icon, path }: { title: string; icon: React.ReactNode; path: string }) => {
+const NavCard = ({ title, icon, path }) => {
   const router = useRouter();
   
   return (

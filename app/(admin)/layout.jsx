@@ -7,7 +7,7 @@ import Header from '@/components/admin/Header'; // Ajuste o caminho se necessár
 import Sidebar from '@/components/admin/Sidebar'; // Ajuste o caminho se necessário
 import Toolbar from '@mui/material/Toolbar';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({ children }) {
   // Para um drawer responsivo, você precisaria de um estado para controlar a abertura/fechamento em telas menores
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const handleDrawerToggle = () => {

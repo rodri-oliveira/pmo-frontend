@@ -58,8 +58,7 @@ export default function LoginPage() {
                             }}
                             onError={(e) => {
                                 // Fallback se a imagem não for encontrada
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
+                                e.target.style.display = 'none';
                             }}
                         />
                     </Box>

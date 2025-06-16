@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, Typography, Paper, Button, TextField, Table, TableBody, 
   TableCell, TableContainer, TableHead, TableRow, IconButton, 
@@ -46,82 +46,34 @@ import AutocompleteProjeto from '@/components/AutocompleteProjeto';
 import AutocompleteEquipe from '@/components/AutocompleteEquipe';
 import AutocompleteSecao from '@/components/AutocompleteSecao';
 
-interface Apontamento {
-  id: number;
-  recurso_id: number;
-  recurso?: Recurso;
-  projeto_id: number;
-  projeto?: {
-    id: number;
-    nome: string;
-  };
-  data_apontamento: string;
-  horas_apontadas: number;
-  descricao: string;
-  jira_issue_key?: string;
-  fonte_apontamento: string;
-  data_criacao: string;
-  data_atualizacao?: string;
-}
-
-interface Projeto {
-  id: number;
-  nome: string;
-  codigo_empresa: string;
-}
-
-interface Recurso {
-  id: number;
-  nome: string;
-  email?: string | null;
-  matricula?: string;
-}
-
-interface ApontamentoForm {
-  horas_apontadas: number;
-  descricao: string;
-  jira_issue_key?: string;
-}
-
-// Interface para configuração do Jira
-interface JiraConfig {
-  url: string;
-  username: string;
-  api_token: string;
-  ativo: boolean;
-  ultima_sincronizacao?: string;
-  status: 'conectado' | 'desconectado' | 'erro';
-  erro_mensagem?: string;
-}
-
 export default function ConsultarApontamentosPage() {
-  const [apontamentos, setApontamentos] = useState<Apontamento[]>([]);
-  const [projetos, setProjetos] = useState<Projeto[]>([]);
-  const [recursos, setRecursos] = useState<Recurso[]>([]);
-  const [equipes, setEquipes] = useState<any[]>([]);
-  const [secoes, setSecoes] = useState<any[]>([]);
+  const [apontamentos, setApontamentos] = useState([]);
+  const [projetos, setProjetos] = useState([]);
+  const [recursos, setRecursos] = useState([]);
+  const [equipes, setEquipes] = useState([]);
+  const [secoes, setSecoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
-  const [apontamentoAtual, setApontamentoAtual] = useState<Apontamento | null>(null);
-  const [formData, setFormData] = useState<ApontamentoForm>({
+  const [apontamentoAtual, setApontamentoAtual] = useState(null);
+  const [formData, setFormData] = useState({
     horas_apontadas: 0,
     descricao: '',
     jira_issue_key: ''
   });
   
-  const [dataInicio, setDataInicio] = useState<Date | null>(startOfMonth(new Date()));
-  const [dataFim, setDataFim] = useState<Date | null>(endOfMonth(new Date()));
-  const [projetoFilter, setProjetoFilter] = useState<any | null>(null);
-  const [recursoFilter, setRecursoFilter] = useState<any | null>(null);
-  const [fonteFilter, setFonteFilter] = useState<string>('');
-  const [equipeFilter, setEquipeFilter] = useState<any | null>(null);
-  const [secaoFilter, setSecaoFilter] = useState<any | null>(null);
-  const [jiraIssueKeyFilter, setJiraIssueKeyFilter] = useState<string>('');
+  const [dataInicio, setDataInicio] = useState(startOfMonth(new Date()));
+  const [dataFim, setDataFim] = useState(endOfMonth(new Date()));
+  const [projetoFilter, setProjetoFilter] = useState(null);
+  const [recursoFilter, setRecursoFilter] = useState(null);
+  const [fonteFilter, setFonteFilter] = useState('');
+  const [equipeFilter, setEquipeFilter] = useState(null);
+  const [secaoFilter, setSecaoFilter] = useState(null);
+  const [jiraIssueKeyFilter, setJiraIssueKeyFilter] = useState('');
   
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error'
+    severity: 'success'
   });
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -129,10 +81,10 @@ export default function ConsultarApontamentosPage() {
 
 
   // Função para buscar apontamentos
-  const fetchApontamentos = async () => {
+  const fetchApontamentos = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = {
+      const params = {
         skip: page * rowsPerPage,
         limit: rowsPerPage
       };
@@ -184,7 +136,7 @@ export default function ConsultarApontamentosPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, rowsPerPage, dataInicio, dataFim, projetoFilter, recursoFilter, fonteFilter, equipeFilter, secaoFilter, jiraIssueKeyFilter]);
 
   // Função para buscar projetos
   const fetchProjetos = async () => {
@@ -246,15 +198,14 @@ export default function ConsultarApontamentosPage() {
     fetchRecursos();
     fetchEquipes();
     fetchSecoes();
-    fetchApontamentos();
   }, []);
 
   // Efeito para atualizar quando os filtros ou a paginação mudam
   useEffect(() => {
     fetchApontamentos();
-  }, [page, rowsPerPage, projetoFilter, recursoFilter, fonteFilter, equipeFilter, secaoFilter, jiraIssueKeyFilter]);
+  }, [fetchApontamentos]);
 
-  const handleOpenEditDialog = async (apontamento: Apontamento) => {
+  const handleOpenEditDialog = async (apontamento) => {
     try {
       const detalhes = await getApontamento(apontamento.id);
       setApontamentoAtual(detalhes);
@@ -279,7 +230,7 @@ export default function ConsultarApontamentosPage() {
     setApontamentoAtual(null);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -314,7 +265,7 @@ export default function ConsultarApontamentosPage() {
     }
   };
 
-  const handleDeleteApontamento = async (id: number) => {
+  const handleDeleteApontamento = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este apontamento?')) {
       setLoading(true);
       try {
@@ -340,11 +291,11 @@ export default function ConsultarApontamentosPage() {
     }
   };
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
@@ -404,28 +355,28 @@ export default function ConsultarApontamentosPage() {
             <Grid item xs={12} sm={6} md={2}>
               <AutocompleteProjeto
                 value={projetoFilter}
-                onChange={(val: {id: number, nome: string} | null) => setProjetoFilter(val)}
+                onChange={(event, newValue) => setProjetoFilter(newValue)}
                 placeholder="Digite o nome do projeto..."
               />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
               <AutocompleteRecurso
                 value={recursoFilter}
-                onChange={(val: {id: number, nome: string} | null) => setRecursoFilter(val)}
+                onChange={(event, newValue) => setRecursoFilter(newValue)}
                 placeholder="Digite o nome do recurso..."
               />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
               <AutocompleteEquipe
                 value={equipeFilter}
-                onChange={(val: {id: number, nome: string} | null) => setEquipeFilter(val)}
+                onChange={(event, newValue) => setEquipeFilter(newValue)}
                 placeholder="Digite o nome da equipe..."
               />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
               <AutocompleteSecao
                 value={secaoFilter}
-                onChange={(val: {id: number, nome: string} | null) => setSecaoFilter(val)}
+                onChange={(event, newValue) => setSecaoFilter(newValue)}
                 placeholder="Digite o nome da seção..."
               />
             </Grid>

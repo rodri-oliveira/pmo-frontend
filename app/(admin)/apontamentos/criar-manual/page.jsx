@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, Typography, Paper, Button, TextField, Grid,
   FormControl, InputLabel, Select, MenuItem, SelectChangeEvent,
@@ -22,33 +22,10 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import DescriptionIcon from '@mui/icons-material/Description';
 import CodeIcon from '@mui/icons-material/Code';
 
-interface Recurso {
-  id: number;
-  nome: string;
-  email?: string;
-  ativo?: boolean;
-}
 
-interface Projeto {
-  id: number;
-  nome: string;
-  codigo_empresa: string;
-  ativo?: boolean;
-}
-
-interface ApontamentoFormData {
-  recurso_id: { id: number; nome: string } | null;
-  projeto_id: { id: number; nome: string } | null;
-  data_apontamento: Date | null;
-  horas_apontadas: number;
-  descricao: string;
-  jira_issue_key?: string;
-  data_hora_inicio_trabalho?: Date | null;
-  data_hora_fim_trabalho?: Date | null;
-}
 
 const CriarApontamentoManualPage = () => {
-  const [formData, setFormData] = useState<ApontamentoFormData>({
+    const [formData, setFormData] = useState({
     recurso_id: null,
     projeto_id: null,
     data_apontamento: new Date(),
@@ -59,88 +36,53 @@ const CriarApontamentoManualPage = () => {
     data_hora_fim_trabalho: null
   });
   
-  const [recursos, setRecursos] = useState<Recurso[]>([]);
-  const [projetos, setProjetos] = useState<Projeto[]>([]);
+    const [recursos, setRecursos] = useState([]);
+    const [projetos, setProjetos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingRecursos, setLoadingRecursos] = useState(false);
   const [loadingProjetos, setLoadingProjetos] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error'
+        severity: 'success'
   });
   
-  // Dados mockados para desenvolvimento (quando a API não estiver disponível)
-  const dadosMockRecursos: Recurso[] = [
-    { id: 1, nome: 'João Silva', email: 'joao.silva@empresa.com', ativo: true },
-    { id: 2, nome: 'Maria Oliveira', email: 'maria.oliveira@empresa.com', ativo: true },
-    { id: 3, nome: 'Pedro Santos', email: 'pedro.santos@empresa.com', ativo: true },
-    { id: 4, nome: 'Ana Souza', email: 'ana.souza@empresa.com', ativo: false }
-  ];
-  
-  const dadosMockProjetos: Projeto[] = [
-    { id: 1, nome: 'Projeto A', codigo_empresa: 'PROJ-001', ativo: true },
-    { id: 2, nome: 'Projeto B', codigo_empresa: 'PROJ-002', ativo: true },
-    { id: 3, nome: 'Projeto C', codigo_empresa: 'PROJ-003', ativo: true },
-    { id: 4, nome: 'Projeto D', codigo_empresa: 'PROJ-004', ativo: false }
-  ];
-  
   // Função para buscar recursos
-  const fetchRecursos = async () => {
+  const fetchRecursos = useCallback(async () => {
     setLoadingRecursos(true);
     try {
-      // Em ambiente de produção, descomente:
-      // const response = await fetch('http://localhost:8000/backend/v1/recursos?ativo=true');
-      // const data = await response.json();
-      // setRecursos(data.items || []);
-      
-      // Simulação para desenvolvimento
-      setTimeout(() => {
-        setRecursos(dadosMockRecursos.filter(r => r.ativo));
-        setLoadingRecursos(false);
-      }, 500);
+      const response = await fetch('http://localhost:8000/backend/v1/recursos?ativo=true');
+      if (!response.ok) throw new Error('Falha ao buscar recursos');
+      const data = await response.json();
+      setRecursos(data.items || []);
     } catch (error) {
       console.error('Erro ao buscar recursos:', error);
-      // Garantir que recursos seja um array mesmo em caso de erro
-      setRecursos(dadosMockRecursos.filter(r => r.ativo));
-      setSnackbar({
-        open: true,
-        message: 'Erro ao carregar recursos. Usando dados de exemplo.',
-        severity: 'error'
-      });
+      setRecursos([]);
+      setSnackbar({ open: true, message: 'Erro ao carregar recursos.', severity: 'error' });
+    } finally {
       setLoadingRecursos(false);
     }
-  };
+  }, []);
   
   // Função para buscar projetos
-  const fetchProjetos = async () => {
+  const fetchProjetos = useCallback(async () => {
     setLoadingProjetos(true);
     try {
-      // Em ambiente de produção, descomente:
-      // const response = await fetch('http://localhost:8000/backend/v1/projetos?ativo=true');
-      // const data = await response.json();
-      // setProjetos(data.items || []);
-      
-      // Simulação para desenvolvimento
-      setTimeout(() => {
-        setProjetos(dadosMockProjetos.filter(p => p.ativo));
-        setLoadingProjetos(false);
-      }, 500);
+      const response = await fetch('http://localhost:8000/backend/v1/projetos?ativo=true');
+      if (!response.ok) throw new Error('Falha ao buscar projetos');
+      const data = await response.json();
+      setProjetos(data.items || []);
     } catch (error) {
       console.error('Erro ao buscar projetos:', error);
-      // Garantir que projetos seja um array mesmo em caso de erro
-      setProjetos(dadosMockProjetos.filter(p => p.ativo));
-      setSnackbar({
-        open: true,
-        message: 'Erro ao carregar projetos. Usando dados de exemplo.',
-        severity: 'error'
-      });
+      setProjetos([]);
+      setSnackbar({ open: true, message: 'Erro ao carregar projetos.', severity: 'error' });
+    } finally {
       setLoadingProjetos(false);
     }
-  };
+  }, []);
   
   // Função para enviar o formulário
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     
@@ -157,42 +99,37 @@ const CriarApontamentoManualPage = () => {
         projeto_id: formData.projeto_id.id
       };
       
-      // Em ambiente de produção, descomente:
-      // const response = await fetch('http://localhost:8000/backend/v1/apontamentos', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(dadosEnvio),
-      // });
-      // 
-      // if (!response.ok) {
-      //   throw new Error('Erro ao criar apontamento');
-      // }
+      const response = await fetch('http://localhost:8000/backend/v1/apontamentos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dadosEnvio),
+      });
       
-      // Simulação para desenvolvimento
-      setTimeout(() => {
-        console.log('Apontamento criado:', dadosEnvio);
-        setSnackbar({
-          open: true,
-          message: 'Apontamento criado com sucesso!',
-          severity: 'success'
-        });
-        
-        // Resetar formulário
-        setFormData({
-          recurso_id: null,
-          projeto_id: null,
-          data_apontamento: new Date(),
-          horas_apontadas: 0,
-          descricao: '',
-          jira_issue_key: '',
-          data_hora_inicio_trabalho: null,
-          data_hora_fim_trabalho: null
-        });
-        
-        setLoading(false);
-      }, 1000);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Erro ao criar apontamento');
+      }
+      
+      setSnackbar({
+        open: true,
+        message: 'Apontamento criado com sucesso!',
+        severity: 'success'
+      });
+      
+      // Resetar formulário
+      setFormData({
+        recurso_id: null,
+        projeto_id: null,
+        data_apontamento: new Date(),
+        horas_apontadas: 0,
+        descricao: '',
+        jira_issue_key: '',
+        data_hora_inicio_trabalho: null,
+        data_hora_fim_trabalho: null
+      });
+
     } catch (error) {
       console.error('Erro ao criar apontamento:', error);
       setSnackbar({
@@ -200,12 +137,13 @@ const CriarApontamentoManualPage = () => {
         message: error instanceof Error ? error.message : 'Erro ao criar apontamento. Tente novamente.',
         severity: 'error'
       });
+    } finally {
       setLoading(false);
     }
   };
   
   // Função para calcular horas entre início e fim
-  const calcularHoras = () => {
+  const calcularHoras = useCallback(() => {
     if (formData.data_hora_inicio_trabalho && formData.data_hora_fim_trabalho) {
       const inicio = new Date(formData.data_hora_inicio_trabalho);
       const fim = new Date(formData.data_hora_fim_trabalho);
@@ -220,18 +158,18 @@ const CriarApontamentoManualPage = () => {
         horas_apontadas: horasArredondadas > 0 ? horasArredondadas : 0
       });
     }
-  };
+  }, [formData]);
   
   // Efeito para buscar dados ao carregar a página
   useEffect(() => {
     fetchRecursos();
     fetchProjetos();
-  }, []);
+  }, [fetchRecursos, fetchProjetos]);
   
   // Efeito para calcular horas quando as datas são alteradas
   useEffect(() => {
     calcularHoras();
-  }, [formData.data_hora_inicio_trabalho, formData.data_hora_fim_trabalho]);
+  }, [calcularHoras]);
   
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
@@ -247,7 +185,7 @@ const CriarApontamentoManualPage = () => {
               <Grid item xs={12} md={6}>
                 <AutocompleteRecurso
                   value={formData.recurso_id}
-                  onChange={(val: {id: number, nome: string} | null) => setFormData({ ...formData, recurso_id: val })}
+                  onChange={(val) => setFormData({ ...formData, recurso_id: val })}
                   placeholder="Digite o nome do recurso..."
                 />
                 {loadingRecursos && (
@@ -259,7 +197,7 @@ const CriarApontamentoManualPage = () => {
               <Grid item xs={12} md={6}>
                 <AutocompleteProjeto
                   value={formData.projeto_id}
-                  onChange={(val: {id: number, nome: string} | null) => setFormData({ ...formData, projeto_id: val })}
+                  onChange={(val) => setFormData({ ...formData, projeto_id: val })}
                   placeholder="Digite o nome do projeto..."
                 />
                 {loadingProjetos && (

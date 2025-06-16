@@ -24,12 +24,7 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import HistoryIcon from '@mui/icons-material/History';
 
-interface MenuItemType {
-  text: string;
-  href?: string; // href é opcional para itens pais que só abrem submenus
-  icon: React.ReactNode;
-  subItems?: MenuItemType[]; // subItems é um array opcional de MenuItemType
-}
+
 
 const drawerWidth = 240;
 const wegBlue = '#00579d'; // Azul WEG
@@ -37,7 +32,7 @@ const wegLightBlue = '#e3f2fd'; // Azul claro WEG para fundos ativos/hover
 const textColorPrimary = 'rgba(0, 0, 0, 0.87)';
 const textColorSecondary = 'rgba(0, 0, 0, 0.6)';
 
-const menuItems: MenuItemType[] = [
+const menuItems = [
   { text: 'Dashboard', href: '/dashboard', icon: <DashboardIcon sx={{ color: wegBlue }} /> },
   { text: 'Relatórios', href: '/relatorios', icon: <BarChartIcon sx={{ color: wegBlue }} /> },
   {
@@ -82,11 +77,11 @@ const menuItems: MenuItemType[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [openMenus, setOpenMenus] = useState<{[key: string]: boolean}>({});
+  const [openMenus, setOpenMenus] = useState({});
 
   // Abre submenus que contêm o link ativo na montagem inicial
   React.useEffect(() => {
-    const newOpenState: {[key: string]: boolean} = {};
+    const newOpenState = {};
     menuItems.forEach(item => {
       if (item.subItems) {
         const isActive = item.subItems.some(subItem => 
@@ -100,14 +95,14 @@ export default function Sidebar() {
     setOpenMenus(newOpenState);
   }, [pathname]);
 
-  const handleToggle = (text: string) => {
+  const handleToggle = (text) => {
     setOpenMenus(prev => ({
       ...prev,
       [text]: !prev[text]
     }));
   };
 
-  const renderListItem = (item: MenuItemType, isSubItem: boolean = false) => {
+  const renderListItem = (item, isSubItem = false) => {
     const currentPath = item.href ? `${item.href}` : '#';
     const isActive = item.href ? pathname === currentPath : false;
   

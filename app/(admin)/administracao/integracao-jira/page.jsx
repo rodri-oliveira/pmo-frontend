@@ -18,7 +18,7 @@ export default function IntegracaoJiraPage() {
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error'
+    severity: 'success'
   });
 
   const handleSincronizarMesAnterior = async () => {
@@ -83,7 +83,7 @@ export default function IntegracaoJiraPage() {
           message: 'Sincronização dos worklogs do mês anterior iniciada com sucesso! Aguarde alguns minutos e consulte os apontamentos.',
           severity: 'success'
         });
-      } catch (fetchError: any) {
+      } catch (fetchError) {
         // Limpar o timeout em caso de erro
         clearTimeout(timeoutId);
         
