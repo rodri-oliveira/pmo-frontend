@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { TextField } from '@mui/material';
+import { TextField, Checkbox, FormControlLabel } from '@mui/material';
 import AutocompleteSecaoCascade from './AutocompleteSecaoCascade';
 import AutocompleteEquipeCascade from './AutocompleteEquipeCascade';
 import AutocompleteRecursoCascade from './AutocompleteRecursoCascade';
@@ -78,7 +78,9 @@ const RELATORIOS = [
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
       { name: 'projeto_id', placeholder: 'Projeto', type: 'projeto' },
+      { name: 'agrupar_por_projeto', label: 'Agrupar por Projeto', type: 'checkbox' }
     ],
+    agrupamentos: [],
   },
   {
     label: 'Apontamentos Detalhados',
@@ -132,7 +134,7 @@ export default function RelatoriosCascade() {
     data_inicio: getPrimeirodiaMesAnterior(),
     data_fim: getDiaAtual(),
     agrupar_por_recurso: false,
-    agrupar_por_projeto: false,
+    agrupar_por_projeto: true, // Default: detalhado por projeto
     agrupar_por_data: false,
     agrupar_por_mes: true,
   });
@@ -167,7 +169,22 @@ export default function RelatoriosCascade() {
         setError('As datas de início e fim são obrigatórias para este relatório.');
         return;
     }
-    gerarRelatorio(params);
+
+    const apiParams = { ...params };
+
+    // Lógica para o relatório 'Planejado vs. Realizado'
+    if (relatorioAtivo.value === 'cascade-planejado-vs-realizado') {
+      // O estado do checkbox 'agrupar_por_projeto' agora corresponde diretamente ao parâmetro da API.
+      apiParams.agrupar_por_projeto = !!params.agrupar_por_projeto;
+
+      // Se NÃO estamos agrupando por projeto (ou seja, visão consolidada),
+      // removemos o filtro de projeto para obter o total.
+      if (!apiParams.agrupar_por_projeto) {
+          delete apiParams.projeto_id;
+      }
+    }
+
+    gerarRelatorio(apiParams);
   }
 
   function handleTipoRelatorioChange(e) {
@@ -334,7 +351,14 @@ export default function RelatoriosCascade() {
         };
       });
 
-      const colunasOrdenadas = ['secao', 'equipe', 'recurso', 'projeto', 'ano', 'mes', 'horas_planejadas', 'horas_realizadas', 'diferenca_horas', 'realizado_percentual'];
+            // Define as colunas base, já sem a coluna 'secao' para otimizar o espaço, conforme solicitado.
+      let colunasOrdenadas = ['equipe', 'recurso', 'ano', 'mes', 'horas_planejadas', 'horas_realizadas', 'diferenca_horas', 'realizado_percentual'];
+      
+      // Adiciona a coluna 'projeto' dinamicamente, apenas se a visualização for agrupada por projeto.
+      if (params.agrupar_por_projeto) {
+        // Insere 'projeto' na terceira posição (após 'recurso').
+        colunasOrdenadas.splice(2, 0, 'projeto');
+      }
       
       return (
         <div style={{ overflowX: 'auto', marginTop: 24 }}>
@@ -568,6 +592,7 @@ export default function RelatoriosCascade() {
                 ))}
               </tr>
             )}
+
           </tbody>
         </table>
       </div>
@@ -618,63 +643,163 @@ export default function RelatoriosCascade() {
               <p style={{ color: '#555', marginTop: 0, marginBottom: 24 }}>
                 {relatorioSelecionado.descricao}
               </p>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end', marginBottom: '20px', width: '100%' }}>
-                {relatorioSelecionado.filtros.map((filtro) => {
-                  const style = getFiltroStyle(filtro);
-                  const commonProps = { fullWidth: true, size: "small", variant: "outlined" };
-
-                  let component;
-                  switch (filtro.type) {
-                    case 'date':
-                      component = <TextField {...commonProps} name={filtro.name} type="date" label={filtro.placeholder} value={params[filtro.name] || ''} onChange={handleChange} InputLabelProps={{ shrink: true }} />;
-                      break;
-                    case 'secao':
-                      component = <AutocompleteSecaoCascade {...commonProps} value={params.secao_id} onChange={handleSecaoChange} placeholder="Selecione a seção" />;
-                      break;
-                    case 'equipe':
-                      component = <AutocompleteEquipeCascade {...commonProps} value={params.equipe_id} onChange={handleEquipeChange} secaoId={params.secao_id?.id} placeholder="Selecione a equipe" />;
-                      break;
-                    case 'recurso':
-                      component = <AutocompleteRecursoCascade {...commonProps} value={params.recurso_id} onChange={handleRecursoChange} equipeId={params.equipe_id?.id} placeholder="Selecione o recurso" />;
-                      break;
-                    case 'projeto':
-                      component = <AutocompleteProjetoCascade {...commonProps} value={params.projeto_id} onChange={(p) => setParams(prev => ({ ...prev, projeto_id: p }))} placeholder="Selecione o projeto" />;
-                      break;
-                    default:
-                      component = <TextField {...commonProps} name={filtro.name} label={filtro.placeholder} value={params[filtro.name] || ''} onChange={handleChange} />;
-                  }
-                  return <div key={filtro.name} style={style}>{component}</div>;
-                })}
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '16px',
+                  alignItems: 'flex-end',
+                  width: '100%',
+                  marginBottom: '10px'
+                }}
+              >
+                {relatorioSelecionado.filtros
+                  .filter((f) => f.type !== 'checkbox')
+                  .map((filtro) => {
+                    const style = getFiltroStyle(filtro);
+                    const commonProps = { fullWidth: true, size: 'small', variant: 'outlined' };
+                    let component;
+                    switch (filtro.type) {
+                      case 'date':
+                        component = (
+                          <TextField
+                            {...commonProps}
+                            name={filtro.name}
+                            type="date"
+                            label={filtro.placeholder}
+                            value={params[filtro.name] || ''}
+                            onChange={handleChange}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        );
+                        break;
+                      case 'secao':
+                        component = (
+                          <AutocompleteSecaoCascade
+                            {...commonProps}
+                            value={params.secao_id}
+                            onChange={handleSecaoChange}
+                            placeholder="Selecione a seção"
+                          />
+                        );
+                        break;
+                      case 'equipe':
+                        component = (
+                          <AutocompleteEquipeCascade
+                            {...commonProps}
+                            value={params.equipe_id}
+                            onChange={handleEquipeChange}
+                            secaoId={params.secao_id?.id}
+                            placeholder="Selecione a equipe"
+                          />
+                        );
+                        break;
+                      case 'recurso':
+                        component = (
+                          <AutocompleteRecursoCascade
+                            {...commonProps}
+                            value={params.recurso_id}
+                            onChange={handleRecursoChange}
+                            equipeId={params.equipe_id?.id}
+                            placeholder="Selecione o recurso"
+                          />
+                        );
+                        break;
+                      case 'projeto':
+                        component = (
+                          <AutocompleteProjetoCascade
+                            {...commonProps}
+                            value={params.projeto_id}
+                            onChange={(p) => setParams(prev => ({ ...prev, projeto_id: p }))}
+                            placeholder="Selecione o projeto"
+                          />
+                        );
+                        break;
+                      default:
+                        component = (
+                          <TextField
+                            {...commonProps}
+                            name={filtro.name}
+                            label={filtro.placeholder}
+                            value={params[filtro.name] || ''}
+                            onChange={handleChange}
+                          />
+                        );
+                        break;
+                    }
+                    return (
+                      <div key={filtro.name} style={style}>
+                        {component}
+                      </div>
+                    );
+                  })}
               </div>
-
-              <div style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '20px' }}>
-                {tipoRelatorio === 'cascade-horas-por-recurso' && (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input type="checkbox" name="agrupar_por_projeto" checked={params.agrupar_por_projeto || false} onChange={handleChange} style={{ width: 18, height: 18 }} />
-                    Agrupar por Projeto
-                  </label>
-                )}
-                {tipoRelatorio !== 'cascade-planejado-vs-realizado' && (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input type="checkbox" name="agrupar_por_mes" checked={params.agrupar_por_mes || false} onChange={handleChange} style={{ width: 18, height: 18 }} />
-                    Agrupar por Mês
-                  </label>
-                )}
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '16px',
+                  alignItems: 'center',
+                  marginBottom: '20px',
+                  width: '100%',
+                }}
+              >
+                {relatorioSelecionado.filtros
+                  .filter((f) => f.type === 'checkbox')
+                  .map((filtro) => {
+                    const style = getFiltroStyle(filtro);
+                    return (
+                      <div key={filtro.name} style={style}>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={!!params[filtro.name]}
+                              onChange={handleChange}
+                              name={filtro.name}
+                              sx={{ color: WEG_AZUL, '&.Mui-checked': { color: WEG_AZUL } }}
+                            />
+                          }
+                          label={filtro.label}
+                        />
+                      </div>
+                    );
+                  })}
               </div>
-
-              <button type="submit" disabled={loading} style={{ backgroundColor: WEG_AZUL, color: WEG_BRANCO, border: 'none', padding: '10px 24px', borderRadius: 8, cursor: 'pointer', fontWeight: 'bold', fontSize: 16, opacity: loading ? 0.6 : 1, transition: 'background-color 0.3s ease', height: '40px' }}>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  backgroundColor: WEG_AZUL,
+                  color: WEG_BRANCO,
+                  border: 'none',
+                  padding: '10px 24px',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: 16,
+                  opacity: loading ? 0.6 : 1,
+                  transition: 'background-color 0.3s ease',
+                  height: '40px',
+                }}
+              >
                 {loading ? 'Gerando...' : 'Gerar Relatório'}
               </button>
             </form>
           )}
-
           {error && (
-            <div style={{ padding: '12px 16px', background: '#FEE2E2', color: '#B91C1C', borderRadius: 8, marginBottom: 16, fontWeight: 500 }}>
+            <div
+              style={{
+                padding: '12px 16px',
+                background: '#FEE2E2',
+                color: '#B91C1C',
+                borderRadius: 8,
+                marginBottom: 16,
+                fontWeight: 500,
+              }}
+            >
               {error}
             </div>
           )}
-
           {result && renderTable()}
         </>
       )}
