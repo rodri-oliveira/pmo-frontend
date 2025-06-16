@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Box, Paper, Typography, Grid, Button, TextField, MenuItem, Snackbar, Alert } from '@mui/material';
-import { createAlocacao, getRecursos, getProjetos, getAlocacoes, getAlocacaoById, updateAlocacao } from '../../../services/alocacoes.jsx';
-import { getPlanejamentosByAlocacao } from '../../../services/planejamentoHoras.jsx';
+import { Box, Paper, Typography, Grid, Button, TextField, MenuItem, Snackbar, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { createAlocacao, getRecursos, getProjetos, getAlocacoes, getAlocacaoById, updateAlocacao } from '@/services/alocacoes.jsx';
+import { getPlanejamentosByAlocacao } from '@/services/planejamentoHoras.jsx';
 
 const AlocacoesPage = () => {
   const [recursos, setRecursos] = useState([]);
@@ -42,7 +42,7 @@ const AlocacoesPage = () => {
 
   const carregarStatusAlocacoes = async () => {
     try {
-      const data = await import('../../../services/statusProjetos.jsx').then(mod => mod.getStatusProjetos());
+            const data = await import('@/services/statusProjetos.jsx').then(mod => mod.getStatusProjetos());
       setStatusAlocacoes(data.items || []);
     } catch (error) {
       setStatusAlocacoes(statusAlocacoesMock);
