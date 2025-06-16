@@ -13,15 +13,8 @@ import SaveIcon from '@mui/icons-material/Save';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { apiGet, apiPut } from '@/services/api';
 
-interface Configuracao {
-  chave: string;
-  valor: string;
-  descricao: string;
-  data_atualizacao?: string;
-}
-
 // Dados mockados para usar em caso de erro na API
-const configuracoesMock: Configuracao[] = [
+const configuracoesMock = [
   {
     chave: 'app.nome',
     valor: 'Automação PMO',
@@ -40,21 +33,21 @@ const configuracoesMock: Configuracao[] = [
 ];
 
 export default function ConfiguracoesPage() {
-  const [configuracoes, setConfiguracoes] = useState<Configuracao[]>([]);
+    const [configuracoes, setConfiguracoes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
-  const [configuracaoAtual, setConfiguracaoAtual] = useState<Configuracao | null>(null);
+    const [configuracaoAtual, setConfiguracaoAtual] = useState(null);
   const [formData, setFormData] = useState({ valor: '', descricao: '' });
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error' | 'info'
+        severity: 'success'
   });
 
   const fetchConfiguracoes = async () => {
     setLoading(true);
     try {
-      const data = await apiGet<{ items: Configuracao[] }>('/configuracoes');
+            const data = await apiGet('/configuracoes');
       setConfiguracoes(data.items || []); // Aplicando operador || [] para garantir que sempre seja um array
       setLoading(false);
     } catch (error) {
@@ -74,7 +67,7 @@ export default function ConfiguracoesPage() {
     fetchConfiguracoes();
   }, []);
 
-  const handleOpenDialog = (configuracao: Configuracao) => {
+    const handleOpenDialog = (configuracao) => {
     setConfiguracaoAtual(configuracao);
     setFormData({
       valor: configuracao.valor,
@@ -88,7 +81,7 @@ export default function ConfiguracoesPage() {
     setConfiguracaoAtual(null);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
@@ -101,7 +94,7 @@ export default function ConfiguracoesPage() {
     
     setLoading(true);
     try {
-      await apiPut<Configuracao>(`/configuracoes/${configuracaoAtual.chave}`, {
+            await apiPut(`/configuracoes/${configuracaoAtual.chave}`, {
         valor: formData.valor,
         descricao: formData.descricao
       });
@@ -130,15 +123,15 @@ export default function ConfiguracoesPage() {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  const isBoolean = (valor: string) => {
+    const isBoolean = (valor) => {
     return valor === 'true' || valor === 'false';
   };
 
-  const isNumeric = (valor: string) => {
+    const isNumeric = (valor) => {
     return !isNaN(Number(valor));
   };
 
-  const formatValue = (configuracao: Configuracao) => {
+    const formatValue = (configuracao) => {
     if (isBoolean(configuracao.valor)) {
       return configuracao.valor === 'true' ? 'Sim' : 'Não';
     }
