@@ -62,6 +62,9 @@ const RELATORIOS = [
       { name: 'equipe_id', type: 'equipe' },
       { name: 'recurso_id', type: 'recurso' },
     ],
+    agrupamentos: [
+      { name: 'agrupar_por_mes', value: true, hidden: false },
+    ],
   },
   {
     label: 'Planejado vs Realizado',
