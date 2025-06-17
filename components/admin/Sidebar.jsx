@@ -35,34 +35,8 @@ const textColorSecondary = 'rgba(0, 0, 0, 0.6)';
 const menuItems = [
   { text: 'Dashboard', href: '/dashboard', icon: <DashboardIcon sx={{ color: wegBlue }} /> },
   { text: 'Relatórios', href: '/relatorios', icon: <BarChartIcon sx={{ color: wegBlue }} /> },
-  {
-    text: 'Planejamento',
-    icon: <EventNoteIcon sx={{ color: wegBlue }} />,
-    subItems: [
-      { text: 'Planejar Horas por Recurso', href: '/planejamento/horas-recurso', icon: <BarChartIcon sx={{ color: wegBlue }} /> },
-      { text: 'Gerenciar Alocações', href: '/planejamento/alocacoes', icon: <AssignmentIcon sx={{ color: wegBlue }} /> },
-      { text: 'Capacidade RH', href: '/planejamento/capacidade-rh', icon: <PeopleAltIcon sx={{ color: wegBlue }} /> },
-    ],
-  },
-  {
-    text: 'Apontamentos',
-    icon: <AssessmentIcon sx={{ color: wegBlue }} />,
-    subItems: [
-      { text: 'Consultar/Gerenciar', href: '/apontamentos/consultar-gerenciar', icon: <TocIcon sx={{ color: wegBlue }} /> },
-      { text: 'Criar Apontamento Manual', href: '/apontamentos/criar-manual', icon: <AssignmentIcon sx={{ color: wegBlue }} /> },
-    ],
-  },
-  {
-    text: 'Gerenciamento',
-    icon: <FolderIcon sx={{ color: wegBlue }} />,
-    subItems: [
-      { text: 'Projetos / Melhorias', href: '/gerenciamento/projetos', icon: <FolderIcon sx={{ color: wegBlue }} /> },
-      { text: 'Recursos', href: '/gerenciamento/recursos', icon: <GroupIcon sx={{ color: wegBlue }} /> },
-      { text: 'Equipes', href: '/gerenciamento/equipes', icon: <PeopleAltIcon sx={{ color: wegBlue }} /> },
-      { text: 'Seções', href: '/gerenciamento/secoes', icon: <BusinessIcon sx={{ color: wegBlue }} /> },
-      { text: 'Status de Projetos', href: '/gerenciamento/status-projetos', icon: <TocIcon sx={{ color: wegBlue }} /> },
-    ],
-  },
+
+  { text: 'Gerenciamento', href: '/gerenciamento', icon: <FolderIcon sx={{ color: wegBlue }} /> },
   {
     text: 'Administração',
     icon: <AdminPanelSettingsIcon sx={{ color: wegBlue }} />,
