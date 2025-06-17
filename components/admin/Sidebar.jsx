@@ -34,7 +34,14 @@ const textColorSecondary = 'rgba(0, 0, 0, 0.6)';
 
 const menuItems = [
   { text: 'Dashboard', href: '/dashboard', icon: <DashboardIcon sx={{ color: wegBlue }} /> },
-  { text: 'Relatórios', href: '/relatorios', icon: <BarChartIcon sx={{ color: wegBlue }} /> },
+  {
+    text: 'Relatórios',
+    icon: <BarChartIcon sx={{ color: wegBlue }} />,
+    subItems: [
+      { text: 'Horas Apontadas', href: '/relatorios', icon: <AssessmentIcon sx={{ color: wegBlue }} /> },
+      { text: 'Planejado vs. Realizado', href: '/relatorios/planejado-vs-realizado', icon: <SyncAltIcon sx={{ color: wegBlue }} /> },
+    ]
+  },
 
 
   { text: 'Gerenciamento', href: '/gerenciamento', icon: <FolderIcon sx={{ color: wegBlue }} /> },
