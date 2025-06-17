@@ -10,7 +10,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getSecoes, createSecao, updateSecao, deleteSecao } from '@/services/secoes';
+import { getSecoes, createSecao, updateSecao, deleteSecao } from '@/lib/api';
 
 const wegBlue = '#00579d';
 
@@ -63,9 +63,15 @@ export default function GerenciamentoCascade() {
     setError(null);
     console.log('Buscando seções...');
     try {
-      const data = await getSecoes();
+      const data = await getSecoes(false);
       console.log('Dados recebidos da API:', data);
-      setSecoes(data);
+      if (Array.isArray(data?.items)) {
+        setSecoes(data.items);
+      } else if (Array.isArray(data)) {
+        setSecoes(data);
+      } else {
+        setSecoes([]);
+      }
     } catch (err) {
       console.error('Erro ao buscar seções:', err);
       setError(err.message);
@@ -95,14 +101,15 @@ export default function GerenciamentoCascade() {
     try {
       let message = '';
       if (currentItem) {
-        await updateSecao(currentItem.id, data);
+        const updated = await updateSecao(currentItem.id, data);
+        setSecoes(prev => prev.map(s => (s.id === updated.id ? updated : s)));
         message = 'Seção atualizada com sucesso!';
       } else {
-        await createSecao(data);
+        const created = await createSecao(data);
+        setSecoes(prev => [...prev, created]);
         message = 'Seção criada com sucesso!';
       }
       setNotification({ open: true, message, severity: 'success' });
-      fetchSecoes();
     } catch (err) {
       setNotification({ open: true, message: err.message, severity: 'error' });
     } finally {
@@ -114,8 +121,8 @@ export default function GerenciamentoCascade() {
     if (window.confirm('Tem certeza que deseja excluir esta seção?')) {
       try {
         await deleteSecao(id);
+        setSecoes(prev => prev.filter(s => s.id !== id));
         setNotification({ open: true, message: 'Seção excluída com sucesso!', severity: 'success' });
-        fetchSecoes();
       } catch (err) {
         setNotification({ open: true, message: err.message, severity: 'error' });
       }
