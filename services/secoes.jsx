@@ -1,8 +1,11 @@
 import { apiGet, apiPost, apiPut, apiDelete } from './api';
 
 // Função para buscar lista de seções
-export async function getSecoes(params) {
-  const response = await apiGet('/secoes', params);
+// Busca seções; por padrão retorna apenas as ativas
+export async function getSecoes(params = {}) {
+  // Adiciona flag apenas_ativos=true por padrão
+  const mergedParams = { apenas_ativos: true, ...params };
+  const response = await apiGet('/secoes', mergedParams);
   // API padrão retorna { items: [...] }; garantimos array como saída
   return Array.isArray(response) ? response : response?.items ?? [];
 }
