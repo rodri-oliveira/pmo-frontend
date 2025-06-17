@@ -19,72 +19,82 @@ import AddIcon from '@mui/icons-material/Add';
 import AutocompleteSecaoCascade from './AutocompleteSecaoCascade';
 import AutocompleteEquipeCascade from './AutocompleteEquipeCascade';
 import AutocompleteRecursoCascade from './AutocompleteRecursoCascade';
+import { getRelatorioPlanejadoRealizadoV2 } from '../../lib/api';
 
 const wegBlue = '#00579d';
 
-// Dados mocados para visualização inicial
-const mockData = {
-  linhasResumo: [
-    {
-      label: 'GAP',
-      esforcoPlanejado: -10.00,
-      meses: {
-        'ago/24': { planejado: -5.00, realizado: null },
-        'set/24': { planejado: -20.00, realizado: null },
-      }
-    },
-    {
-      label: 'Horas Disponíveis',
-      esforcoPlanejado: 340.00,
-      meses: {
-        'ago/24': { planejado: 170.00, realizado: null },
-        'set/24': { planejado: 170.00, realizado: null },
-      }
-    },
-    {
-      label: 'Total de esforço (hrs)',
-      esforcoPlanejado: 350.00,
-      meses: {
-        'ago/24': { planejado: 175.00, realizado: null },
-        'set/24': { planejado: 175.00, realizado: null },
-      }
-    },
-  ],
-  projetos: [
-    {
-      nome: 'Projeto Alpha',
-      status: 'Em andamento',
-      esforcoEstimado: 200,
-      esforcoPlanejado: 180,
-      meses: {
-        'ago/24': { planejado: 90, realizado: 95 },
-        'set/24': { planejado: 90, realizado: 85 },
-      }
-    },
-    {
-      nome: 'Melhoria Contínua',
-      status: 'Backlog',
-      esforcoEstimado: 180,
-      esforcoPlanejado: 170,
-      meses: {
-        'ago/24': { planejado: 85, realizado: 80 },
-        'set/24': { planejado: 85, realizado: 90 },
-      }
-    },
-  ]
-};
+function formatMesLabel(ym) {
+  const [year, month] = ym.split('-');
+  const date = new Date(Number(year), Number(month) - 1);
+  return date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '') + '/' + year.slice(-2);
+}
 
-const colunasMeses = ['ago/24', 'set/24'];
+// Estrutura vazia para manter estado inicial
+const emptyData = {
+  linhasResumo: [],
+  projetos: [],
+};
 
 export default function RelatorioPlanejadoRealizado() {
   const [secao, setSecao] = useState(null);
   const [equipe, setEquipe] = useState(null);
   const [recurso, setRecurso] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [reportData, setReportData] = useState(emptyData);
+  const [colunasMeses, setColunasMeses] = useState([]);
 
-  const handleGerarRelatorio = () => {
-    console.log({ secao, equipe, recurso });
-    // A chamada à API será implementada aqui
+  const handleGerarRelatorio = async () => {
+    if (!recurso?.id) return;
+
+    setLoading(true);
+    try {
+      const apiData = await getRelatorioPlanejadoRealizadoV2({
+        recurso_id: recurso.id,
+        status: '', // ou "Em andamento" se quiser filtrar
+        // mes_inicio/mes_fim podem vir de um date picker futuramente
+      });
+      // Mapeia snake_case para camelCase para evitar refactor grande na renderização
+      const linhasResumo = apiData.linhas_resumo.map(l => ({
+        label: l.label,
+        esforcoPlanejado: l.esforco_planejado,
+        meses: l.meses,
+      }));
+      const projetos = apiData.projetos.map(p => ({
+        id: p.id,
+        nome: p.nome,
+        status: p.status,
+        esforcoEstimado: p.esforco_estimado,
+        esforcoPlanejado: p.esforco_planejado,
+        meses: p.meses,
+      }));
+      const data = { linhasResumo, projetos };
+
+            // Define colunas de meses e garante até dez/26
+      const allMeses = new Set();
+      linhasResumo.forEach(l => Object.keys(l.meses).forEach(m => allMeses.add(m)));
+      projetos.forEach(p => Object.keys(p.meses).forEach(m => allMeses.add(m)));
+
+      // Encontra mês inicial e gera até 2026-12
+      const mesesArray = Array.from(allMeses).sort();
+      const inicio = mesesArray[0] || new Date().toISOString().slice(0,7);
+      const [startY, startM] = inicio.split('-').map(Number);
+      let y = startY, m = startM;
+      while (y < 2026 || (y === 2026 && m <= 12)) {
+        const ym = `${y.toString().padStart(4,'0')}-${m.toString().padStart(2,'0')}`;
+        allMeses.add(ym);
+        m += 1;
+        if (m === 13) { m = 1; y += 1; }
+      }
+      const finalMeses = Array.from(allMeses).sort();
+      setColunasMeses(finalMeses);
+
+      setReportData(data);
+      console.log(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -112,18 +122,19 @@ export default function RelatorioPlanejadoRealizado() {
         </Button>
       </Box>
 
-      <TableContainer component={Paper} variant="outlined">
-        <Table sx={{ tableLayout: 'fixed', width: '100%' }} size="small">
+      <Box sx={{ overflow: 'auto', maxHeight: '70vh' }}>
+        <TableContainer component={Paper} variant="outlined">
+        <Table stickyHeader sx={{ tableLayout: 'fixed' }} size="small">
           <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
             <TableRow>
-              <TableCell sx={{ minWidth: 140, fontWeight: 'bold', pl: 1, whiteSpace: 'nowrap' }}>Projeto/Melhorias</TableCell>
-              <TableCell sx={{ minWidth: 50, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Status</TableCell>
-              <TableCell sx={{ minWidth: 55, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esf. Est.</TableCell>
-              <TableCell sx={{ minWidth: 55, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esf. Plan.</TableCell>
+              <TableCell sx={{ width: 390, fontWeight: 'bold', pl: 1, whiteSpace: 'nowrap' }}>Projeto/Melhorias</TableCell>
+              <TableCell sx={{ width: 100, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Status</TableCell>
+              <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esf. Est.</TableCell>
+              <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esf. Plan.</TableCell>
               {colunasMeses.map(mes => (
                 <React.Fragment key={mes}>
-                  <TableCell sx={{ minWidth: 50, fontWeight: 'bold', textAlign: 'center', p: 0.25 }}>{mes}</TableCell>
-                  <TableCell sx={{ minWidth: 40, fontWeight: 'bold', backgroundColor: '#e0e0e0', textAlign: 'center', p: 0.25 }}>Hs.</TableCell>
+                  <TableCell sx={{ width: 65, fontWeight: 'bold', textAlign: 'center', p: 0.25 }}>{formatMesLabel(mes)}</TableCell>
+                  <TableCell sx={{ width: 52, fontWeight: 'bold', backgroundColor: '#e0e0e0', textAlign: 'center', p: 0.25 }}>Hs.</TableCell>
                 </React.Fragment>
               ))}
               <TableCell sx={{ width: '2%', p:0 }}>
@@ -135,7 +146,7 @@ export default function RelatorioPlanejadoRealizado() {
           </TableHead>
           <TableBody>
             {/* Linhas de Resumo */}
-            {mockData.linhasResumo.map((linha, index) => (
+            {reportData.linhasResumo.map((linha, index) => (
               <TableRow key={linha.label} sx={{ backgroundColor: index === 2 ? '#e3f2fd' : 'inherit' }}>
                 <TableCell sx={{ fontWeight: 'bold', paddingLeft: '16px' }}>{linha.label}</TableCell>
                 <TableCell></TableCell>
@@ -152,7 +163,7 @@ export default function RelatorioPlanejadoRealizado() {
             ))}
 
             {/* Linhas de Projetos */}
-            {mockData.projetos.map(projeto => (
+            {reportData.projetos.map(projeto => (
               <TableRow key={projeto.nome}>
                 <TableCell sx={{ paddingLeft: '16px' }}>{projeto.nome}</TableCell>
                 <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.status}</TableCell>
@@ -170,6 +181,7 @@ export default function RelatorioPlanejadoRealizado() {
           </TableBody>
         </Table>
       </TableContainer>
+      </Box>
     </Paper>
   );
 }
