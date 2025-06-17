@@ -113,20 +113,24 @@ export default function RelatorioPlanejadoRealizado() {
       </Box>
 
       <TableContainer component={Paper} variant="outlined">
-        <Table sx={{ tableLayout: 'fixed' }} size="small">
+        <Table sx={{ tableLayout: 'fixed', width: '100%' }} size="small">
           <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
             <TableRow>
-              <TableCell sx={{ width: '11%', fontWeight: 'bold', paddingLeft: '16px' }}>Projeto/Melhorias</TableCell>
-              <TableCell sx={{ width: '7.5%', fontWeight: 'bold', textAlign: 'center' }}>Status</TableCell>
-              <TableCell sx={{ width: '7.5%', fontWeight: 'bold', textAlign: 'center' }}>Esforço Estimado</TableCell>
-              <TableCell sx={{ width: '7.5%', fontWeight: 'bold', textAlign: 'center' }}>Esforço Planejado</TableCell>
+              <TableCell sx={{ minWidth: 140, fontWeight: 'bold', pl: 1, whiteSpace: 'nowrap' }}>Projeto/Melhorias</TableCell>
+              <TableCell sx={{ minWidth: 50, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Status</TableCell>
+              <TableCell sx={{ minWidth: 55, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esforço Est.</TableCell>
+              <TableCell sx={{ minWidth: 55, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esforço Plan.</TableCell>
               {colunasMeses.map(mes => (
                 <React.Fragment key={mes}>
-                  <TableCell sx={{ width: '6%', fontWeight: 'bold', textAlign: 'center' }}>{mes}</TableCell>
-                  <TableCell sx={{ width: '6%', fontWeight: 'bold', backgroundColor: '#e0e0e0', textAlign: 'center' }}>Hs. Apont</TableCell>
+                  <TableCell sx={{ minWidth: 50, fontWeight: 'bold', textAlign: 'center', p: 0.25 }}>{mes}</TableCell>
+                  <TableCell sx={{ minWidth: 40, fontWeight: 'bold', backgroundColor: '#e0e0e0', textAlign: 'center', p: 0.25 }}>Hs.</TableCell>
                 </React.Fragment>
               ))}
-              <TableCell sx={{ width: '3%' }} />
+              <TableCell sx={{ width: '2%', p:0 }}>
+                <IconButton size="small" onClick={() => alert('Adicionar coluna (em breve)')}> 
+                  <AddIcon fontSize="small" />
+                </IconButton>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -151,12 +155,12 @@ export default function RelatorioPlanejadoRealizado() {
             {mockData.projetos.map(projeto => (
               <TableRow key={projeto.nome}>
                 <TableCell sx={{ paddingLeft: '16px' }}>{projeto.nome}</TableCell>
-                <TableCell sx={{ textAlign: 'center' }}>{projeto.status}</TableCell>
-                <TableCell sx={{ textAlign: 'center' }}>{projeto.esforcoEstimado?.toFixed(2)}</TableCell>
-                <TableCell sx={{ textAlign: 'center' }}>{projeto.esforcoPlanejado?.toFixed(2)}</TableCell>
+                <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.status}</TableCell>
+                <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.esforcoEstimado?.toFixed(2)}</TableCell>
+                <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.esforcoPlanejado?.toFixed(2)}</TableCell>
                 {colunasMeses.map(mes => (
                   <React.Fragment key={mes}>
-                    <TableCell sx={{ textAlign: 'center' }}>{projeto.meses[mes]?.planejado?.toFixed(2)}</TableCell>
+                    <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.meses[mes]?.planejado?.toFixed(2)}</TableCell>
                     <TableCell sx={{ backgroundColor: '#f5f5f5', textAlign: 'center' }}>{projeto.meses[mes]?.realizado?.toFixed(2)}</TableCell>
                   </React.Fragment>
                 ))}
