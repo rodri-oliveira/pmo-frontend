@@ -145,12 +145,12 @@ export default function GerenciamentoCascade() {
         ) : (
           <TableContainer component={Paper} variant="outlined">
             <Table>
-              <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
+              <TableHead sx={{ backgroundColor: wegBlue }}>
                 <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Nome</TableCell>
-                  <TableCell>Descrição</TableCell>
-                  <TableCell align="right">Ações</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nome</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Descrição</TableCell>
+                  <TableCell align="right" sx={{ color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
