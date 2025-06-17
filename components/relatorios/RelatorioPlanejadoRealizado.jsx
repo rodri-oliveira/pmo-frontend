@@ -118,8 +118,8 @@ export default function RelatorioPlanejadoRealizado() {
             <TableRow>
               <TableCell sx={{ minWidth: 140, fontWeight: 'bold', pl: 1, whiteSpace: 'nowrap' }}>Projeto/Melhorias</TableCell>
               <TableCell sx={{ minWidth: 50, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Status</TableCell>
-              <TableCell sx={{ minWidth: 55, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esforço Est.</TableCell>
-              <TableCell sx={{ minWidth: 55, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esforço Plan.</TableCell>
+              <TableCell sx={{ minWidth: 55, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esf. Est.</TableCell>
+              <TableCell sx={{ minWidth: 55, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esf. Plan.</TableCell>
               {colunasMeses.map(mes => (
                 <React.Fragment key={mes}>
                   <TableCell sx={{ minWidth: 50, fontWeight: 'bold', textAlign: 'center', p: 0.25 }}>{mes}</TableCell>
