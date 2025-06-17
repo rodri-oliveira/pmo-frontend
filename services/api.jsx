@@ -1,5 +1,5 @@
 // Base do serviço de API
-const API_BASE_URL = '/backend/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/backend/v1';
 
 // Função para obter o token de autenticação
 const getAuthToken = () => {
@@ -21,19 +21,16 @@ class ApiError extends Error {
 
 // Função para construir URL com parâmetros de consulta
 const buildUrl = (endpoint, params) => {
-  // Garantir que o caminho é relativo e começa com /backend/
+  // Se endpoint já contém http(s) assume completo
   let path = endpoint;
-  if (!path.startsWith('/backend/')) {
-    // Se não começa com uma barra, adicionar
-    if (!path.startsWith('/')) {
-      path = '/' + path;
-    }
-    
-    // Se não começa com /backend/v1, adicionar
-    if (!path.startsWith('/backend/v1')) {
-      path = '/backend/v1' + path;
-    }
+
+  if (!/^https?:\/\//i.test(path)) {
+    // garantir que começa com '/'
+    if (!path.startsWith('/')) path = '/' + path;
+    // juntar com base
+    path = API_BASE_URL.replace(/\/$/, '') + path;
   }
+
   
   // Adicionar parâmetros de consulta
   if (params && Object.keys(params).length > 0) {

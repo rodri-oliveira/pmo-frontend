@@ -1,8 +1,10 @@
 import { apiGet, apiPost, apiPut, apiDelete } from './api';
 
 // Função para buscar lista de seções
-export function getSecoes(params) {
-  return apiGet('/secoes', params);
+export async function getSecoes(params) {
+  const response = await apiGet('/secoes', params);
+  // API padrão retorna { items: [...] }; garantimos array como saída
+  return Array.isArray(response) ? response : response?.items ?? [];
 }
 
 // Buscar seção por ID

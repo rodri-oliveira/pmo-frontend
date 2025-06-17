@@ -10,7 +10,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getSecoes, createSecao, updateSecao, deleteSecao } from '@/lib/api';
+import { getSecoes, createSecao, updateSecao, deleteSecao } from '@/services/secoes';
 
 const wegBlue = '#00579d';
 
@@ -65,7 +65,7 @@ export default function GerenciamentoCascade() {
     try {
       const data = await getSecoes();
       console.log('Dados recebidos da API:', data);
-      setSecoes(Array.isArray(data) ? data : []);
+      setSecoes(data);
     } catch (err) {
       console.error('Erro ao buscar seções:', err);
       setError(err.message);
