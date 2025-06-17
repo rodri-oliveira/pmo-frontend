@@ -36,6 +36,7 @@ const menuItems = [
   { text: 'Dashboard', href: '/dashboard', icon: <DashboardIcon sx={{ color: wegBlue }} /> },
   { text: 'Relatórios', href: '/relatorios', icon: <BarChartIcon sx={{ color: wegBlue }} /> },
 
+
   { text: 'Gerenciamento', href: '/gerenciamento', icon: <FolderIcon sx={{ color: wegBlue }} /> },
   {
     text: 'Administração',
