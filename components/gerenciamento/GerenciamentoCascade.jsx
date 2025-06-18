@@ -16,10 +16,12 @@ import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
 import { 
   getSecoes, createSecao, updateSecao, deleteSecao, 
   getEquipes, createEquipe, updateEquipe, deleteEquipe, 
-  getRecursos, createRecurso, updateRecurso, deleteRecurso
+  getRecursos, createRecurso, updateRecurso, deleteRecurso,
+  getStatusProjetos, createStatusProjeto, updateStatusProjeto, deleteStatusProjeto
 } from '@/lib/api';
 import EquipeModal from './EquipeModal';
 import RecursoModal from './RecursoModal';
+import StatusProjetoModal from './StatusProjetoModal';
 
 const wegBlue = '#00579d';
 
@@ -56,6 +58,7 @@ const managementTypes = [
   { value: 'secoes', label: 'Seções' },
   { value: 'equipes', label: 'Equipes' },
   { value: 'recursos', label: 'Recursos' },
+  { value: 'statusProjetos', label: 'Status de Projeto' },
 ];
 
 export default function GerenciamentoCascade() {
@@ -68,6 +71,7 @@ export default function GerenciamentoCascade() {
   const [secoes, setSecoes] = useState([]);
   const [equipes, setEquipes] = useState([]);
   const [recursos, setRecursos] = useState([]);
+  const [statusProjetos, setStatusProjetos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -129,7 +133,19 @@ export default function GerenciamentoCascade() {
     }
   }, []);
 
-    
+  const fetchStatusProjetos = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getStatusProjetos(showInactive);
+      setStatusProjetos(Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message);
+      setStatusProjetos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [showInactive]);
 
   useEffect(() => {
     if (tipoGerenciamento === 'secoes') {
@@ -140,8 +156,10 @@ export default function GerenciamentoCascade() {
     } else if (tipoGerenciamento === 'recursos') {
       fetchEquipes();
       fetchRecursos();
+    } else if (tipoGerenciamento === 'statusProjetos') {
+      fetchStatusProjetos();
     }
-  }, [tipoGerenciamento, fetchSecoes, fetchEquipes, fetchRecursos]);
+  }, [tipoGerenciamento, fetchSecoes, fetchEquipes, fetchRecursos, fetchStatusProjetos, showInactive]);
 
   const handleOpenModal = (item = null) => {
     setCurrentItem(item);
@@ -184,6 +202,15 @@ export default function GerenciamentoCascade() {
           message = 'Recurso criado com sucesso!';
         }
         fetchRecursos();
+      } else if (tipoGerenciamento === 'statusProjetos') {
+        if (currentItem) {
+          await updateStatusProjeto(currentItem.id, data);
+          message = 'Status de projeto atualizado com sucesso!';
+        } else {
+          await createStatusProjeto(data);
+          message = 'Status de projeto criado com sucesso!';
+        }
+        fetchStatusProjetos();
       }
       setNotification({ open: true, message, severity: 'success' });
     } catch (err) {
@@ -194,10 +221,11 @@ export default function GerenciamentoCascade() {
     }
   };
 
-      const handleDelete = async (id) => {
-    const typeName = tipoGerenciamento === 'secoes' ? 'seção' : tipoGerenciamento === 'equipes' ? 'equipe' : 'recurso';
-    const article = typeName === 'recurso' ? 'e' : 'a';
-    if (window.confirm(`Tem certeza que deseja inativar est${article} ${typeName}?`)) {
+        const handleDelete = async (id) => {
+    const typeName = tipoGerenciamento === 'secoes' ? 'seção' : tipoGerenciamento === 'equipes' ? 'equipe' : tipoGerenciamento === 'recursos' ? 'recurso' : 'status de projeto';
+    const confirmationMessage = `Tem certeza que deseja inativar este ${typeName}?`;
+
+    if (window.confirm(confirmationMessage)) {
       try {
         if (tipoGerenciamento === 'secoes') {
           await deleteSecao(id);
@@ -205,21 +233,23 @@ export default function GerenciamentoCascade() {
         } else if (tipoGerenciamento === 'equipes') {
           await deleteEquipe(id);
           fetchEquipes();
-        } else {
+        } else if (tipoGerenciamento === 'recursos') {
           await deleteRecurso(id);
           fetchRecursos();
+        } else if (tipoGerenciamento === 'statusProjetos') {
+          await deleteStatusProjeto(id);
+          fetchStatusProjetos();
         }
-        setNotification({ open: true, message: `${typeName.charAt(0).toUpperCase() + typeName.slice(1)} inativad${typeName === 'seção' ? 'a' : 'o'} com sucesso!`, severity: 'success' });
+        setNotification({ open: true, message: `${typeName.charAt(0).toUpperCase() + typeName.slice(1)} inativado(a) com sucesso!`, severity: 'success' });
       } catch (err) {
-        setNotification({ open: true, message: err.message, severity: 'error' });
+        setNotification({ open: true, message: `Erro ao inativar: ${err.message}`, severity: 'error' });
       }
     }
   };
 
-      const handleReactivate = async (id) => {
-    const typeName = tipoGerenciamento === 'secoes' ? 'seção' : tipoGerenciamento === 'equipes' ? 'equipe' : 'recurso';
-    const article = typeName === 'recurso' ? 'e' : 'a';
-    if (window.confirm(`Tem certeza que deseja reativar est${article} ${typeName}?`)) {
+        const handleReactivate = async (id) => {
+    const typeName = tipoGerenciamento === 'secoes' ? 'seção' : tipoGerenciamento === 'equipes' ? 'equipe' : tipoGerenciamento === 'recursos' ? 'recurso' : 'status de projeto';
+    if (window.confirm(`Tem certeza que deseja reativar este ${typeName}?`)) {
       try {
         if (tipoGerenciamento === 'secoes') {
           await updateSecao(id, { ativo: true });
@@ -227,13 +257,16 @@ export default function GerenciamentoCascade() {
         } else if (tipoGerenciamento === 'equipes') {
           await updateEquipe(id, { ativo: true });
           fetchEquipes();
-        } else {
+        } else if (tipoGerenciamento === 'recursos') {
           await updateRecurso(id, { ativo: true });
           fetchRecursos();
+        } else if (tipoGerenciamento === 'statusProjetos') {
+          await updateStatusProjeto(id, { ativo: true });
+          fetchStatusProjetos();
         }
-        setNotification({ open: true, message: `${typeName.charAt(0).toUpperCase() + typeName.slice(1)} reativad${typeName === 'seção' ? 'a' : 'o'} com sucesso!`, severity: 'success' });
+        setNotification({ open: true, message: `${typeName.charAt(0).toUpperCase() + typeName.slice(1)} reativado(a) com sucesso!`, severity: 'success' });
       } catch (err) {
-        setNotification({ open: true, message: err.message, severity: 'error' });
+        setNotification({ open: true, message: `Erro ao reativar: ${err.message}`, severity: 'error' });
       }
     }
   };
@@ -456,6 +489,78 @@ export default function GerenciamentoCascade() {
     );
   };
 
+  const renderStatusProjetos = () => {
+    const displayedStatusProjetos = statusProjetos
+      .filter(s => showInactive || s.ativo === true)
+      .filter(s => s.nome.toLowerCase().includes(filtroNome.toLowerCase()));
+
+    return (
+      <Box mt={4}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h5">Gerenciar Status de Projeto</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <TextField
+                label="Filtrar por nome"
+                variant="outlined"
+                size="small"
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
+                sx={{ width: 250 }}
+            />
+            <FormControlLabel
+              control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
+              label="Mostrar inativos"
+            />
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenModal()} sx={{ backgroundColor: wegBlue }}>Novo Status</Button>
+          </Box>
+        </Box>
+        {loading && <Box display="flex" justifyContent="center" my={5}><CircularProgress /></Box>}
+        {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
+        {!loading && !error && (
+          displayedStatusProjetos.length === 0 ? (
+            <Typography sx={{ textAlign: 'center', my: 4, color: 'text.secondary' }}>
+              Nenhum status de projeto encontrado.
+            </Typography>
+          ) : (
+            <TableContainer component={Paper} variant="outlined">
+              <Table>
+                <TableHead sx={{ backgroundColor: wegBlue }}>
+                  <TableRow>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Ordem</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nome</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Descrição</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Final?</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
+                    <TableCell align="right" sx={{ color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {displayedStatusProjetos.map((status) => (
+                    <TableRow key={status.id} sx={{ backgroundColor: !status.ativo ? '#fafafa' : 'inherit' }}>
+                      <TableCell>{status.ordem_exibicao}</TableCell>
+                      <TableCell>{status.nome}</TableCell>
+                      <TableCell>{status.descricao}</TableCell>
+                      <TableCell>{status.is_final ? 'Sim' : 'Não'}</TableCell>
+                      <TableCell>{status.ativo ? 'Ativo' : 'Inativo'}</TableCell>
+                      <TableCell align="right">
+                        <IconButton onClick={() => handleOpenModal(status)}><EditIcon /></IconButton>
+                        {status.ativo ? (
+                          <IconButton onClick={() => handleDelete(status.id)}><DeleteIcon color="error"/></IconButton>
+                        ) : (
+                          <IconButton onClick={() => handleReactivate(status.id)}><RestoreFromTrashIcon /></IconButton>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )
+        )}
+      </Box>
+    );
+  };
+
   return (
     <Paper elevation={3} sx={{ p: 4, background: 'white', borderRadius: '8px' }}>
       <Typography variant="h4" component="h1" sx={{ mb: 1, color: wegBlue, fontWeight: 'bold' }}>
@@ -477,10 +582,12 @@ export default function GerenciamentoCascade() {
             {tipoGerenciamento === 'secoes' && renderSecoes()}
             {tipoGerenciamento === 'equipes' && renderEquipes()}
       {tipoGerenciamento === 'recursos' && renderRecursos()}
+      {tipoGerenciamento === 'statusProjetos' && renderStatusProjetos()}
 
       <SecaoModal open={modalOpen && tipoGerenciamento === 'secoes'} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />
       <EquipeModal open={modalOpen && tipoGerenciamento === 'equipes'} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes.filter(s => s.ativo)} />
       <RecursoModal open={modalOpen && tipoGerenciamento === 'recursos'} onClose={handleCloseModal} onSave={handleSave} recurso={currentItem} equipes={equipes.filter(e => e.ativo)} />
+      <StatusProjetoModal open={modalOpen && tipoGerenciamento === 'statusProjetos'} onClose={handleCloseModal} onSave={handleSave} statusProjeto={currentItem} />
 
 
       <Snackbar open={notification.open} autoHideDuration={6000} onClose={() => setNotification({ ...notification, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
