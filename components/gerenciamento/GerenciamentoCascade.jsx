@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Paper, Button, Table, TableBody, TableCell,
@@ -14,9 +15,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
 import { 
   getSecoes, createSecao, updateSecao, deleteSecao, 
-  getEquipes, createEquipe, updateEquipe, deleteEquipe
+  getEquipes, createEquipe, updateEquipe, deleteEquipe, 
+  getRecursos, createRecurso, updateRecurso, deleteRecurso
 } from '@/lib/api';
 import EquipeModal from './EquipeModal';
+import RecursoModal from './RecursoModal';
 
 const wegBlue = '#00579d';
 
@@ -52,13 +55,19 @@ function SecaoModal({ open, onClose, onSave, secao }) {
 const managementTypes = [
   { value: 'secoes', label: 'Seções' },
   { value: 'equipes', label: 'Equipes' },
-  { value: 'recursos', label: 'Recursos', disabled: true },
+  { value: 'recursos', label: 'Recursos' },
 ];
 
 export default function GerenciamentoCascade() {
-  const [tipoGerenciamento, setTipoGerenciamento] = useState('secoes');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const tab = searchParams.get('tab') || 'secoes';
+
+  const tipoGerenciamento = tab;
   const [secoes, setSecoes] = useState([]);
   const [equipes, setEquipes] = useState([]);
+  const [recursos, setRecursos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -106,13 +115,33 @@ export default function GerenciamentoCascade() {
     }
   }, []);
 
-  useEffect(() => {
-    // Seções são sempre necessárias para o modal de equipes
-    fetchSecoes(); 
-    if (tipoGerenciamento === 'equipes') {
-      fetchEquipes();
+  const fetchRecursos = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getRecursos();
+      setRecursos(Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message);
+      setRecursos([]);
+    } finally {
+      setLoading(false);
     }
-  }, [tipoGerenciamento, fetchSecoes, fetchEquipes]);
+  }, []);
+
+    
+
+  useEffect(() => {
+    if (tipoGerenciamento === 'secoes') {
+      fetchSecoes();
+    } else if (tipoGerenciamento === 'equipes') {
+      fetchSecoes();
+      fetchEquipes();
+    } else if (tipoGerenciamento === 'recursos') {
+      fetchEquipes();
+      fetchRecursos();
+    }
+  }, [tipoGerenciamento, fetchSecoes, fetchEquipes, fetchRecursos]);
 
   const handleOpenModal = (item = null) => {
     setCurrentItem(item);
@@ -146,6 +175,15 @@ export default function GerenciamentoCascade() {
           message = 'Equipe criada com sucesso!';
         }
         fetchEquipes();
+      } else if (tipoGerenciamento === 'recursos') {
+        if (currentItem) {
+          await updateRecurso(currentItem.id, data);
+          message = 'Recurso atualizado com sucesso!';
+        } else {
+          await createRecurso(data);
+          message = 'Recurso criado com sucesso!';
+        }
+        fetchRecursos();
       }
       setNotification({ open: true, message, severity: 'success' });
     } catch (err) {
@@ -156,16 +194,20 @@ export default function GerenciamentoCascade() {
     }
   };
 
-    const handleDelete = async (id) => {
-    const typeName = tipoGerenciamento === 'secoes' ? 'seção' : 'equipe';
-    if (window.confirm(`Tem certeza que deseja inativar est${typeName === 'seção' ? 'a' : 'e'} ${typeName}?`)) {
+      const handleDelete = async (id) => {
+    const typeName = tipoGerenciamento === 'secoes' ? 'seção' : tipoGerenciamento === 'equipes' ? 'equipe' : 'recurso';
+    const article = typeName === 'recurso' ? 'e' : 'a';
+    if (window.confirm(`Tem certeza que deseja inativar est${article} ${typeName}?`)) {
       try {
         if (tipoGerenciamento === 'secoes') {
           await deleteSecao(id);
           fetchSecoes();
-        } else {
+        } else if (tipoGerenciamento === 'equipes') {
           await deleteEquipe(id);
           fetchEquipes();
+        } else {
+          await deleteRecurso(id);
+          fetchRecursos();
         }
         setNotification({ open: true, message: `${typeName.charAt(0).toUpperCase() + typeName.slice(1)} inativad${typeName === 'seção' ? 'a' : 'o'} com sucesso!`, severity: 'success' });
       } catch (err) {
@@ -174,16 +216,20 @@ export default function GerenciamentoCascade() {
     }
   };
 
-    const handleReactivate = async (id) => {
-    const typeName = tipoGerenciamento === 'secoes' ? 'seção' : 'equipe';
-    if (window.confirm(`Tem certeza que deseja reativar est${typeName === 'seção' ? 'a' : 'e'} ${typeName}?`)) {
+      const handleReactivate = async (id) => {
+    const typeName = tipoGerenciamento === 'secoes' ? 'seção' : tipoGerenciamento === 'equipes' ? 'equipe' : 'recurso';
+    const article = typeName === 'recurso' ? 'e' : 'a';
+    if (window.confirm(`Tem certeza que deseja reativar est${article} ${typeName}?`)) {
       try {
         if (tipoGerenciamento === 'secoes') {
           await updateSecao(id, { ativo: true });
           fetchSecoes();
-        } else {
+        } else if (tipoGerenciamento === 'equipes') {
           await updateEquipe(id, { ativo: true });
           fetchEquipes();
+        } else {
+          await updateRecurso(id, { ativo: true });
+          fetchRecursos();
         }
         setNotification({ open: true, message: `${typeName.charAt(0).toUpperCase() + typeName.slice(1)} reativad${typeName === 'seção' ? 'a' : 'o'} com sucesso!`, severity: 'success' });
       } catch (err) {
@@ -337,6 +383,79 @@ export default function GerenciamentoCascade() {
     );
   };
 
+  const renderRecursos = () => {
+    const displayedRecursos = recursos
+      .filter(r => showInactive || r.ativo === true)
+      .filter(r => r.nome.toLowerCase().includes(filtroNome.toLowerCase()));
+    const equipesMap = equipes.reduce((acc, equipe) => ({ ...acc, [equipe.id]: equipe.nome }), {});
+
+    return (
+      <Box mt={4}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h5">Gerenciar Recursos</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <TextField
+                label="Filtrar por nome"
+                variant="outlined"
+                size="small"
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
+                sx={{ width: 250 }}
+            />
+            <FormControlLabel
+              control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
+              label="Mostrar inativos"
+            />
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenModal()} sx={{ backgroundColor: wegBlue }}>Novo Recurso</Button>
+          </Box>
+        </Box>
+        {loading && <Box display="flex" justifyContent="center" my={5}><CircularProgress /></Box>}
+        {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
+        {!loading && !error && (
+          displayedRecursos.length === 0 ? (
+            <Typography sx={{ textAlign: 'center', my: 4, color: 'text.secondary' }}>
+              Nenhum recurso encontrado.
+            </Typography>
+          ) : (
+            <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
+            <TableContainer component={Paper} variant="outlined">
+              <Table>
+                <TableHead sx={{ backgroundColor: wegBlue, position: 'sticky', top: 0, zIndex: 1 }}>
+                  <TableRow>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nome</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Email</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Equipe Principal</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
+                    <TableCell align="right" sx={{ color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {displayedRecursos.map((recurso) => (
+                    <TableRow key={recurso.id} sx={{ backgroundColor: !recurso.ativo ? '#fafafa' : 'inherit' }}>
+                      <TableCell>{recurso.nome}</TableCell>
+                      <TableCell>{recurso.email}</TableCell>
+                      <TableCell>{equipesMap[recurso.equipe_principal_id] || 'N/A'}</TableCell>
+                      <TableCell>{recurso.ativo ? 'Ativo' : 'Inativo'}</TableCell>
+                      <TableCell align="right">
+                        <IconButton onClick={() => handleOpenModal(recurso)}><EditIcon /></IconButton>
+                        {recurso.ativo ? (
+                          <IconButton onClick={() => handleDelete(recurso.id)}><DeleteIcon color="error"/></IconButton>
+                        ) : (
+                          <IconButton onClick={() => handleReactivate(recurso.id)}><RestoreFromTrashIcon /></IconButton>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            </Box>
+          )
+        )}
+      </Box>
+    );
+  };
+
   return (
     <Paper elevation={3} sx={{ p: 4, background: 'white', borderRadius: '8px' }}>
       <Typography variant="h4" component="h1" sx={{ mb: 1, color: wegBlue, fontWeight: 'bold' }}>
@@ -344,7 +463,11 @@ export default function GerenciamentoCascade() {
       </Typography>
       <FormControl sx={{ mt: 2, minWidth: 250 }} size="small">
         <InputLabel>Tipo de Gerenciamento</InputLabel>
-        <Select value={tipoGerenciamento} label="Tipo de Gerenciamento" onChange={(e) => setTipoGerenciamento(e.target.value)}>
+        <Select value={tipoGerenciamento} label="Tipo de Gerenciamento" onChange={(e) => {
+                const newTab = e.target.value;
+                setFiltroNome(''); // Limpa o filtro ao trocar de aba
+                router.push(`${pathname}?tab=${newTab}`);
+              }}>
           {managementTypes.map(type => (
             <MenuItem key={type.value} value={type.value} disabled={type.disabled}>{type.label}</MenuItem>
           ))}
@@ -353,13 +476,15 @@ export default function GerenciamentoCascade() {
 
             {tipoGerenciamento === 'secoes' && renderSecoes()}
             {tipoGerenciamento === 'equipes' && renderEquipes()}
+      {tipoGerenciamento === 'recursos' && renderRecursos()}
 
       <SecaoModal open={modalOpen && tipoGerenciamento === 'secoes'} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />
       <EquipeModal open={modalOpen && tipoGerenciamento === 'equipes'} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes.filter(s => s.ativo)} />
+      <RecursoModal open={modalOpen && tipoGerenciamento === 'recursos'} onClose={handleCloseModal} onSave={handleSave} recurso={currentItem} equipes={equipes.filter(e => e.ativo)} />
 
 
       <Snackbar open={notification.open} autoHideDuration={6000} onClose={() => setNotification({ ...notification, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-        <Alert onClose={() => setNotification({ ...notification, open: false })} severity={notification.severity} sx={{ width: '100%' }}>
+        <Alert severity={notification.severity} sx={{ width: '100%' }}>
           {notification.message}
         </Alert>
       </Snackbar>
