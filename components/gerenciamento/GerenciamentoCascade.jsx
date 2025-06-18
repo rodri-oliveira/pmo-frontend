@@ -214,9 +214,10 @@ export default function GerenciamentoCascade() {
             Nenhuma seção encontrada. Clique em &quot;Nova Seção&quot; para adicionar a primeira.
           </Typography>
         ) : (
+          <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
           <TableContainer component={Paper} variant="outlined">
             <Table>
-              <TableHead sx={{ backgroundColor: wegBlue }}>
+              <TableHead sx={{ backgroundColor: wegBlue, position: 'sticky', top: 0, zIndex: 1 }}>
                 <TableRow>
                   <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
                   <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nome</TableCell>
@@ -245,6 +246,7 @@ export default function GerenciamentoCascade() {
               </TableBody>
             </Table>
           </TableContainer>
+          </Box>
         )
       )}
       
@@ -275,9 +277,10 @@ export default function GerenciamentoCascade() {
               Nenhuma equipe encontrada.
             </Typography>
           ) : (
+            <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
             <TableContainer component={Paper} variant="outlined">
               <Table>
-                <TableHead sx={{ backgroundColor: wegBlue }}>
+                <TableHead sx={{ backgroundColor: wegBlue, position: 'sticky', top: 0, zIndex: 1 }}>
                   <TableRow>
                     <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nome</TableCell>
                     <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Seção</TableCell>
@@ -306,6 +309,7 @@ export default function GerenciamentoCascade() {
                 </TableBody>
               </Table>
             </TableContainer>
+            </Box>
           )
         )}
       </Box>
