@@ -65,6 +65,7 @@ export default function GerenciamentoCascade() {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [filtroNome, setFiltroNome] = useState('');
 
   const fetchSecoes = useCallback(async () => {
     setLoading(true);
@@ -192,18 +193,28 @@ export default function GerenciamentoCascade() {
   };
 
   const renderSecoes = () => {
-    const displayedSecoes = secoes.filter(s => showInactive || s.ativo === true);
+    const displayedSecoes = secoes
+      .filter(s => showInactive || s.ativo === true)
+      .filter(s => s.nome.toLowerCase().includes(filtroNome.toLowerCase()));
 
     return (
     <Box mt={4}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h5">Gerenciar Seções</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <FormControlLabel
-            control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
-            label="Mostrar inativos"
-          />
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenModal()} sx={{ backgroundColor: wegBlue }}>Nova Seção</Button>
+            <TextField
+                label="Filtrar por nome"
+                variant="outlined"
+                size="small"
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
+                sx={{ width: 250 }}
+            />
+            <FormControlLabel
+                control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
+                label="Mostrar inativos"
+            />
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenModal()} sx={{ backgroundColor: wegBlue }}>Nova Seção</Button>
         </Box>
       </Box>
       {loading && <Box display="flex" justifyContent="center" my={5}><CircularProgress /></Box>}
@@ -254,7 +265,9 @@ export default function GerenciamentoCascade() {
   )};
 
   const renderEquipes = () => {
-    const displayedEquipes = equipes.filter(e => showInactive || e.ativo === true);
+    const displayedEquipes = equipes
+      .filter(e => showInactive || e.ativo === true)
+      .filter(e => e.nome.toLowerCase().includes(filtroNome.toLowerCase()));
     const secoesMap = secoes.reduce((acc, secao) => ({ ...acc, [secao.id]: secao.nome }), {});
 
     return (
@@ -262,6 +275,14 @@ export default function GerenciamentoCascade() {
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h5">Gerenciar Equipes</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <TextField
+                label="Filtrar por nome"
+                variant="outlined"
+                size="small"
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
+                sx={{ width: 250 }}
+            />
             <FormControlLabel
               control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
               label="Mostrar inativos"
