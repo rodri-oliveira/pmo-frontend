@@ -1,24 +1,32 @@
-import { apiGet, apiPost, apiPut, apiDelete } from './api.jsx';
+import { apiGet, apiPost, apiPut, apiDelete } from './api';
 
+const ENDPOINT = '/projetos';
+
+// Buscar lista de projetos
 export const getProjetos = (params = {}) => {
-  return apiGet('/projetos', params);
+  return apiGet(ENDPOINT, params);
 };
 
-export const getProjeto = (id) => {
-  return apiGet(`/projetos/${id}`);
+// Buscar projeto por ID
+export const getProjetoById = (id) => {
+  return apiGet(`${ENDPOINT}/${id}/`);
 };
 
+// Criar novo projeto
 export const createProjeto = (data) => {
-  return apiPost('/projetos', data);
+  return apiPost(`${ENDPOINT}/`, data);
 };
 
+// Atualizar projeto existente
 export const updateProjeto = (id, data) => {
-  return apiPut(`/projetos/${id}`, data);
+  return apiPut(`${ENDPOINT}/${id}/`, data);
 };
 
+// Deletar (inativar) projeto
 export const deleteProjeto = (id) => {
-  return apiDelete(`/projetos/${id}`);
+  return apiDelete(`${ENDPOINT}/${id}/`);
 };
+
 
 export const getRecursosAlocados = (projetoId, params = {}) => {
   return apiGet(`/projetos/${projetoId}/alocacoes`, params);

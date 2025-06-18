@@ -5,73 +5,53 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Paper, Button, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, CircularProgress,
-  Select, MenuItem, FormControl, InputLabel, Dialog, DialogTitle,
-  DialogContent, DialogActions, TextField, Alert, Snackbar,
-  Switch, FormControlLabel
+  Select, MenuItem, FormControl, InputLabel,
+  Alert, Snackbar,
+  Switch, FormControlLabel, TextField
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
-import { 
-  getSecoes, createSecao, updateSecao, deleteSecao, 
-  getEquipes, createEquipe, updateEquipe, deleteEquipe, 
-  getRecursos, createRecurso, updateRecurso, deleteRecurso,
-  getStatusProjetos, createStatusProjeto, updateStatusProjeto, deleteStatusProjeto
-} from '@/lib/api';
+
+// Importações dos serviços de API padronizados
+import { getSecoes, createSecao, updateSecao, deleteSecao } from '../../services/secoes';
+import { getEquipes, createEquipe, updateEquipe, deleteEquipe } from '../../services/equipes';
+import { getRecursos, createRecurso, updateRecurso, deleteRecurso } from '../../services/recursos';
+import { getStatusProjetos, createStatusProjeto, updateStatusProjeto, deleteStatusProjeto } from '../../services/statusProjetos';
+import { getProjetos, createProjeto, updateProjeto, deleteProjeto } from '../../services/projetos';
+
+// Importações dos Modais
+import SecaoModal from './SecaoModal';
 import EquipeModal from './EquipeModal';
 import RecursoModal from './RecursoModal';
 import StatusProjetoModal from './StatusProjetoModal';
+import ProjetoModal from './ProjetoModal';
 
 const wegBlue = '#00579d';
 
-// Modal Component
-function SecaoModal({ open, onClose, onSave, secao }) {
-  const [formData, setFormData] = useState({ nome: '', descricao: '' });
-
-  useEffect(() => {
-    setFormData({ nome: secao?.nome || '', descricao: secao?.descricao || '' });
-  }, [secao, open]);
-
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-  const handleSave = () => onSave(formData);
-  const isEditing = !!secao;
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ color: wegBlue, fontWeight: 'bold' }}>
-        {isEditing ? 'Editar Seção' : 'Nova Seção'}
-      </DialogTitle>
-      <DialogContent>
-        <TextField autoFocus margin="dense" name="nome" label="Nome da Seção" type="text" fullWidth variant="outlined" value={formData.nome} onChange={handleChange} required sx={{ mt: 1 }}/>
-        <TextField margin="dense" name="descricao" label="Descrição" type="text" fullWidth multiline rows={4} variant="outlined" value={formData.descricao} onChange={handleChange} />
-      </DialogContent>
-      <DialogActions sx={{ p: '16px 24px' }}>
-        <Button onClick={onClose}>Cancelar</Button>
-        <Button onClick={handleSave} variant="contained" sx={{ backgroundColor: wegBlue }}>{isEditing ? 'Salvar' : 'Criar'}</Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
 const managementTypes = [
+  { value: 'projetos', label: 'Projetos' },
+  { value: 'statusProjetos', label: 'Status de Projeto' },
   { value: 'secoes', label: 'Seções' },
   { value: 'equipes', label: 'Equipes' },
   { value: 'recursos', label: 'Recursos' },
-  { value: 'statusProjetos', label: 'Status de Projeto' },
 ];
 
 export default function GerenciamentoCascade() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const tab = searchParams.get('tab') || 'secoes';
+  const tab = searchParams.get('tab') || 'projetos';
 
-  const tipoGerenciamento = tab;
+  // Estados para os dados
+  const [projetos, setProjetos] = useState([]);
   const [secoes, setSecoes] = useState([]);
   const [equipes, setEquipes] = useState([]);
   const [recursos, setRecursos] = useState([]);
   const [statusProjetos, setStatusProjetos] = useState([]);
+
+  // Estados de UI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -80,86 +60,58 @@ export default function GerenciamentoCascade() {
   const [showInactive, setShowInactive] = useState(false);
   const [filtroNome, setFiltroNome] = useState('');
 
-  const fetchSecoes = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    console.log('Buscando seções...');
+    const params = { include_inactive: showInactive, limit: 1000, search: '' };
     try {
-      const data = await getSecoes(false);
-      console.log('Dados recebidos da API:', data);
-
-      let items = [];
-      if (Array.isArray(data?.items)) {
-        items = data.items;
-      } else if (Array.isArray(data)) {
-        items = data;
+      switch (tab) {
+        case 'projetos': {
+          const [projData, secData, statData] = await Promise.all([
+            getProjetos(params),
+            getSecoes({ apenas_ativos: true }),
+            getStatusProjetos({ apenas_ativos: true })
+          ]);
+          setProjetos(Array.isArray(projData) ? projData : projData.items || []);
+          setSecoes(Array.isArray(secData) ? secData : secData.items || []);
+          setStatusProjetos(Array.isArray(statData) ? statData : statData.items || []);
+          break;
+        }
+        case 'secoes': {
+          const data = await getSecoes(params);
+          setSecoes(Array.isArray(data) ? data : data.items || []);
+          break;
+        }
+        case 'equipes': {
+          const [eqData, secData] = await Promise.all([getEquipes(params), getSecoes({ apenas_ativos: true })]);
+          setEquipes(Array.isArray(eqData) ? eqData : eqData.items || []);
+          setSecoes(Array.isArray(secData) ? secData : secData.items || []);
+          break;
+        }
+        case 'recursos': {
+          const [recData, eqData] = await Promise.all([getRecursos(params), getEquipes({ apenas_ativos: true })]);
+          setRecursos(Array.isArray(recData) ? recData : recData.items || []);
+          setEquipes(Array.isArray(eqData) ? eqData : eqData.items || []);
+          break;
+        }
+        case 'statusProjetos': {
+          const data = await getStatusProjetos(params);
+          setStatusProjetos(Array.isArray(data) ? data : data.items || []);
+          break;
+        }
+        default: break;
       }
-
-      setSecoes(items);
     } catch (err) {
-      console.error('Erro ao buscar seções:', err);
+      console.error(`Erro ao buscar dados para ${tab}:`, err);
       setError(err.message);
-      setSecoes([]);
     } finally {
       setLoading(false);
     }
-  }, []);
-
-    const fetchEquipes = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getEquipes();
-      setEquipes(Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message);
-      setEquipes([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchRecursos = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getRecursos();
-      setRecursos(Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message);
-      setRecursos([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchStatusProjetos = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getStatusProjetos(showInactive);
-      setStatusProjetos(Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message);
-      setStatusProjetos([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [showInactive]);
+  }, [tab, showInactive]);
 
   useEffect(() => {
-    if (tipoGerenciamento === 'secoes') {
-      fetchSecoes();
-    } else if (tipoGerenciamento === 'equipes') {
-      fetchSecoes();
-      fetchEquipes();
-    } else if (tipoGerenciamento === 'recursos') {
-      fetchEquipes();
-      fetchRecursos();
-    } else if (tipoGerenciamento === 'statusProjetos') {
-      fetchStatusProjetos();
-    }
-  }, [tipoGerenciamento, fetchSecoes, fetchEquipes, fetchRecursos, fetchStatusProjetos, showInactive]);
+    fetchData();
+  }, [fetchData]);
 
   const handleOpenModal = (item = null) => {
     setCurrentItem(item);
@@ -171,430 +123,197 @@ export default function GerenciamentoCascade() {
     setModalOpen(false);
   };
 
-    const handleSave = async (data) => {
+  const handleSave = async (data) => {
     setLoading(true);
     try {
-      let message = '';
-      if (tipoGerenciamento === 'secoes') {
-        if (currentItem) {
-          await updateSecao(currentItem.id, data);
-          message = 'Seção atualizada com sucesso!';
-        } else {
-          await createSecao(data);
-          message = 'Seção criada com sucesso!';
-        }
-        fetchSecoes();
-      } else if (tipoGerenciamento === 'equipes') {
-        if (currentItem) {
-          await updateEquipe(currentItem.id, data);
-          message = 'Equipe atualizada com sucesso!';
-        } else {
-          await createEquipe(data);
-          message = 'Equipe criada com sucesso!';
-        }
-        fetchEquipes();
-      } else if (tipoGerenciamento === 'recursos') {
-        if (currentItem) {
-          await updateRecurso(currentItem.id, data);
-          message = 'Recurso atualizado com sucesso!';
-        } else {
-          await createRecurso(data);
-          message = 'Recurso criado com sucesso!';
-        }
-        fetchRecursos();
-      } else if (tipoGerenciamento === 'statusProjetos') {
-        if (currentItem) {
-          await updateStatusProjeto(currentItem.id, data);
-          message = 'Status de projeto atualizado com sucesso!';
-        } else {
-          await createStatusProjeto(data);
-          message = 'Status de projeto criado com sucesso!';
-        }
-        fetchStatusProjetos();
+      const isEditing = !!currentItem;
+      const apiMap = {
+        projetos: { create: createProjeto, update: updateProjeto },
+        secoes: { create: createSecao, update: updateSecao },
+        equipes: { create: createEquipe, update: updateEquipe },
+        recursos: { create: createRecurso, update: updateRecurso },
+        statusProjetos: { create: createStatusProjeto, update: updateStatusProjeto },
+      };
+      const { create, update } = apiMap[tab];
+      const typeName = managementTypes.find(t => t.value === tab).label.slice(0, -1);
+
+      if (isEditing) {
+        await update(currentItem.id, data);
+        setNotification({ open: true, message: `${typeName} atualizado com sucesso!`, severity: 'success' });
+      } else {
+        await create(data);
+        setNotification({ open: true, message: `${typeName} criado com sucesso!`, severity: 'success' });
       }
-      setNotification({ open: true, message, severity: 'success' });
-    } catch (err) {
-      setNotification({ open: true, message: `Erro: ${err.message}`, severity: 'error' });
-    } finally {
+      fetchData();
       handleCloseModal();
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
+      setNotification({ open: true, message: `Erro: ${errorMsg}`, severity: 'error' });
+    } finally {
       setLoading(false);
     }
   };
 
-        const handleDelete = async (id) => {
-    const typeName = tipoGerenciamento === 'secoes' ? 'seção' : tipoGerenciamento === 'equipes' ? 'equipe' : tipoGerenciamento === 'recursos' ? 'recurso' : 'status de projeto';
-    const confirmationMessage = `Tem certeza que deseja inativar este ${typeName}?`;
+  const handleDeleteToggle = async (item) => {
+    const action = item.ativo ? 'inativar' : 'reativar';
+    if (!window.confirm(`Tem certeza que deseja ${action} este item?`)) return;
 
-    if (window.confirm(confirmationMessage)) {
-      try {
-        if (tipoGerenciamento === 'secoes') {
-          await deleteSecao(id);
-          fetchSecoes();
-        } else if (tipoGerenciamento === 'equipes') {
-          await deleteEquipe(id);
-          fetchEquipes();
-        } else if (tipoGerenciamento === 'recursos') {
-          await deleteRecurso(id);
-          fetchRecursos();
-        } else if (tipoGerenciamento === 'statusProjetos') {
-          await deleteStatusProjeto(id);
-          fetchStatusProjetos();
-        }
-        setNotification({ open: true, message: `${typeName.charAt(0).toUpperCase() + typeName.slice(1)} inativado(a) com sucesso!`, severity: 'success' });
-      } catch (err) {
-        setNotification({ open: true, message: `Erro ao inativar: ${err.message}`, severity: 'error' });
+    setLoading(true);
+    try {
+      const apiMap = {
+        projetos: { del: deleteProjeto, update: updateProjeto },
+        secoes: { del: deleteSecao, update: updateSecao },
+        equipes: { del: deleteEquipe, update: updateEquipe },
+        recursos: { del: deleteRecurso, update: updateRecurso },
+        statusProjetos: { del: deleteStatusProjeto, update: updateStatusProjeto },
+      };
+      const { del, update } = apiMap[tab];
+
+      if (item.ativo) {
+        await del(item.id);
+      } else {
+        await update(item.id, { ativo: true });
       }
+      setNotification({ open: true, message: `Item ${action} com sucesso!`, severity: 'success' });
+      fetchData();
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
+      setNotification({ open: true, message: `Erro: ${errorMsg}`, severity: 'error' });
+    } finally {
+      setLoading(false);
     }
   };
 
-        const handleReactivate = async (id) => {
-    const typeName = tipoGerenciamento === 'secoes' ? 'seção' : tipoGerenciamento === 'equipes' ? 'equipe' : tipoGerenciamento === 'recursos' ? 'recurso' : 'status de projeto';
-    if (window.confirm(`Tem certeza que deseja reativar este ${typeName}?`)) {
-      try {
-        if (tipoGerenciamento === 'secoes') {
-          await updateSecao(id, { ativo: true });
-          fetchSecoes();
-        } else if (tipoGerenciamento === 'equipes') {
-          await updateEquipe(id, { ativo: true });
-          fetchEquipes();
-        } else if (tipoGerenciamento === 'recursos') {
-          await updateRecurso(id, { ativo: true });
-          fetchRecursos();
-        } else if (tipoGerenciamento === 'statusProjetos') {
-          await updateStatusProjeto(id, { ativo: true });
-          fetchStatusProjetos();
-        }
-        setNotification({ open: true, message: `${typeName.charAt(0).toUpperCase() + typeName.slice(1)} reativado(a) com sucesso!`, severity: 'success' });
-      } catch (err) {
-        setNotification({ open: true, message: `Erro ao reativar: ${err.message}`, severity: 'error' });
-      }
-    }
+  const handleTabChange = (event) => {
+    router.push(`${pathname}?tab=${event.target.value}`);
   };
 
-  const renderSecoes = () => {
-    const displayedSecoes = secoes
-      .filter(s => showInactive || s.ativo === true)
-      .filter(s => s.nome.toLowerCase().includes(filtroNome.toLowerCase()));
+  const handleCloseNotification = () => setNotification({ ...notification, open: false });
+
+  const renderContent = () => {
+    const secaoMap = secoes.reduce((acc, s) => ({ ...acc, [s.id]: s.nome }), {});
+    const equipeMap = equipes.reduce((acc, e) => ({ ...acc, [e.id]: e.nome }), {});
+    const statusMap = statusProjetos.reduce((acc, s) => ({ ...acc, [s.id]: s.nome }), {});
+
+    const dataMap = {
+      projetos, secoes, equipes, recursos, statusProjetos
+    };
+
+    const currentData = dataMap[tab] || [];
+    
+    const filteredData = currentData.filter(item =>
+      (showInactive || item.ativo) &&
+      (item.nome?.toLowerCase().includes(filtroNome.toLowerCase()) ||
+       item.descricao?.toLowerCase().includes(filtroNome.toLowerCase()))
+    );
+
+    const columns = {
+      projetos: [
+        { id: 'nome', label: 'Nome' },
+        { id: 'descricao', label: 'Descrição' },
+        { id: 'secao_id', label: 'Seção', format: (val) => secaoMap[val] || 'N/A' },
+        { id: 'status_projeto_id', label: 'Status', format: (val) => statusMap[val] || 'N/A' },
+        { id: 'data_inicio_prevista', label: 'Início Previsto', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString() : 'N/A' },
+      ],
+      secoes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
+      equipes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }, { id: 'secao_id', label: 'Seção', format: (val) => secaoMap[val] || 'N/A' }],
+      recursos: [{ id: 'nome', label: 'Nome' }, { id: 'matricula', label: 'Matrícula' }, { id: 'equipe_id', label: 'Equipe', format: (val) => equipeMap[val] || 'N/A' }],
+      statusProjetos: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
+    };
+
+    const currentColumns = columns[tab];
+    if (!currentColumns) return <Typography>Selecione um tipo de gerenciamento.</Typography>;
 
     return (
-    <Box mt={4}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5">Gerenciar Seções</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <TextField
-                label="Filtrar por nome"
-                variant="outlined"
-                size="small"
-                value={filtroNome}
-                onChange={(e) => setFiltroNome(e.target.value)}
-                sx={{ width: 250 }}
-            />
-            <FormControlLabel
-                control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
-                label="Mostrar inativos"
-            />
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenModal()} sx={{ backgroundColor: wegBlue }}>Nova Seção</Button>
-        </Box>
-      </Box>
-      {loading && <Box display="flex" justifyContent="center" my={5}><CircularProgress /></Box>}
-      {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
-      {!loading && !error && (
-        displayedSecoes.length === 0 ? (
-          <Typography sx={{ textAlign: 'center', my: 4, color: 'text.secondary' }}>
-            Nenhuma seção encontrada. Clique em &quot;Nova Seção&quot; para adicionar a primeira.
-          </Typography>
-        ) : (
-          <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
-              <TableHead sx={{ backgroundColor: wegBlue, position: 'sticky', top: 0, zIndex: 1 }}>
-                <TableRow>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nome</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Descrição</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
-                  <TableCell align="right" sx={{ color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {displayedSecoes.map((secao) => (
-                  <TableRow key={secao.id} sx={{ backgroundColor: !secao.ativo ? '#fafafa' : 'inherit' }}>
-                    <TableCell>{secao.id}</TableCell>
-                    <TableCell>{secao.nome}</TableCell>
-                    <TableCell>{secao.descricao}</TableCell>
-                    <TableCell>{secao.ativo ? 'Ativo' : 'Inativo'}</TableCell>
-                    <TableCell align="right">
-                      <IconButton onClick={() => handleOpenModal(secao)}><EditIcon /></IconButton>
-                      {secao.ativo ? (
-                        <IconButton onClick={() => handleDelete(secao.id)}><DeleteIcon color="error"/></IconButton>
-                      ) : (
-                        <IconButton onClick={() => handleReactivate(secao.id)}><RestoreFromTrashIcon /></IconButton>
-                      )}
-                    </TableCell>
-                  </TableRow>
+      <TableContainer component={Paper} sx={{ maxHeight: '70vh' }}>
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              {currentColumns.map(col => (
+                <TableCell
+                  key={col.id}
+                  sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}
+                >
+                  {col.label}
+                </TableCell>
+              ))}
+              <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>
+                Ações
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredData.map(item => (
+              <TableRow key={item.id} sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}>
+                {currentColumns.map(col => (
+                  <TableCell key={col.id}>{col.format ? col.format(item[col.id]) : item[col.id]}</TableCell>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          </Box>
-        )
-      )}
-      
-    </Box>
-  )};
-
-  const renderEquipes = () => {
-    const displayedEquipes = equipes
-      .filter(e => showInactive || e.ativo === true)
-      .filter(e => e.nome.toLowerCase().includes(filtroNome.toLowerCase()));
-    const secoesMap = secoes.reduce((acc, secao) => ({ ...acc, [secao.id]: secao.nome }), {});
-
-    return (
-      <Box mt={4}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h5">Gerenciar Equipes</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <TextField
-                label="Filtrar por nome"
-                variant="outlined"
-                size="small"
-                value={filtroNome}
-                onChange={(e) => setFiltroNome(e.target.value)}
-                sx={{ width: 250 }}
-            />
-            <FormControlLabel
-              control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
-              label="Mostrar inativos"
-            />
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenModal()} sx={{ backgroundColor: wegBlue }}>Nova Equipe</Button>
-          </Box>
-        </Box>
-        {loading && <Box display="flex" justifyContent="center" my={5}><CircularProgress /></Box>}
-        {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
-        {!loading && !error && (
-          displayedEquipes.length === 0 ? (
-            <Typography sx={{ textAlign: 'center', my: 4, color: 'text.secondary' }}>
-              Nenhuma equipe encontrada.
-            </Typography>
-          ) : (
-            <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
-            <TableContainer component={Paper} variant="outlined">
-              <Table>
-                <TableHead sx={{ backgroundColor: wegBlue, position: 'sticky', top: 0, zIndex: 1 }}>
-                  <TableRow>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nome</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Seção</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Descrição</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
-                    <TableCell align="right" sx={{ color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {displayedEquipes.map((equipe) => (
-                    <TableRow key={equipe.id} sx={{ backgroundColor: !equipe.ativo ? '#fafafa' : 'inherit' }}>
-                      <TableCell>{equipe.nome}</TableCell>
-                      <TableCell>{secoesMap[equipe.secao_id] || 'N/A'}</TableCell>
-                      <TableCell>{equipe.descricao}</TableCell>
-                      <TableCell>{equipe.ativo ? 'Ativo' : 'Inativo'}</TableCell>
-                      <TableCell align="right">
-                        <IconButton onClick={() => handleOpenModal(equipe)}><EditIcon /></IconButton>
-                        {equipe.ativo ? (
-                          <IconButton onClick={() => handleDelete(equipe.id)}><DeleteIcon color="error"/></IconButton>
-                        ) : (
-                          <IconButton onClick={() => handleReactivate(equipe.id)}><RestoreFromTrashIcon /></IconButton>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            </Box>
-          )
-        )}
-      </Box>
-    );
-  };
-
-  const renderRecursos = () => {
-    const displayedRecursos = recursos
-      .filter(r => showInactive || r.ativo === true)
-      .filter(r => r.nome.toLowerCase().includes(filtroNome.toLowerCase()));
-    const equipesMap = equipes.reduce((acc, equipe) => ({ ...acc, [equipe.id]: equipe.nome }), {});
-
-    return (
-      <Box mt={4}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h5">Gerenciar Recursos</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <TextField
-                label="Filtrar por nome"
-                variant="outlined"
-                size="small"
-                value={filtroNome}
-                onChange={(e) => setFiltroNome(e.target.value)}
-                sx={{ width: 250 }}
-            />
-            <FormControlLabel
-              control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
-              label="Mostrar inativos"
-            />
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenModal()} sx={{ backgroundColor: wegBlue }}>Novo Recurso</Button>
-          </Box>
-        </Box>
-        {loading && <Box display="flex" justifyContent="center" my={5}><CircularProgress /></Box>}
-        {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
-        {!loading && !error && (
-          displayedRecursos.length === 0 ? (
-            <Typography sx={{ textAlign: 'center', my: 4, color: 'text.secondary' }}>
-              Nenhum recurso encontrado.
-            </Typography>
-          ) : (
-            <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
-            <TableContainer component={Paper} variant="outlined">
-              <Table>
-                <TableHead sx={{ backgroundColor: wegBlue, position: 'sticky', top: 0, zIndex: 1 }}>
-                  <TableRow>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nome</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Email</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Equipe Principal</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
-                    <TableCell align="right" sx={{ color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {displayedRecursos.map((recurso) => (
-                    <TableRow key={recurso.id} sx={{ backgroundColor: !recurso.ativo ? '#fafafa' : 'inherit' }}>
-                      <TableCell>{recurso.nome}</TableCell>
-                      <TableCell>{recurso.email}</TableCell>
-                      <TableCell>{equipesMap[recurso.equipe_principal_id] || 'N/A'}</TableCell>
-                      <TableCell>{recurso.ativo ? 'Ativo' : 'Inativo'}</TableCell>
-                      <TableCell align="right">
-                        <IconButton onClick={() => handleOpenModal(recurso)}><EditIcon /></IconButton>
-                        {recurso.ativo ? (
-                          <IconButton onClick={() => handleDelete(recurso.id)}><DeleteIcon color="error"/></IconButton>
-                        ) : (
-                          <IconButton onClick={() => handleReactivate(recurso.id)}><RestoreFromTrashIcon /></IconButton>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            </Box>
-          )
-        )}
-      </Box>
-    );
-  };
-
-  const renderStatusProjetos = () => {
-    const displayedStatusProjetos = statusProjetos
-      .filter(s => showInactive || s.ativo === true)
-      .filter(s => s.nome.toLowerCase().includes(filtroNome.toLowerCase()));
-
-    return (
-      <Box mt={4}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h5">Gerenciar Status de Projeto</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <TextField
-                label="Filtrar por nome"
-                variant="outlined"
-                size="small"
-                value={filtroNome}
-                onChange={(e) => setFiltroNome(e.target.value)}
-                sx={{ width: 250 }}
-            />
-            <FormControlLabel
-              control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
-              label="Mostrar inativos"
-            />
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenModal()} sx={{ backgroundColor: wegBlue }}>Novo Status</Button>
-          </Box>
-        </Box>
-        {loading && <Box display="flex" justifyContent="center" my={5}><CircularProgress /></Box>}
-        {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
-        {!loading && !error && (
-          displayedStatusProjetos.length === 0 ? (
-            <Typography sx={{ textAlign: 'center', my: 4, color: 'text.secondary' }}>
-              Nenhum status de projeto encontrado.
-            </Typography>
-          ) : (
-            <TableContainer component={Paper} variant="outlined">
-              <Table>
-                <TableHead sx={{ backgroundColor: wegBlue }}>
-                  <TableRow>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Ordem</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nome</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Descrição</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Final?</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
-                    <TableCell align="right" sx={{ color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {displayedStatusProjetos.map((status) => (
-                    <TableRow key={status.id} sx={{ backgroundColor: !status.ativo ? '#fafafa' : 'inherit' }}>
-                      <TableCell>{status.ordem_exibicao}</TableCell>
-                      <TableCell>{status.nome}</TableCell>
-                      <TableCell>{status.descricao}</TableCell>
-                      <TableCell>{status.is_final ? 'Sim' : 'Não'}</TableCell>
-                      <TableCell>{status.ativo ? 'Ativo' : 'Inativo'}</TableCell>
-                      <TableCell align="right">
-                        <IconButton onClick={() => handleOpenModal(status)}><EditIcon /></IconButton>
-                        {status.ativo ? (
-                          <IconButton onClick={() => handleDelete(status.id)}><DeleteIcon color="error"/></IconButton>
-                        ) : (
-                          <IconButton onClick={() => handleReactivate(status.id)}><RestoreFromTrashIcon /></IconButton>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )
-        )}
-      </Box>
+                <TableCell>
+                  <IconButton onClick={() => handleOpenModal(item)}><EditIcon /></IconButton>
+                  <IconButton onClick={() => handleDeleteToggle(item)}>
+                    {item.ativo ? <DeleteIcon sx={{ color: '#d32f2f' }} /> : <RestoreFromTrashIcon />}
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     );
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 4, background: 'white', borderRadius: '8px' }}>
-      <Typography variant="h4" component="h1" sx={{ mb: 1, color: wegBlue, fontWeight: 'bold' }}>
-        Gerenciamento
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom sx={{ color: wegBlue, fontWeight: 'bold' }}>
+        Gerenciamento do Sistema
       </Typography>
-      <FormControl sx={{ mt: 2, minWidth: 250 }} size="small">
-        <InputLabel>Tipo de Gerenciamento</InputLabel>
-        <Select value={tipoGerenciamento} label="Tipo de Gerenciamento" onChange={(e) => {
-                const newTab = e.target.value;
-                setFiltroNome(''); // Limpa o filtro ao trocar de aba
-                router.push(`${pathname}?tab=${newTab}`);
-              }}>
-          {managementTypes.map(type => (
-            <MenuItem key={type.value} value={type.value} disabled={type.disabled}>{type.label}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <FormControl sx={{ minWidth: 240 }}>
+            <InputLabel>Tipo de Gerenciamento</InputLabel>
+            <Select value={tab} label="Tipo de Gerenciamento" onChange={handleTabChange}>
+              {managementTypes.map(type => (
+                <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Filtrar por nome ou descrição..."
+            variant="outlined"
+            value={filtroNome}
+            onChange={(e) => setFiltroNome(e.target.value)}
+            sx={{ flexGrow: 1, maxWidth: 400 }}
+          />
+          <FormControlLabel
+            control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
+            label="Mostrar Inativos"
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenModal()}
+            sx={{ backgroundColor: wegBlue, '&:hover': { backgroundColor: '#004a8c' } }}
+          >
+            Novo Item
+          </Button>
+        </Box>
+      </Paper>
 
-            {tipoGerenciamento === 'secoes' && renderSecoes()}
-            {tipoGerenciamento === 'equipes' && renderEquipes()}
-      {tipoGerenciamento === 'recursos' && renderRecursos()}
-      {tipoGerenciamento === 'statusProjetos' && renderStatusProjetos()}
+      {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}><CircularProgress /></Box> : error ? <Alert severity="error">{error}</Alert> : renderContent()}
 
-      <SecaoModal open={modalOpen && tipoGerenciamento === 'secoes'} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />
-      <EquipeModal open={modalOpen && tipoGerenciamento === 'equipes'} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes.filter(s => s.ativo)} />
-      <RecursoModal open={modalOpen && tipoGerenciamento === 'recursos'} onClose={handleCloseModal} onSave={handleSave} recurso={currentItem} equipes={equipes.filter(e => e.ativo)} />
-      <StatusProjetoModal open={modalOpen && tipoGerenciamento === 'statusProjetos'} onClose={handleCloseModal} onSave={handleSave} statusProjeto={currentItem} />
+      {modalOpen && tab === 'projetos' && <ProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} projeto={currentItem} />}
+      {modalOpen && tab === 'secoes' && <SecaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />}
+      {modalOpen && tab === 'equipes' && <EquipeModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes} />}
+      {modalOpen && tab === 'recursos' && <RecursoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} recurso={currentItem} equipes={equipes} />}
+      {modalOpen && tab === 'statusProjetos' && <StatusProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} statusProjeto={currentItem} />}
 
-
-      <Snackbar open={notification.open} autoHideDuration={6000} onClose={() => setNotification({ ...notification, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-        <Alert severity={notification.severity} sx={{ width: '100%' }}>
+      <Snackbar open={notification.open} autoHideDuration={6000} onClose={handleCloseNotification} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+        <Alert onClose={handleCloseNotification} severity={notification.severity} sx={{ width: '100%' }}>
           {notification.message}
         </Alert>
       </Snackbar>
-    </Paper>
+    </Box>
   );
-}
+};
+
+
