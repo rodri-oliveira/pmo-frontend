@@ -5,11 +5,13 @@ import {
   Box, Typography, Paper, Button, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, CircularProgress,
   Select, MenuItem, FormControl, InputLabel, Dialog, DialogTitle,
-  DialogContent, DialogActions, TextField, Alert, Snackbar
+  DialogContent, DialogActions, TextField, Alert, Snackbar,
+  Switch, FormControlLabel
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
 import { getSecoes, createSecao, updateSecao, deleteSecao } from '@/lib/api';
 
 const wegBlue = '#00579d';
@@ -57,6 +59,7 @@ export default function GerenciamentoCascade() {
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   const [modalOpen, setModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   const fetchSecoes = useCallback(async () => {
     setLoading(true);
@@ -65,13 +68,15 @@ export default function GerenciamentoCascade() {
     try {
       const data = await getSecoes(false);
       console.log('Dados recebidos da API:', data);
+
+      let items = [];
       if (Array.isArray(data?.items)) {
-        setSecoes(data.items);
+        items = data.items;
       } else if (Array.isArray(data)) {
-        setSecoes(data);
-      } else {
-        setSecoes([]);
+        items = data;
       }
+
+      setSecoes(items);
     } catch (err) {
       console.error('Erro ao buscar seções:', err);
       setError(err.message);
@@ -118,27 +123,48 @@ export default function GerenciamentoCascade() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta seção?')) {
+    if (window.confirm('Tem certeza que deseja inativar esta seção?')) {
       try {
         await deleteSecao(id);
-        setSecoes(prev => prev.filter(s => s.id !== id));
-        setNotification({ open: true, message: 'Seção excluída com sucesso!', severity: 'success' });
+        fetchSecoes();
+        setNotification({ open: true, message: 'Seção inativada com sucesso!', severity: 'success' });
       } catch (err) {
         setNotification({ open: true, message: err.message, severity: 'error' });
       }
     }
   };
 
-  const renderSecoes = () => (
+  const handleReactivate = async (id) => {
+    if (window.confirm('Tem certeza que deseja reativar esta seção?')) {
+      try {
+        await updateSecao(id, { ativo: true });
+        fetchSecoes();
+        setNotification({ open: true, message: 'Seção reativada com sucesso!', severity: 'success' });
+      } catch (err) {
+        setNotification({ open: true, message: err.message, severity: 'error' });
+      }
+    }
+  };
+
+  const renderSecoes = () => {
+    const displayedSecoes = secoes.filter(s => showInactive || s.ativo === true);
+
+    return (
     <Box mt={4}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h5">Gerenciar Seções</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenModal()} sx={{ backgroundColor: wegBlue }}>Nova Seção</Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <FormControlLabel
+            control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
+            label="Mostrar inativos"
+          />
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenModal()} sx={{ backgroundColor: wegBlue }}>Nova Seção</Button>
+        </Box>
       </Box>
       {loading && <Box display="flex" justifyContent="center" my={5}><CircularProgress /></Box>}
       {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
       {!loading && !error && (
-        secoes.length === 0 ? (
+        displayedSecoes.length === 0 ? (
           <Typography sx={{ textAlign: 'center', my: 4, color: 'text.secondary' }}>
             Nenhuma seção encontrada. Clique em &quot;Nova Seção&quot; para adicionar a primeira.
           </Typography>
@@ -150,18 +176,24 @@ export default function GerenciamentoCascade() {
                   <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
                   <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nome</TableCell>
                   <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Descrição</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
                   <TableCell align="right" sx={{ color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {secoes.map((secao) => (
-                  <TableRow key={secao.id}>
+                {displayedSecoes.map((secao) => (
+                  <TableRow key={secao.id} sx={{ backgroundColor: !secao.ativo ? '#fafafa' : 'inherit' }}>
                     <TableCell>{secao.id}</TableCell>
                     <TableCell>{secao.nome}</TableCell>
                     <TableCell>{secao.descricao}</TableCell>
+                    <TableCell>{secao.ativo ? 'Ativo' : 'Inativo'}</TableCell>
                     <TableCell align="right">
                       <IconButton onClick={() => handleOpenModal(secao)}><EditIcon /></IconButton>
-                      <IconButton onClick={() => handleDelete(secao.id)}><DeleteIcon color="error"/></IconButton>
+                      {secao.ativo ? (
+                        <IconButton onClick={() => handleDelete(secao.id)}><DeleteIcon color="error"/></IconButton>
+                      ) : (
+                        <IconButton onClick={() => handleReactivate(secao.id)}><RestoreFromTrashIcon /></IconButton>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -172,7 +204,7 @@ export default function GerenciamentoCascade() {
       )}
       <SecaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />
     </Box>
-  );
+  )};
 
   return (
     <Paper elevation={3} sx={{ p: 4, background: 'white', borderRadius: '8px' }}>
