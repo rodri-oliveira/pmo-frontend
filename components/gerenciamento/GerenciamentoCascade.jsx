@@ -20,6 +20,8 @@ import { getEquipes, createEquipe, updateEquipe, deleteEquipe } from '../../serv
 import { getRecursos, createRecurso, updateRecurso, deleteRecurso } from '../../services/recursos';
 import { getStatusProjetos, createStatusProjeto, updateStatusProjeto, deleteStatusProjeto } from '../../services/statusProjetos';
 import { getProjetos, createProjeto, updateProjeto, deleteProjeto } from '../../services/projetos';
+import { getAlocacoes, createAlocacao, updateAlocacao, deleteAlocacao } from '../../services/alocacoes';
+
 
 // Importações dos Modais (lazy loaded para melhorar performance)
 import dynamic from 'next/dynamic';
@@ -29,6 +31,7 @@ const EquipeModal = dynamic(() => import('./EquipeModal'), { ssr: false });
 const RecursoModal = dynamic(() => import('./RecursoModal'), { ssr: false });
 const StatusProjetoModal = dynamic(() => import('./StatusProjetoModal'), { ssr: false });
 const ProjetoModal = dynamic(() => import('./ProjetoModal'), { ssr: false });
+const AlocacaoModal = dynamic(() => import('./AlocacaoModal'), { ssr: false });
 
 const wegBlue = '#00579d';
 
@@ -38,6 +41,7 @@ const managementTypes = [
   { value: 'secoes', label: 'Seções' },
   { value: 'equipes', label: 'Equipes' },
   { value: 'recursos', label: 'Recursos' },
+  { value: 'alocacoes', label: 'Alocações' },
 ];
 
 export default function GerenciamentoCascade() {
@@ -52,6 +56,8 @@ export default function GerenciamentoCascade() {
   const [equipes, setEquipes] = useState([]);
   const [recursos, setRecursos] = useState([]);
   const [statusProjetos, setStatusProjetos] = useState([]);
+
+  const [alocacoes, setAlocacoes] = useState([]);
 
   // Estados de UI
   const [loading, setLoading] = useState(false);
@@ -104,6 +110,19 @@ export default function GerenciamentoCascade() {
           setStatusProjetos(Array.isArray(data) ? data : data.items || []);
           break;
         }
+        case 'alocacoes': {
+          const [alocData, projData, recData, statProjData] = await Promise.all([
+              getAlocacoes(params),
+              getProjetos({ apenas_ativos: true, limit: 1000 }),
+              getRecursos({ apenas_ativos: true, limit: 1000 }),
+              getStatusProjetos({ apenas_ativos: true, limit: 1000 }),
+          ]);
+          setAlocacoes(Array.isArray(alocData) ? alocData : alocData.items || []);
+          setProjetos(Array.isArray(projData) ? projData : projData.items || []);
+          setRecursos(Array.isArray(recData) ? recData : recData.items || []);
+          setStatusProjetos(Array.isArray(statProjData) ? statProjData : statProjData.items || []);
+          break;
+      }
         default:
           break;
       }
@@ -149,6 +168,7 @@ export default function GerenciamentoCascade() {
         equipes: { create: createEquipe, update: updateEquipe },
         recursos: { create: createRecurso, update: updateRecurso },
         statusProjetos: { create: createStatusProjeto, update: updateStatusProjeto },
+      alocacoes: { create: createAlocacao, update: updateAlocacao },
       };
       const { create, update } = apiMap[tab];
       const typeName = managementTypes.find(t => t.value === tab).label.slice(0, -1);
@@ -183,6 +203,7 @@ export default function GerenciamentoCascade() {
         equipes: { del: deleteEquipe, update: updateEquipe },
         recursos: { del: deleteRecurso, update: updateRecurso },
         statusProjetos: { del: deleteStatusProjeto, update: updateStatusProjeto },
+      alocacoes: { del: deleteAlocacao, update: updateAlocacao },
       };
       const { del, update } = apiMap[tab];
 
@@ -213,17 +234,45 @@ export default function GerenciamentoCascade() {
   const secaoMap = useMemo(() => secoes.reduce((acc, s) => ({ ...acc, [s.id]: s.nome }), {}), [secoes]);
   const equipeMap = useMemo(() => equipes.reduce((acc, e) => ({ ...acc, [e.id]: e.nome }), {}), [equipes]);
   const statusMap = useMemo(() => statusProjetos.reduce((acc, s) => ({ ...acc, [s.id]: s.nome }), {}), [statusProjetos]);
+  const projetoMap = useMemo(() => projetos.reduce((acc, p) => ({ ...acc, [p.id]: p.nome }), {}), [projetos]);
+  const recursoMap = useMemo(() => recursos.reduce((acc, r) => ({ ...acc, [r.id]: r.nome }), {}), [recursos]);
 
   const currentData = useMemo(() => {
-    const dataMap = { projetos, secoes, equipes, recursos, statusProjetos };
+    const dataMap = { projetos, secoes, equipes, recursos, statusProjetos, alocacoes };
     return dataMap[tab] || [];
-  }, [projetos, secoes, equipes, recursos, statusProjetos, tab]);
+  }, [tab, projetos, secoes, equipes, recursos, statusProjetos, alocacoes]);
 
-  const filteredData = useMemo(() => currentData.filter(item => (
-    (showInactive || item.ativo) &&
-    (item.nome?.toLowerCase().includes(deferredFiltro.toLowerCase()) ||
-     item.descricao?.toLowerCase().includes(deferredFiltro.toLowerCase()))
-  )), [currentData, showInactive, deferredFiltro]);
+  // Para alocações, garantimos que cada item possua "equipe_id" derivado do recurso, caso ainda não exista.
+  const currentDataWithDerivatives = useMemo(() => {
+    if (tab !== 'alocacoes') return currentData;
+    return currentData.map(aloc => ({
+      ...aloc,
+      equipe_id: aloc.equipe_id || recursoMap[aloc.recurso_id] ? recursos.find(r => r.id === aloc.recurso_id)?.equipe_id : null,
+    }));
+  }, [currentData, tab, recursos, recursoMap]);
+
+  const filteredData = useMemo(() => currentDataWithDerivatives.filter(item => {
+    // Algumas entidades (ex: alocações) podem não ter a flag "ativo" explicitamente.
+    const isEntityActive = (item.ativo === undefined) ? true : item.ativo;
+    const isVisible = showInactive || isEntityActive;
+    if (!isVisible) return false;
+
+    if (deferredFiltro === '') return true;
+
+    const lowerCaseFilter = deferredFiltro.toLowerCase();
+
+    if (tab === 'alocacoes') {
+      const projectName = projetoMap[item.projeto_id]?.toLowerCase() || '';
+      const resourceName = recursoMap[item.recurso_id]?.toLowerCase() || '';
+      const equipeName = equipeMap[item.equipe_id]?.toLowerCase() || '';
+      return projectName.includes(lowerCaseFilter) || resourceName.includes(lowerCaseFilter) || equipeName.includes(lowerCaseFilter);
+    }
+
+    // Default filter for other tabs
+    return (item.nome?.toLowerCase().includes(lowerCaseFilter) ||
+            item.descricao?.toLowerCase().includes(lowerCaseFilter));
+
+  }), [currentDataWithDerivatives, showInactive, deferredFiltro, tab, projetoMap, recursoMap, equipeMap]);
 
   const columns = {
     projetos: [
@@ -237,6 +286,15 @@ export default function GerenciamentoCascade() {
     equipes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }, { id: 'secao_id', label: 'Seção', format: (val) => secaoMap[val] || 'N/A' }],
     recursos: [{ id: 'nome', label: 'Nome' }, { id: 'matricula', label: 'Matrícula' }, { id: 'equipe_id', label: 'Equipe', format: (val) => equipeMap[val] || 'N/A' }],
     statusProjetos: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
+    alocacoes: [
+      { id: 'projeto_id', label: 'Projeto', format: (val) => projetoMap[val] || 'N/A' },
+      { id: 'recurso_id', label: 'Recurso', format: (val) => recursoMap[val] || 'N/A' },
+      { id: 'equipe_id', label: 'Equipe', format: (val) => equipeMap[val] || 'N/A' },
+      { id: 'status_alocacao_id', label: 'Status', format: (val) => statusMap[val] || 'N/A' },
+      { id: 'data_inicio_alocacao', label: 'Início', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A' },
+      { id: 'data_fim_alocacao', label: 'Fim', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A' },
+      { id: 'observacao', label: 'Observação' },
+    ],
   };
   const currentColumns = columns[tab];
 
@@ -336,50 +394,12 @@ export default function GerenciamentoCascade() {
       )}
 
       {/* Modais Renderizados de forma performática */}
-      {tab === 'projetos' && (
-        <ProjetoModal
-          open={modalOpen}
-          onClose={handleCloseModal}
-          onSave={handleSave}
-          projeto={currentItem}
-          secoes={secoes}
-          statusProjetos={statusProjetos}
-        />
-      )}
-      {tab === 'secoes' && (
-        <SecaoModal
-          open={modalOpen}
-          onClose={handleCloseModal}
-          onSave={handleSave}
-          secao={currentItem}
-        />
-      )}
-      {tab === 'equipes' && (
-        <EquipeModal
-          open={modalOpen}
-          onClose={handleCloseModal}
-          onSave={handleSave}
-          equipe={currentItem}
-          secoes={secoes}
-        />
-      )}
-      {tab === 'recursos' && (
-        <RecursoModal
-          open={modalOpen}
-          onClose={handleCloseModal}
-          onSave={handleSave}
-          recurso={currentItem}
-          equipes={equipes}
-        />
-      )}
-      {tab === 'statusProjetos' && (
-        <StatusProjetoModal
-          open={modalOpen}
-          onClose={handleCloseModal}
-          onSave={handleSave}
-          statusProjeto={currentItem}
-        />
-      )}
+      {tab === 'projetos' && <ProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} projeto={currentItem} secoes={secoes} statusProjetos={statusProjetos} />}
+      {tab === 'alocacoes' && <AlocacaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} item={currentItem} projetos={projetos} recursos={recursos} statusOptions={statusProjetos} />}
+      {tab === 'secoes' && <SecaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />}
+      {tab === 'equipes' && <EquipeModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes} />}
+      {tab === 'recursos' && <RecursoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} recurso={currentItem} equipes={equipes} />}
+      {tab === 'statusProjetos' && <StatusProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} statusProjeto={currentItem} />}
 
       <Snackbar
         open={notification.open}
