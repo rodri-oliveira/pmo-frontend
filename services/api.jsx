@@ -169,16 +169,6 @@ export const apiPost = async (endpoint, data) => {
   }
 };
 
-// Função para criar uma nova seção
-async function criarSecao({ nome, descricao }) {
-  return await apiPost('/secoes/', { nome, descricao });
-}
-
-// Função para buscar todas as seções
-async function getSecoes({ skip = 0, limit = 100, apenas_ativos = false } = {}) {
-  return await apiGet('/secoes/', { skip, limit, apenas_ativos });
-}
-
 // Função genérica para requisições PUT
 export const apiPut = async (endpoint, data) => {
   const url = buildUrl(endpoint);
@@ -264,14 +254,5 @@ export const checkApiConnection = async () => {
   }
 };
 
-// Exportar todas as funções
-export { ApiError, criarSecao, getSecoes };
-
-export default {
-  apiGet,
-  apiPost,
-  apiPut,
-  apiDelete,
-  checkApiConnection,
-  ApiError
-};
+// Exportar a classe de erro personalizada para ser usada em outros locais
+export { ApiError };

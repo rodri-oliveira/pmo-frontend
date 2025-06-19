@@ -10,29 +10,11 @@ import { getStatusProjetos } from '../../services/statusProjetos';
 
 const wegBlue = '#00579d';
 
-export default function ProjetoModal({ open, onClose, onSave, projeto }) {
+export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, statusProjetos }) {
   const [formData, setFormData] = useState({});
-  const [secoes, setSecoes] = useState([]);
-  const [statusProjetos, setStatusProjetos] = useState([]);
   const [errors, setErrors] = useState({});
 
   const isEditing = !!projeto;
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const secoesData = await getSecoes({ apenas_ativos: true });
-        const statusData = await getStatusProjetos({ apenas_ativos: true });
-        setSecoes(Array.isArray(secoesData) ? secoesData : secoesData.items || []);
-        setStatusProjetos(Array.isArray(statusData) ? statusData : statusData.items || []);
-      } catch (error) {
-        console.error("Erro ao buscar dados para o modal de projeto:", error);
-      }
-    }
-    if (open) {
-      fetchData();
-    }
-  }, [open]);
 
   useEffect(() => {
     if (projeto) {
@@ -66,22 +48,30 @@ export default function ProjetoModal({ open, onClose, onSave, projeto }) {
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.nome) newErrors.nome = "Nome é obrigatório.";
-    if (!formData.descricao) newErrors.descricao = "Descrição é obrigatória.";
-    if (!formData.secao_id) newErrors.secao_id = "Seção é obrigatória.";
-    if (!formData.status_projeto_id) newErrors.status_projeto_id = "Status do Projeto é obrigatório.";
-    if (!formData.data_inicio_prevista) newErrors.data_inicio_prevista = "Data de início é obrigatória.";
+    if (!formData.nome) newErrors.nome = 'O nome do projeto é obrigatório.';
+    if (!formData.descricao) newErrors.descricao = 'A descrição é obrigatória.';
+    if (!formData.secao_id) newErrors.secao_id = 'A seção é obrigatória.';
+    if (!formData.status_projeto_id) newErrors.status_projeto_id = 'O status do projeto é obrigatório.';
+    if (!formData.data_inicio_prevista) newErrors.data_inicio_prevista = 'A data de início prevista é obrigatória.';
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = () => {
-    if (validate()) {
-      const dataToSave = { ...formData };
-      if (!dataToSave.codigo_empresa) delete dataToSave.codigo_empresa;
-      if (!dataToSave.data_fim_prevista) delete dataToSave.data_fim_prevista;
-      onSave(dataToSave);
+    if (!validate()) {
+      return; // Interrompe o salvamento se a validação falhar
     }
+
+    // Prepara os dados para o envio, tratando campos que podem ser nulos
+    const dataToSave = { ...formData };
+
+    // Converte a string de data vazia para null para ser aceito pelo backend
+    if (dataToSave.data_fim_prevista === '') {
+      dataToSave.data_fim_prevista = null;
+    }
+
+    onSave(dataToSave);
   };
 
   return (

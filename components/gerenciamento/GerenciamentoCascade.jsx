@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box, Typography, Paper, Button, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, CircularProgress,
@@ -21,12 +21,14 @@ import { getRecursos, createRecurso, updateRecurso, deleteRecurso } from '../../
 import { getStatusProjetos, createStatusProjeto, updateStatusProjeto, deleteStatusProjeto } from '../../services/statusProjetos';
 import { getProjetos, createProjeto, updateProjeto, deleteProjeto } from '../../services/projetos';
 
-// Importações dos Modais
-import SecaoModal from './SecaoModal';
-import EquipeModal from './EquipeModal';
-import RecursoModal from './RecursoModal';
-import StatusProjetoModal from './StatusProjetoModal';
-import ProjetoModal from './ProjetoModal';
+// Importações dos Modais (lazy loaded para melhorar performance)
+import dynamic from 'next/dynamic';
+
+const SecaoModal = dynamic(() => import('./SecaoModal'), { ssr: false });
+const EquipeModal = dynamic(() => import('./EquipeModal'), { ssr: false });
+const RecursoModal = dynamic(() => import('./RecursoModal'), { ssr: false });
+const StatusProjetoModal = dynamic(() => import('./StatusProjetoModal'), { ssr: false });
+const ProjetoModal = dynamic(() => import('./ProjetoModal'), { ssr: false });
 
 const wegBlue = '#00579d';
 
@@ -59,11 +61,24 @@ export default function GerenciamentoCascade() {
   const [currentItem, setCurrentItem] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
   const [filtroNome, setFiltroNome] = useState('');
+  const [debouncedFiltro, setDebouncedFiltro] = useState(filtroNome);
 
+  // Debounce do valor do filtro para evitar requisições excessivas
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedFiltro(filtroNome);
+    }, 200); // Atraso de 300ms
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [filtroNome]);
+
+  // Função reutilizável para buscar dados, agora visível para outros handlers
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const params = { include_inactive: showInactive, limit: 1000, search: '' };
+    const params = { include_inactive: showInactive, limit: 1000, search: debouncedFiltro };
     try {
       switch (tab) {
         case 'projetos': {
@@ -99,7 +114,8 @@ export default function GerenciamentoCascade() {
           setStatusProjetos(Array.isArray(data) ? data : data.items || []);
           break;
         }
-        default: break;
+        default:
+          break;
       }
     } catch (err) {
       console.error(`Erro ao buscar dados para ${tab}:`, err);
@@ -107,16 +123,17 @@ export default function GerenciamentoCascade() {
     } finally {
       setLoading(false);
     }
-  }, [tab, showInactive]);
+  }, [tab, showInactive, debouncedFiltro]);
 
+  // Efeito para buscar os dados sempre que a aba ou os filtros mudarem
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData]); // fetchData já inclui as dependências corretas (tab, showInactive, debouncedFiltro)
 
-  const handleOpenModal = (item = null) => {
+  const handleOpenModal = useCallback((item = null) => {
     setCurrentItem(item);
     setModalOpen(true);
-  };
+  }, []);
 
   const handleCloseModal = () => {
     setCurrentItem(null);
@@ -144,7 +161,7 @@ export default function GerenciamentoCascade() {
         await create(data);
         setNotification({ open: true, message: `${typeName} criado com sucesso!`, severity: 'success' });
       }
-      fetchData();
+      await fetchData();
       handleCloseModal();
     } catch (err) {
       const errorMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
@@ -154,7 +171,8 @@ export default function GerenciamentoCascade() {
     }
   };
 
-  const handleDeleteToggle = async (item) => {
+  // Manipula a exclusão ou restauração de itens com memoização correta
+  const handleDeleteToggle = useCallback(async (item) => {
     const action = item.ativo ? 'inativar' : 'reativar';
     if (!window.confirm(`Tem certeza que deseja ${action} este item?`)) return;
 
@@ -175,14 +193,14 @@ export default function GerenciamentoCascade() {
         await update(item.id, { ativo: true });
       }
       setNotification({ open: true, message: `Item ${action} com sucesso!`, severity: 'success' });
-      fetchData();
+      await fetchData();
     } catch (err) {
       const errorMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
       setNotification({ open: true, message: `Erro: ${errorMsg}`, severity: 'error' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [tab, fetchData]);
 
   const handleTabChange = (event) => {
     router.push(`${pathname}?tab=${event.target.value}`);
@@ -190,38 +208,44 @@ export default function GerenciamentoCascade() {
 
   const handleCloseNotification = () => setNotification({ ...notification, open: false });
 
-  const renderContent = () => {
-    const secaoMap = secoes.reduce((acc, s) => ({ ...acc, [s.id]: s.nome }), {});
-    const equipeMap = equipes.reduce((acc, e) => ({ ...acc, [e.id]: e.nome }), {});
-    const statusMap = statusProjetos.reduce((acc, s) => ({ ...acc, [s.id]: s.nome }), {});
+  /* =====================
+     Memoizações de dados
+  ===================== */
+  const secaoMap = useMemo(() => secoes.reduce((acc, s) => ({ ...acc, [s.id]: s.nome }), {}), [secoes]);
+  const equipeMap = useMemo(() => equipes.reduce((acc, e) => ({ ...acc, [e.id]: e.nome }), {}), [equipes]);
+  const statusMap = useMemo(() => statusProjetos.reduce((acc, s) => ({ ...acc, [s.id]: s.nome }), {}), [statusProjetos]);
 
-    const dataMap = {
-      projetos, secoes, equipes, recursos, statusProjetos
-    };
+  const currentData = useMemo(() => {
+    const dataMap = { projetos, secoes, equipes, recursos, statusProjetos };
+    return dataMap[tab] || [];
+  }, [projetos, secoes, equipes, recursos, statusProjetos, tab]);
 
-    const currentData = dataMap[tab] || [];
-    
-    const filteredData = currentData.filter(item =>
-      (showInactive || item.ativo) &&
-      (item.nome?.toLowerCase().includes(filtroNome.toLowerCase()) ||
-       item.descricao?.toLowerCase().includes(filtroNome.toLowerCase()))
-    );
+  const filteredData = useMemo(() => currentData.filter(item => (
+    (showInactive || item.ativo) &&
+    (item.nome?.toLowerCase().includes(debouncedFiltro.toLowerCase()) ||
+     item.descricao?.toLowerCase().includes(debouncedFiltro.toLowerCase()))
+  )), [currentData, showInactive, debouncedFiltro]);
 
-    const columns = {
-      projetos: [
-        { id: 'nome', label: 'Nome' },
-        { id: 'descricao', label: 'Descrição' },
-        { id: 'secao_id', label: 'Seção', format: (val) => secaoMap[val] || 'N/A' },
-        { id: 'status_projeto_id', label: 'Status', format: (val) => statusMap[val] || 'N/A' },
-        { id: 'data_inicio_prevista', label: 'Início Previsto', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString() : 'N/A' },
-      ],
-      secoes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
-      equipes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }, { id: 'secao_id', label: 'Seção', format: (val) => secaoMap[val] || 'N/A' }],
-      recursos: [{ id: 'nome', label: 'Nome' }, { id: 'matricula', label: 'Matrícula' }, { id: 'equipe_id', label: 'Equipe', format: (val) => equipeMap[val] || 'N/A' }],
-      statusProjetos: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
-    };
+  const columns = {
+    projetos: [
+      { id: 'nome', label: 'Nome' },
+      { id: 'descricao', label: 'Descrição' },
+      { id: 'secao_id', label: 'Seção', format: (val) => secaoMap[val] || 'N/A' },
+      { id: 'status_projeto_id', label: 'Status', format: (val) => statusMap[val] || 'N/A' },
+      { id: 'data_inicio_prevista', label: 'Início Previsto', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString() : 'N/A' },
+    ],
+    secoes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
+    equipes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }, { id: 'secao_id', label: 'Seção', format: (val) => secaoMap[val] || 'N/A' }],
+    recursos: [{ id: 'nome', label: 'Nome' }, { id: 'matricula', label: 'Matrícula' }, { id: 'equipe_id', label: 'Equipe', format: (val) => equipeMap[val] || 'N/A' }],
+    statusProjetos: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
+  };
+  const currentColumns = columns[tab];
 
-    const currentColumns = columns[tab];
+  // Callbacks estáveis para evitar recriação nas dependências
+  const handleEdit = useCallback((item) => handleOpenModal(item), [handleOpenModal]);
+  const handleDelete = useCallback((item) => handleDeleteToggle(item), [handleDeleteToggle]);
+
+  const renderedTable = useMemo(() => {
     if (!currentColumns) return <Typography>Selecione um tipo de gerenciamento.</Typography>;
 
     return (
@@ -230,16 +254,11 @@ export default function GerenciamentoCascade() {
           <TableHead>
             <TableRow>
               {currentColumns.map(col => (
-                <TableCell
-                  key={col.id}
-                  sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}
-                >
+                <TableCell key={col.id} sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>
                   {col.label}
                 </TableCell>
               ))}
-              <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>
-                Ações
-              </TableCell>
+              <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -249,8 +268,8 @@ export default function GerenciamentoCascade() {
                   <TableCell key={col.id}>{col.format ? col.format(item[col.id]) : item[col.id]}</TableCell>
                 ))}
                 <TableCell>
-                  <IconButton onClick={() => handleOpenModal(item)}><EditIcon /></IconButton>
-                  <IconButton onClick={() => handleDeleteToggle(item)}>
+                  <IconButton onClick={() => handleEdit(item)}><EditIcon /></IconButton>
+                  <IconButton onClick={() => handleDelete(item)}>
                     {item.ativo ? <DeleteIcon sx={{ color: '#d32f2f' }} /> : <RestoreFromTrashIcon />}
                   </IconButton>
                 </TableCell>
@@ -260,7 +279,14 @@ export default function GerenciamentoCascade() {
         </Table>
       </TableContainer>
     );
-  };
+  }, [filteredData, currentColumns, handleEdit, handleDelete]);
+
+  /* =====================
+     Renderização
+  ===================== */
+
+  // O retorno da função antes era 'renderContent()'; substituímos pelo JSX memoizado.
+  const renderContent = () => renderedTable;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -286,28 +312,82 @@ export default function GerenciamentoCascade() {
           />
           <FormControlLabel
             control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
-            label="Mostrar Inativos"
+            label="Mostrar inativos"
+            sx={{ ml: 'auto' }}
           />
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => handleOpenModal()}
-            sx={{ backgroundColor: wegBlue, '&:hover': { backgroundColor: '#004a8c' } }}
+            sx={{ backgroundColor: wegBlue, '&:hover': { backgroundColor: '#004175' } }}
           >
             Novo Item
           </Button>
         </Box>
       </Paper>
 
-      {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}><CircularProgress /></Box> : error ? <Alert severity="error">{error}</Alert> : renderContent()}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        renderContent()
+      )}
 
-      {modalOpen && tab === 'projetos' && <ProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} projeto={currentItem} />}
-      {modalOpen && tab === 'secoes' && <SecaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />}
-      {modalOpen && tab === 'equipes' && <EquipeModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes} />}
-      {modalOpen && tab === 'recursos' && <RecursoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} recurso={currentItem} equipes={equipes} />}
-      {modalOpen && tab === 'statusProjetos' && <StatusProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} statusProjeto={currentItem} />}
+      {/* Modais Renderizados de forma performática */}
+      {tab === 'projetos' && (
+        <ProjetoModal
+          open={modalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSave}
+          projeto={currentItem}
+          secoes={secoes}
+          statusProjetos={statusProjetos}
+        />
+      )}
+      {tab === 'secoes' && (
+        <SecaoModal
+          open={modalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSave}
+          secao={currentItem}
+        />
+      )}
+      {tab === 'equipes' && (
+        <EquipeModal
+          open={modalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSave}
+          equipe={currentItem}
+          secoes={secoes}
+        />
+      )}
+      {tab === 'recursos' && (
+        <RecursoModal
+          open={modalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSave}
+          recurso={currentItem}
+          equipes={equipes}
+        />
+      )}
+      {tab === 'statusProjetos' && (
+        <StatusProjetoModal
+          open={modalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSave}
+          statusProjeto={currentItem}
+        />
+      )}
 
-      <Snackbar open={notification.open} autoHideDuration={6000} onClose={handleCloseNotification} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
         <Alert onClose={handleCloseNotification} severity={notification.severity} sx={{ width: '100%' }}>
           {notification.message}
         </Alert>
