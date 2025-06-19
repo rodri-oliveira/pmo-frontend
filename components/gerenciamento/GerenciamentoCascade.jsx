@@ -71,10 +71,11 @@ export default function GerenciamentoCascade() {
   const deferredFiltro = useDeferredValue(filtroNome);
 
   // Função reutilizável para buscar dados, agora visível para outros handlers
-  const fetchData = useCallback(async (showSpinner = false) => {
+  const fetchData = useCallback(async (showSpinner = true) => {
     setLoading(true);
     setError(null);
-    const params = { include_inactive: showInactive, limit: 1000, search: deferredFiltro };
+    // A filtragem por texto será feita no cliente, então o 'search' não é mais passado.
+    const params = { include_inactive: showInactive, limit: 1000 };
     try {
       switch (tab) {
         case 'projetos': {
@@ -111,17 +112,15 @@ export default function GerenciamentoCascade() {
           break;
         }
         case 'alocacoes': {
-          // Agora, busca também os status de alocação.
           const [alocData, projData, recData, statAlocData] = await Promise.all([
               getAlocacoes(params),
-              getProjetos({ limit: 1000 }), // Busca todos os projetos para o modal
-              getRecursos({ limit: 1000 }), // Busca todos os recursos para o modal
-              getStatusProjetos({ limit: 1000 }), // Mantido para o modal, mas não para a tabela
+              getProjetos({ limit: 1000 }),
+              getRecursos({ limit: 1000 }),
+              getStatusProjetos({ limit: 1000 }),
           ]);
           setAlocacoes(Array.isArray(alocData) ? alocData : alocData.items || []);
           setProjetos(Array.isArray(projData) ? projData : projData.items || []);
           setRecursos(Array.isArray(recData) ? recData : recData.items || []);
-          // O status de alocação agora é pego do `statusProjetos`, vamos assumir que são os mesmos por enquanto.
           setStatusProjetos(Array.isArray(statAlocData) ? statAlocData : statAlocData.items || []);
           break;
         }
@@ -132,9 +131,9 @@ export default function GerenciamentoCascade() {
       console.error(`Erro ao buscar dados para ${tab}:`, err);
       setError(err.message);
     } finally {
-      if (showSpinner) setLoading(false);
+      setLoading(false);
     }
-  }, [tab, showInactive, deferredFiltro]);
+  }, [tab, showInactive]);
 
   // Carrega dados quando aba ou flag de inativos muda (mostra spinner)
   useEffect(() => {
@@ -142,13 +141,7 @@ export default function GerenciamentoCascade() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, showInactive]);
 
-  // Carrega dados quando filtro (deferred) muda, sem bloquear UI
-  useEffect(() => {
-    startTransition(() => {
-      fetchData();
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deferredFiltro]);
+
 
   const handleOpenModal = useCallback((item = null) => {
     setCurrentItem(item);
@@ -255,28 +248,31 @@ export default function GerenciamentoCascade() {
     }));
   }, [currentData, tab, recursos, recursoMap]);
 
-  const filteredData = useMemo(() => currentDataWithDerivatives.filter(item => {
-    // Algumas entidades (ex: alocações) podem não ter a flag "ativo" explicitamente.
-    const isEntityActive = (item.ativo === undefined) ? true : item.ativo;
-    const isVisible = showInactive || isEntityActive;
-    if (!isVisible) return false;
+  const filteredData = useMemo(() => {
+    return currentDataWithDerivatives.filter(item => {
+      const isEntityActive = item.ativo === undefined ? true : item.ativo;
+      const isVisible = showInactive || isEntityActive;
+      if (!isVisible) return false;
+      if (!deferredFiltro) return true;
 
-    if (deferredFiltro === '') return true;
+      const lowerCaseFilter = deferredFiltro.toLowerCase();
 
-    const lowerCaseFilter = deferredFiltro.toLowerCase();
+      if (tab === 'alocacoes') {
+        return (
+          item.projeto_nome?.toLowerCase().includes(lowerCaseFilter) ||
+          item.recurso_nome?.toLowerCase().includes(lowerCaseFilter) ||
+          item.equipe_nome?.toLowerCase().includes(lowerCaseFilter) ||
+          item.observacao?.toLowerCase().includes(lowerCaseFilter)
+        );
+      }
 
-    if (tab === 'alocacoes') {
-      const projectName = projetoMap[item.projeto_id]?.toLowerCase() || '';
-      const resourceName = recursoMap[item.recurso_id]?.toLowerCase() || '';
-      const equipeName = equipeMap[item.equipe_id]?.toLowerCase() || '';
-      return projectName.includes(lowerCaseFilter) || resourceName.includes(lowerCaseFilter) || equipeName.includes(lowerCaseFilter);
-    }
-
-    // Default filter for other tabs
-    return (item.nome?.toLowerCase().includes(lowerCaseFilter) ||
-            item.descricao?.toLowerCase().includes(lowerCaseFilter));
-
-  }), [currentDataWithDerivatives, showInactive, deferredFiltro, tab, projetoMap, recursoMap, equipeMap]);
+      // Filtro padrão para outras abas
+      return (
+        item.nome?.toLowerCase().includes(lowerCaseFilter) ||
+        item.descricao?.toLowerCase().includes(lowerCaseFilter)
+      );
+    });
+  }, [currentDataWithDerivatives, showInactive, deferredFiltro, tab]);
 
   const columns = {
     projetos: [
