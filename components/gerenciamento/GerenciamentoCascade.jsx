@@ -111,18 +111,20 @@ export default function GerenciamentoCascade() {
           break;
         }
         case 'alocacoes': {
-          const [alocData, projData, recData, statProjData] = await Promise.all([
+          // Agora, busca também os status de alocação.
+          const [alocData, projData, recData, statAlocData] = await Promise.all([
               getAlocacoes(params),
-              getProjetos({ apenas_ativos: true, limit: 1000 }),
-              getRecursos({ apenas_ativos: true, limit: 1000 }),
-              getStatusProjetos({ apenas_ativos: true, limit: 1000 }),
+              getProjetos({ limit: 1000 }), // Busca todos os projetos para o modal
+              getRecursos({ limit: 1000 }), // Busca todos os recursos para o modal
+              getStatusProjetos({ limit: 1000 }), // Mantido para o modal, mas não para a tabela
           ]);
           setAlocacoes(Array.isArray(alocData) ? alocData : alocData.items || []);
           setProjetos(Array.isArray(projData) ? projData : projData.items || []);
           setRecursos(Array.isArray(recData) ? recData : recData.items || []);
-          setStatusProjetos(Array.isArray(statProjData) ? statProjData : statProjData.items || []);
+          // O status de alocação agora é pego do `statusProjetos`, vamos assumir que são os mesmos por enquanto.
+          setStatusProjetos(Array.isArray(statAlocData) ? statAlocData : statAlocData.items || []);
           break;
-      }
+        }
         default:
           break;
       }
@@ -236,6 +238,8 @@ export default function GerenciamentoCascade() {
   const statusMap = useMemo(() => statusProjetos.reduce((acc, s) => ({ ...acc, [s.id]: s.nome }), {}), [statusProjetos]);
   const projetoMap = useMemo(() => projetos.reduce((acc, p) => ({ ...acc, [p.id]: p.nome }), {}), [projetos]);
   const recursoMap = useMemo(() => recursos.reduce((acc, r) => ({ ...acc, [r.id]: r.nome }), {}), [recursos]);
+  // O statusMap existente é para Status de Projeto. Vamos usá-lo para alocações também, conforme API.
+  const statusAlocacaoMap = statusMap;
 
   const currentData = useMemo(() => {
     const dataMap = { projetos, secoes, equipes, recursos, statusProjetos, alocacoes };
@@ -287,12 +291,11 @@ export default function GerenciamentoCascade() {
     recursos: [{ id: 'nome', label: 'Nome' }, { id: 'matricula', label: 'Matrícula' }, { id: 'equipe_id', label: 'Equipe', format: (val) => equipeMap[val] || 'N/A' }],
     statusProjetos: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
     alocacoes: [
-      { id: 'projeto_id', label: 'Projeto', format: (val) => projetoMap[val] || 'N/A' },
-      { id: 'recurso_id', label: 'Recurso', format: (val) => recursoMap[val] || 'N/A' },
-      { id: 'equipe_id', label: 'Equipe', format: (val) => equipeMap[val] || 'N/A' },
-      { id: 'status_alocacao_id', label: 'Status', format: (val) => statusMap[val] || 'N/A' },
+      { id: 'projeto_nome', label: 'Projeto' },
+      { id: 'recurso_nome', label: 'Recurso' },
+      { id: 'equipe_nome', label: 'Equipe' },
+      { id: 'status_alocacao_id', label: 'Status', format: (val) => statusAlocacaoMap[val] || 'N/A' },
       { id: 'data_inicio_alocacao', label: 'Início', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A' },
-      { id: 'data_fim_alocacao', label: 'Fim', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A' },
       { id: 'observacao', label: 'Observação' },
     ],
   };
@@ -327,7 +330,8 @@ export default function GerenciamentoCascade() {
                 <TableCell>
                   <IconButton onClick={() => handleEdit(item)}><EditIcon /></IconButton>
                   <IconButton onClick={() => handleDelete(item)}>
-                    {item.ativo ? <DeleteIcon sx={{ color: '#d32f2f' }} /> : <RestoreFromTrashIcon />}
+                    {/* Para alocações, o ícone de deletar será sempre vermelho, pois não há status 'inativo' explícito */}
+                    <DeleteIcon sx={{ color: '#d32f2f' }} />
                   </IconButton>
                 </TableCell>
               </TableRow>
