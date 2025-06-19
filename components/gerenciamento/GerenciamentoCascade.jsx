@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useDeferredValue, startTransition } from 'react';
 import {
   Box, Typography, Paper, Button, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, CircularProgress,
@@ -61,24 +61,14 @@ export default function GerenciamentoCascade() {
   const [currentItem, setCurrentItem] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
   const [filtroNome, setFiltroNome] = useState('');
-  const [debouncedFiltro, setDebouncedFiltro] = useState(filtroNome);
-
-  // Debounce do valor do filtro para evitar requisições excessivas
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedFiltro(filtroNome);
-    }, 200); // Atraso de 300ms
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [filtroNome]);
+  // Usa algoritmo concurrent do React 18 para adiar buscas sem bloquear UI
+  const deferredFiltro = useDeferredValue(filtroNome);
 
   // Função reutilizável para buscar dados, agora visível para outros handlers
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (showSpinner = false) => {
     setLoading(true);
     setError(null);
-    const params = { include_inactive: showInactive, limit: 1000, search: debouncedFiltro };
+    const params = { include_inactive: showInactive, limit: 1000, search: deferredFiltro };
     try {
       switch (tab) {
         case 'projetos': {
@@ -121,14 +111,23 @@ export default function GerenciamentoCascade() {
       console.error(`Erro ao buscar dados para ${tab}:`, err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
-  }, [tab, showInactive, debouncedFiltro]);
+  }, [tab, showInactive, deferredFiltro]);
 
-  // Efeito para buscar os dados sempre que a aba ou os filtros mudarem
+  // Carrega dados quando aba ou flag de inativos muda (mostra spinner)
   useEffect(() => {
-    fetchData();
-  }, [fetchData]); // fetchData já inclui as dependências corretas (tab, showInactive, debouncedFiltro)
+    fetchData(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, showInactive]);
+
+  // Carrega dados quando filtro (deferred) muda, sem bloquear UI
+  useEffect(() => {
+    startTransition(() => {
+      fetchData();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deferredFiltro]);
 
   const handleOpenModal = useCallback((item = null) => {
     setCurrentItem(item);
@@ -222,9 +221,9 @@ export default function GerenciamentoCascade() {
 
   const filteredData = useMemo(() => currentData.filter(item => (
     (showInactive || item.ativo) &&
-    (item.nome?.toLowerCase().includes(debouncedFiltro.toLowerCase()) ||
-     item.descricao?.toLowerCase().includes(debouncedFiltro.toLowerCase()))
-  )), [currentData, showInactive, debouncedFiltro]);
+    (item.nome?.toLowerCase().includes(deferredFiltro.toLowerCase()) ||
+     item.descricao?.toLowerCase().includes(deferredFiltro.toLowerCase()))
+  )), [currentData, showInactive, deferredFiltro]);
 
   const columns = {
     projetos: [
