@@ -79,7 +79,7 @@ export default function GerenciamentoCascade() {
     setError(null);
     
     const params = {
-      include_inactive: showInactive,
+      apenas_ativos: !showInactive,
       limit: rowsPerPage,
       skip: page * rowsPerPage,
       nome: deferredFiltro || null, // Envia o termo de busca para o backend
@@ -89,43 +89,50 @@ export default function GerenciamentoCascade() {
       switch (tab) {
         case 'projetos': {
           const projData = await getProjetos(params);
-          // As buscas abaixo podem ser otimizadas no futuro para não rodarem a cada página
+          const items = Array.isArray(projData) ? projData : projData.items;
+          const totalCount = Array.isArray(projData) ? projData.length : (projData.total || (projData.items ? projData.items.length : 0));
+          setProjetos(items || []);
+          setTotal(totalCount || 0);
           const [secData, statData] = await Promise.all([
             getSecoes({ apenas_ativos: true }),
             getStatusProjetos({ apenas_ativos: true })
           ]);
-          const items = projData.items ?? projData.results ?? [];
-          setProjetos(items);
-          const totalCount = projData.total ?? projData.count ?? 0;
-          setTotal(totalCount);
           setSecoes(Array.isArray(secData) ? secData : secData.items || []);
           setStatusProjetos(Array.isArray(statData) ? statData : statData.items || []);
           break;
         }
         case 'secoes': {
           const data = await getSecoes(params);
-          setSecoes(data.items || []);
-          setTotal(data.total || 0);
+          const items = Array.isArray(data) ? data : data.items;
+          const totalCount = Array.isArray(data) ? data.length : (data.total || (data.items ? data.items.length : 0));
+          setSecoes(items || []);
+          setTotal(totalCount || 0);
           break;
         }
         case 'equipes': {
           const [eqData, secData] = await Promise.all([getEquipes(params), getSecoes({ apenas_ativos: true })]);
-          setEquipes(eqData.items || []);
-          setTotal(eqData.total || 0);
+          const items = Array.isArray(eqData) ? eqData : eqData.items;
+          const totalCount = Array.isArray(eqData) ? eqData.length : (eqData.total || (eqData.items ? eqData.items.length : 0));
+          setEquipes(items || []);
+          setTotal(totalCount || 0);
           setSecoes(Array.isArray(secData) ? secData : secData.items || []);
           break;
         }
         case 'recursos': {
           const [recData, eqData] = await Promise.all([getRecursos(params), getEquipes({ apenas_ativos: true })]);
-          setRecursos(recData.items || []);
-          setTotal(recData.total || 0);
+          const items = Array.isArray(recData) ? recData : recData.items;
+          const totalCount = Array.isArray(recData) ? recData.length : (recData.total || (recData.items ? recData.items.length : 0));
+          setRecursos(items || []);
+          setTotal(totalCount || 0);
           setEquipes(Array.isArray(eqData) ? eqData : eqData.items || []);
           break;
         }
         case 'statusProjetos': {
           const data = await getStatusProjetos(params);
-          setStatusProjetos(data.items || []);
-          setTotal(data.total || 0);
+          const items = Array.isArray(data) ? data : data.items;
+          const totalCount = Array.isArray(data) ? data.length : (data.total || (data.items ? data.items.length : 0));
+          setStatusProjetos(items || []);
+          setTotal(totalCount || 0);
           break;
         }
         case 'alocacoes': {
@@ -135,8 +142,10 @@ export default function GerenciamentoCascade() {
               getRecursos({ limit: 1000 }),
               getStatusProjetos({ limit: 1000 }),
           ]);
-          setAlocacoes(alocData.items || []);
-          setTotal(alocData.total || 0);
+          const items = Array.isArray(alocData) ? alocData : alocData.items;
+          const totalCount = Array.isArray(alocData) ? alocData.length : (alocData.total || (alocData.items ? alocData.items.length : 0));
+          setAlocacoes(items || []);
+          setTotal(totalCount || 0);
           setProjetos(Array.isArray(projData) ? projData : projData.items || []);
           setRecursos(Array.isArray(recData) ? recData : recData.items || []);
           setStatusProjetos(Array.isArray(statAlocData) ? statAlocData : statAlocData.items || []);
@@ -355,8 +364,8 @@ export default function GerenciamentoCascade() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredData.map(item => (
-                <TableRow key={item.id} sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}>
+              {filteredData.map((item, index) => (
+                <TableRow key={item.id || index} sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}>
                   {currentColumns.map(col => (
                     <TableCell key={col.id}>{col.format ? col.format(item[col.id]) : item[col.id]}</TableCell>
                   ))}
