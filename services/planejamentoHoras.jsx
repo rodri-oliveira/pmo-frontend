@@ -5,8 +5,9 @@ export const createOrUpdatePlanejamentoHoras = (data) =>
   apiPost('/planejamento-horas/', data);
 
 // Buscar planejamentos de uma alocação específica
-export const getPlanejamentosByAlocacao = (alocacaoId) =>
-  apiGet(`/planejamento-horas/alocacao/${alocacaoId}`);
+export const getPlanejamentosByAlocacao = (alocacaoId, params) => {
+  return apiGet(`/planejamento-horas/alocacao/${alocacaoId}`, params);
+};
 
 // Buscar alocações para dropdown
 export const getAlocacoes = (params = {}) => {

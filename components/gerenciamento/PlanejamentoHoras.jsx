@@ -2,10 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
+  TextField,
   Table,
   TableBody,
   TableCell,
@@ -13,171 +10,142 @@ import {
   TableHead,
   TableRow,
   Paper,
-  TextField,
-  Button,
   CircularProgress,
+  TablePagination,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { getAlocacoes, getPlanejamentosByAlocacao, createOrUpdatePlanejamentoHoras } from '../../services/planejamentoHoras';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import { getAlocacoes } from '../../services/alocacoes';
+import PlanejamentoHorasModal from './PlanejamentoHorasModal';
 
 const PlanejamentoHoras = ({ setNotification }) => {
   const [alocacoes, setAlocacoes] = useState([]);
-  const [selectedAlocacao, setSelectedAlocacao] = useState('');
-  const [planejamentos, setPlanejamentos] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedAlocacao, setSelectedAlocacao] = useState(null);
 
-  const fetchAlocacoes = useCallback(async () => {
+  const fetchData = useCallback(async () => {
+    setLoading(true);
     try {
-      const response = await getAlocacoes({ limit: 1000 });
-      setAlocacoes(response.items || []);
+      const params = {
+        page,
+        limit: rowsPerPage,
+        searchTerm,
+        apenas_ativos: true,
+      };
+      const data = await getAlocacoes(params);
+      setAlocacoes(data.items || []);
+      setTotal(data.total || 0);
     } catch (error) {
       setNotification({
         open: true,
         message: `Erro ao buscar alocações: ${error.message}`,
         severity: 'error',
       });
-    }
-  }, [setNotification]);
-
-  useEffect(() => {
-    fetchAlocacoes();
-  }, [fetchAlocacoes]);
-
-  const handleAlocacaoChange = async (event) => {
-    const alocacaoId = event.target.value;
-    setSelectedAlocacao(alocacaoId);
-    if (!alocacaoId) {
-      setPlanejamentos([]);
-      return;
-    }
-    setLoading(true);
-    try {
-      const response = await getPlanejamentosByAlocacao(alocacaoId);
-      const sortedPlanejamentos = (response.items || []).sort((a, b) => a.mes - b.mes);
-      setPlanejamentos(sortedPlanejamentos);
-    } catch (error) {
-      setNotification({
-        open: true,
-        message: `Erro ao buscar planejamentos: ${error.message}`,
-        severity: 'error',
-      });
-      setPlanejamentos([]);
     } finally {
       setLoading(false);
     }
+  }, [page, rowsPerPage, searchTerm, setNotification]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+    setPage(0);
   };
 
-  const handleHorasChange = (mes, value) => {
-    const updatedPlanejamentos = planejamentos.map((p) => {
-      if (p.mes === mes) {
-        return { ...p, horas_planejadas: value };
-      }
-      return p;
-    });
-    setPlanejamentos(updatedPlanejamentos);
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
   };
 
-  const handleSaveChanges = async () => {
-    setSaving(true);
-    try {
-      const promises = planejamentos.map((p) => {
-        const data = {
-          alocacao_id: p.alocacao_id,
-          ano: p.ano,
-          mes: p.mes,
-          horas_planejadas: parseFloat(p.horas_planejadas) || 0,
-        };
-        return createOrUpdatePlanejamentoHoras(data);
-      });
-      await Promise.all(promises);
-      setNotification({
-        open: true,
-        message: 'Horas planejadas salvas com sucesso!',
-        severity: 'success',
-      });
-    } catch (error) {
-      setNotification({
-        open: true,
-        message: `Erro ao salvar horas planejadas: ${error.message}`,
-        severity: 'error',
-      });
-    } finally {
-      setSaving(false);
-    }
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
-  const meses = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-  ];
+  const handleOpenModal = (alocacao) => {
+    setSelectedAlocacao(alocacao);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedAlocacao(null);
+  };
 
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
-        Planejamento de Horas por Alocação
+        Planejamento de Horas
       </Typography>
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel id="alocacao-select-label">Selecione a Alocação</InputLabel>
-        <Select
-          labelId="alocacao-select-label"
-          value={selectedAlocacao}
-          label="Selecione a Alocação"
-          onChange={handleAlocacaoChange}
-        >
-          <MenuItem value="">
-            <em>Nenhuma</em>
-          </MenuItem>
-          {alocacoes.map((aloc) => (
-            <MenuItem key={aloc.id} value={aloc.id}>
-              {`Alocação ID: ${aloc.id} (Recurso: ${aloc.recurso_id}, Projeto: ${aloc.projeto_id})`}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Selecione uma alocação da lista para planejar as horas mensais.
+      </Typography>
 
-      {loading ? (
-        <CircularProgress />
-      ) : planejamentos.length > 0 && (
-        <Paper>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Mês</TableCell>
-                  <TableCell align="right">Horas Planejadas</TableCell>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+        <TextField
+          label="Filtrar por nome do projeto ou recurso"
+          variant="outlined"
+          value={searchTerm}
+          onChange={handleSearchChange}
+          sx={{ width: '40%' }}
+        />
+      </Box>
+
+      <Paper>
+        <TableContainer>
+          {loading && <CircularProgress sx={{ m: 2 }} />}
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Projeto</TableCell>
+                <TableCell>Recurso</TableCell>
+                <TableCell align="center">Ações</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {!loading && alocacoes.map((alocacao) => (
+                <TableRow key={alocacao.id}>
+                  <TableCell>{alocacao.projeto?.nome || 'N/A'}</TableCell>
+                  <TableCell>{alocacao.recurso?.nome || 'N/A'}</TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="Planejar Horas">
+                      <IconButton onClick={() => handleOpenModal(alocacao)}>
+                        <EventNoteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {planejamentos.map((p) => (
-                  <TableRow key={p.mes}>
-                    <TableCell>{meses[p.mes - 1]}</TableCell>
-                    <TableCell align="right">
-                      <TextField
-                        type="number"
-                        value={p.horas_planejadas}
-                        onChange={(e) => handleHorasChange(p.mes, e.target.value)}
-                        variant="outlined"
-                        size="small"
-                        sx={{ width: '100px' }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              variant="contained"
-              onClick={handleSaveChanges}
-              disabled={saving}
-            >
-              {saving ? <CircularProgress size={24} /> : 'Salvar Alterações'}
-            </Button>
-          </Box>
-        </Paper>
-      )}
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          component="div"
+          count={total}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[10, 25, 50]}
+        />
+      </Paper>
 
+      {selectedAlocacao && (
+        <PlanejamentoHorasModal
+          open={modalOpen}
+          onClose={handleCloseModal}
+          alocacao={selectedAlocacao}
+          setNotification={setNotification}
+        />
+      )}
     </Box>
   );
 };

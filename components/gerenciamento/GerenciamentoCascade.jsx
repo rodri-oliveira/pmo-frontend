@@ -318,7 +318,7 @@ export default function GerenciamentoCascade() {
     ],
     secoes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
     equipes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }, { id: 'secao_id', label: 'Seção', format: (val) => secaoMap[val] || 'N/A' }],
-    recursos: [{ id: 'nome', label: 'Nome' }, { id: 'matricula', label: 'Matrícula' }, { id: 'equipe_id', label: 'Equipe', format: (val) => equipeMap[val] || 'N/A' }],
+    recursos: [{ id: 'nome', label: 'Nome' }, { id: 'equipe_principal_id', label: 'Equipe', format: (val) => equipeMap[val] || 'N/A' }],
     statusProjetos: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
     alocacoes: [
       { id: 'projeto_nome', label: 'Projeto' },
@@ -349,7 +349,9 @@ export default function GerenciamentoCascade() {
                     {col.label}
                   </TableCell>
                 ))}
-                <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
+                <TableCell align="center" sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold', width: '120px' }}>
+                  Ações
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
