@@ -113,8 +113,8 @@ const PlanejamentoHoras = ({ setNotification }) => {
             <TableBody>
               {!loading && alocacoes.map((alocacao) => (
                 <TableRow key={alocacao.id}>
-                  <TableCell>{alocacao.projeto?.nome || 'N/A'}</TableCell>
-                  <TableCell>{alocacao.recurso?.nome || 'N/A'}</TableCell>
+                  <TableCell>{alocacao.projeto_nome || 'N/A'}</TableCell>
+                  <TableCell>{alocacao.recurso_nome || 'N/A'}</TableCell>
                   <TableCell align="center">
                     <Tooltip title="Planejar Horas">
                       <IconButton onClick={() => handleOpenModal(alocacao)}>

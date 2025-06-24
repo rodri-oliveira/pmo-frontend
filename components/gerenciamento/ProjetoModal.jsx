@@ -3,43 +3,66 @@
 import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
-  FormControl, InputLabel, Select, MenuItem, FormHelperText
+  FormControl, InputLabel, Select, MenuItem, FormHelperText, Typography, Divider
 } from '@mui/material';
 import { getSecoes } from '../../services/secoes';
 import { getStatusProjetos } from '../../services/statusProjetos';
+import { getRecursos } from '../../services/recursos';
+import AlocacaoForm from './AlocacaoForm';
 
 const wegBlue = '#00579d';
 
 export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, statusProjetos }) {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
+  const [recursos, setRecursos] = useState([]);
+  const [alocacoes, setAlocacoes] = useState([]);
 
   const isEditing = !!projeto;
 
   useEffect(() => {
-    if (projeto) {
-      setFormData({
-        nome: projeto.nome || '',
-        descricao: projeto.descricao || '',
-        codigo_empresa: projeto.codigo_empresa || '',
-        secao_id: projeto.secao_id || '',
-        status_projeto_id: projeto.status_projeto_id || '',
-        data_inicio_prevista: projeto.data_inicio_prevista || '',
-        data_fim_prevista: projeto.data_fim_prevista || '',
-      });
-    } else {
-      setFormData({
-        nome: '',
-        descricao: '',
-        codigo_empresa: '',
-        secao_id: '',
-        status_projeto_id: '',
-        data_inicio_prevista: new Date().toISOString().split('T')[0],
-        data_fim_prevista: '',
-      });
+    if (open) {
+        if (projeto) {
+            setFormData({
+                nome: projeto.nome || '',
+                descricao: projeto.descricao || '',
+                codigo_empresa: projeto.codigo_empresa || '',
+                secao_id: projeto.secao_id || '',
+                status_projeto_id: projeto.status_projeto_id || '',
+                data_inicio_prevista: projeto.data_inicio_prevista?.split('T')[0] || '',
+                data_fim_prevista: projeto.data_fim_prevista?.split('T')[0] || '',
+            });
+            setAlocacoes(projeto.alocacoes?.map(a => ({...a, horas_planejadas: a.horas_planejadas || []})) || []);
+        } else {
+            setFormData({
+                nome: '',
+                descricao: '',
+                codigo_empresa: '',
+                secao_id: '',
+                status_projeto_id: '',
+                data_inicio_prevista: new Date().toISOString().split('T')[0],
+                data_fim_prevista: '',
+            });
+            setAlocacoes([]);
+        }
+        setErrors({});
     }
-    setErrors({});
   }, [projeto, open]);
+
+  useEffect(() => {
+    const fetchRecursos = async () => {
+        try {
+            const data = await getRecursos();
+            setRecursos(data.items || []);
+        } catch (error) {
+            console.error("Erro ao buscar recursos:", error);
+            setRecursos([]);
+        }
+    };
+    if (open) {
+        fetchRecursos();
+    }
+  }, [open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -60,18 +83,44 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
 
   const handleSave = () => {
     if (!validate()) {
-      return; // Interrompe o salvamento se a validação falhar
+      return;
     }
 
-    // Prepara os dados para o envio, tratando campos que podem ser nulos
     const dataToSave = { ...formData };
-
-    // Converte a string de data vazia para null para ser aceito pelo backend
     if (dataToSave.data_fim_prevista === '') {
       dataToSave.data_fim_prevista = null;
     }
 
-    onSave(dataToSave);
+    const finalData = {
+        projeto: dataToSave,
+        alocacoes: alocacoes.map(a => ({
+            ...a,
+            horas_planejadas: a.horas_planejadas.map(p => ({...p, horas_planejadas: parseFloat(p.horas_planejadas) || 0}))
+        }))
+    };
+
+    onSave(finalData);
+  };
+
+  const handleAddAlocacao = () => {
+    const newAlocacao = {
+      temp_id: `temp_${Date.now()}`,
+      recurso_id: '',
+      data_inicio_alocacao: '',
+      data_fim_alocacao: '',
+      horas_planejadas: []
+    };
+    setAlocacoes([...alocacoes, newAlocacao]);
+  };
+
+  const handleRemoveAlocacao = (index) => {
+    setAlocacoes(alocacoes.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateAlocacao = (index, updatedAlocacao) => {
+    const newAlocacoes = [...alocacoes];
+    newAlocacoes[index] = updatedAlocacao;
+    setAlocacoes(newAlocacoes);
   };
 
   return (
@@ -103,6 +152,26 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
         </FormControl>
         <TextField required margin="dense" name="data_inicio_prevista" label="Data de Início Prevista" type="date" fullWidth variant="outlined" value={formData.data_inicio_prevista || ''} onChange={handleChange} error={!!errors.data_inicio_prevista} helperText={errors.data_inicio_prevista} InputLabelProps={{ shrink: true }} />
         <TextField margin="dense" name="data_fim_prevista" label="Data de Fim Prevista (Opcional)" type="date" fullWidth variant="outlined" value={formData.data_fim_prevista || ''} onChange={handleChange} InputLabelProps={{ shrink: true }} />
+
+        <Divider sx={{ my: 3 }}>
+            <Typography>Alocação de Recursos</Typography>
+        </Divider>
+
+        {alocacoes.map((alocacao, index) => (
+            <AlocacaoForm 
+                key={alocacao.id || alocacao.temp_id}
+                index={index}
+                alocacao={alocacao}
+                onUpdate={handleUpdateAlocacao}
+                onRemove={handleRemoveAlocacao}
+                recursos={recursos}
+            />
+        ))}
+
+        <Button onClick={handleAddAlocacao} sx={{ mt: 1 }}>
+            Adicionar Recurso
+        </Button>
+
       </DialogContent>
       <DialogActions sx={{ p: '16px 24px' }}>
         <Button onClick={onClose}>Cancelar</Button>

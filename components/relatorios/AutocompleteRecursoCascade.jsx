@@ -8,7 +8,7 @@ import { buscarRecursosPorNome, buscarRecursosPorEquipe, buscarTodosRecursos } f
  *   onChange: função chamada com o objeto {id, nome} do recurso selecionado
  *   equipeId: ID da equipe para filtrar recursos (opcional)
  */
-export default function AutocompleteRecursoCascade({ value, onChange, equipeId, placeholder = 'Digite o nome do recurso...' }) {
+export default function AutocompleteRecursoCascade({ value, onChange, equipeId, placeholder = 'Digite o nome do recurso...', options }) {
   const [inputValue, setInputValue] = useState(value && value.nome ? value.nome : '');
   const [sugestoes, setSugestoes] = useState([]);
   const [showSugestoes, setShowSugestoes] = useState(false);
@@ -32,13 +32,19 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
         setLoading(false);
       }
     };
-    // Limpar seleção ao mudar a equipe
-    if (value && onChange) {
-      onChange(null);
-      setInputValue('');
+
+    if (options) {
+      setTodosRecursos(options);
+      setSugestoes(options);
+    } else {
+      // Limpar seleção ao mudar a equipe
+      if (value && onChange) {
+        onChange(null);
+        setInputValue('');
+      }
+      carregarRecursos();
     }
-    carregarRecursos();
-  }, [equipeId]);
+  }, [equipeId, options]);
 
   // Atualizar o valor do input quando o value mudar externamente
   useEffect(() => {
@@ -63,11 +69,17 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
     }
     
     if (val.length >= 2) {
-      timeoutRef.current = setTimeout(async () => {
-        const sugests = await buscarRecursosPorNome(val, equipeId);
+      if (options) {
+        const sugests = todosRecursos.filter(r => r.nome.toLowerCase().includes(val.toLowerCase()));
         setSugestoes(sugests);
         setShowSugestoes(true);
-      }, 300);
+      } else {
+        timeoutRef.current = setTimeout(async () => {
+          const sugests = await buscarRecursosPorNome(val, equipeId);
+          setSugestoes(sugests);
+          setShowSugestoes(true);
+        }, 300);
+      }
     } else {
       setSugestoes([]);
       setShowSugestoes(false);

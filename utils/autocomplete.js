@@ -8,11 +8,12 @@
 export async function buscarTodasSecoes() {
   try {
     console.log('Buscando todas as seções...');
-    const resp = await fetch(`/backend/v1/secoes?ativo=true`);
+    const resp = await fetch(`/backend/v1/secoes?apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar seções');
     const data = await resp.json();
     const raw = Array.isArray(data) ? data : (data.items || []);
-    const secoes = raw.map(item => ({ id: item.id, nome: item.nome }));
+    const secoes = raw.filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }));
     console.log('Seções encontradas:', secoes);
     return secoes;
   } catch (e) {
@@ -31,11 +32,12 @@ export async function buscarSecoesPorNome(termo) {
   try {
     console.log(`Buscando seções com o termo: "${termo}"`);
     // Novo endpoint de busca de seções
-    const resp = await fetch(`/backend/v1/secoes?nome=${encodeURIComponent(termo)}&ativo=true`);
+    const resp = await fetch(`/backend/v1/secoes?nome=${encodeURIComponent(termo)}&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar seções');
     const data = await resp.json();
     // Sempre espera data.items
-    const secoes = (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    const secoes = (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }));
     console.log(`Seções encontradas para "${termo}":`, secoes);
     return secoes;
   } catch (e) {
@@ -50,11 +52,12 @@ export async function buscarSecoesPorNome(termo) {
  */
 export async function buscarTodasEquipes() {
   try {
-    const resp = await fetch(`/backend/v1/equipes?ativo=true`);
+    const resp = await fetch(`/backend/v1/equipes?apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar equipes');
     const data = await resp.json();
     const raw = Array.isArray(data) ? data : (data.items || []);
-    return raw.map(item => ({ id: item.id, nome: item.nome }));
+    return raw.filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -81,8 +84,10 @@ export async function buscarEquipesPorNome(termo, secaoId = null) {
     const data = await resp.json();
     // Aceita resposta como array raiz OU objeto com items
     return (Array.isArray(data)
-      ? data.map(item => ({ id: item.id, nome: item.nome }))
-      : (data.items || []).map(item => ({ id: item.id, nome: item.nome }))
+      ? data.filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }))
+      : (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }))
     );
   } catch (e) {
     console.error(e);
@@ -98,10 +103,11 @@ export async function buscarEquipesPorNome(termo, secaoId = null) {
 export async function buscarEquipesPorSecao(secaoId) {
   if (!secaoId) return [];
   try {
-    const resp = await fetch(`/backend/v1/equipes?secao_id=${secaoId}&ativo=true`);
+    const resp = await fetch(`/backend/v1/equipes?secao_id=${secaoId}&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar equipes por seção');
     const data = await resp.json();
-    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    return (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -114,11 +120,12 @@ export async function buscarEquipesPorSecao(secaoId) {
  */
 export async function buscarTodosRecursos() {
   try {
-    const resp = await fetch(`/backend/v1/recursos?ativo=true`);
+    const resp = await fetch(`/backend/v1/recursos?apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar recursos');
     const data = await resp.json();
     const raw = Array.isArray(data) ? data : (data.items || []);
-    return raw.map(item => ({ id: item.id, nome: item.nome }));
+    return raw.filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -135,7 +142,7 @@ export async function buscarRecursosPorNome(termo, equipeId = null) {
   if (!termo || termo.length < 2) return [];
   try {
     // Endpoint de busca de recursos com filtro opcional por equipe
-    let url = `/backend/v1/recursos/autocomplete?search=${encodeURIComponent(termo)}`;
+    let url = `/backend/v1/recursos/autocomplete?search=${encodeURIComponent(termo)}&apenas_ativos=true`;
     if (equipeId) {
       url += `&equipe_id=${equipeId}`;
     }
@@ -145,8 +152,10 @@ export async function buscarRecursosPorNome(termo, equipeId = null) {
     const data = await resp.json();
     // Aceita resposta como array raiz OU objeto com items
     return (Array.isArray(data)
-      ? data.map(item => ({ id: item.id, nome: item.nome }))
-      : (data.items || []).map(item => ({ id: item.id, nome: item.nome }))
+      ? data.filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }))
+      : (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }))
     );
   } catch (e) {
     console.error(e);
@@ -162,10 +171,11 @@ export async function buscarRecursosPorNome(termo, equipeId = null) {
 export async function buscarRecursosPorEquipe(equipeId) {
   if (!equipeId) return [];
   try {
-    const resp = await fetch(`/backend/v1/recursos?equipe_id=${equipeId}&ativo=true`);
+    const resp = await fetch(`/backend/v1/recursos?equipe_id=${equipeId}&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar recursos por equipe');
     const data = await resp.json();
-    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    return (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -180,10 +190,11 @@ export async function buscarRecursosPorEquipe(equipeId) {
 export async function buscarProjetosPorEquipe(equipeId) {
   if (!equipeId) return [];
   try {
-    const resp = await fetch(`/backend/v1/projetos?equipe_id=${equipeId}&ativo=true`);
+    const resp = await fetch(`/backend/v1/projetos?equipe_id=${equipeId}&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar projetos por equipe');
     const data = await resp.json();
-    return (data.items || []).map(item => ({ id: item.id, nome: item.nome }));
+    return (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -197,11 +208,12 @@ export async function buscarProjetosPorEquipe(equipeId) {
 export async function buscarTodosProjetos() {
   try {
     // Use endpoint de listagem para listar todos
-    const resp = await fetch(`/backend/v1/projetos?ativo=true`);
+    const resp = await fetch(`/backend/v1/projetos?apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar projetos');
     const data = await resp.json();
     const raw = Array.isArray(data) ? data : (data.items || []);
-    return raw.map(item => ({ id: item.id, nome: item.nome }));
+    return raw.filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -228,8 +240,10 @@ export async function buscarProjetosPorNome(termo, recursoId = null) {
     const data = await resp.json();
     // Aceita resposta como array raiz OU objeto com items
     return (Array.isArray(data)
-      ? data.map(item => ({ id: item.id, nome: item.nome }))
-      : (data.items || []).map(item => ({ id: item.id, nome: item.nome }))
+      ? data.filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }))
+      : (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }))
     );
   } catch (e) {
     console.error(e);
@@ -246,11 +260,12 @@ export async function buscarProjetosPorRecurso(recursoId) {
   if (!recursoId) return [];
   try {
     // Use endpoint de listagem com filtro por recurso
-    const resp = await fetch(`/backend/v1/projetos?recurso_id=${recursoId}&ativo=true`);
+    const resp = await fetch(`/backend/v1/projetos?recurso_id=${recursoId}&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar projetos por recurso');
     const data = await resp.json();
     const raw = Array.isArray(data) ? data : (data.items || []);
-    return raw.map(item => ({ id: item.id, nome: item.nome }));
+    return raw.filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
