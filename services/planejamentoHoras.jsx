@@ -1,12 +1,12 @@
 import { apiPost, apiGet } from './api.jsx';
 
-// Cadastrar planejamento de horas
-export const createPlanejamentoHoras = (data) =>
-  apiPost('/planejamento-horas/planejamento-horas/', data);
+// Cadastrar/Atualizar planejamento de horas
+export const createOrUpdatePlanejamentoHoras = (data) =>
+  apiPost('/planejamento-horas/', data);
 
 // Buscar planejamentos de uma alocação específica
 export const getPlanejamentosByAlocacao = (alocacaoId) =>
-  apiGet(`/planejamento-horas/planejamento-horas/alocacao/${alocacaoId}`);
+  apiGet(`/planejamento-horas/alocacao/${alocacaoId}`);
 
 // Buscar alocações para dropdown
 export const getAlocacoes = (params = {}) => {

@@ -7,7 +7,7 @@ import {
   TableContainer, TableHead, TableRow, IconButton, CircularProgress,
   Select, MenuItem, FormControl, InputLabel,
   Alert, Snackbar,
-  Switch, FormControlLabel, TextField
+  Switch, FormControlLabel, TextField, TablePagination
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -21,7 +21,7 @@ import { getRecursos, createRecurso, updateRecurso, deleteRecurso } from '../../
 import { getStatusProjetos, createStatusProjeto, updateStatusProjeto, deleteStatusProjeto } from '../../services/statusProjetos';
 import { getProjetos, createProjeto, updateProjeto, deleteProjeto } from '../../services/projetos';
 import { getAlocacoes, createAlocacao, updateAlocacao, deleteAlocacao } from '../../services/alocacoes';
-
+import PlanejamentoHoras from './PlanejamentoHoras';
 
 // Importações dos Modais (lazy loaded para melhorar performance)
 import dynamic from 'next/dynamic';
@@ -42,6 +42,7 @@ const managementTypes = [
   { value: 'equipes', label: 'Equipes' },
   { value: 'recursos', label: 'Recursos' },
   { value: 'alocacoes', label: 'Alocações' },
+  { value: 'planejamento_horas', label: 'Planejamento de Horas' },
 ];
 
 export default function GerenciamentoCascade() {
@@ -56,7 +57,6 @@ export default function GerenciamentoCascade() {
   const [equipes, setEquipes] = useState([]);
   const [recursos, setRecursos] = useState([]);
   const [statusProjetos, setStatusProjetos] = useState([]);
-
   const [alocacoes, setAlocacoes] = useState([]);
 
   // Estados de UI
@@ -69,46 +69,63 @@ export default function GerenciamentoCascade() {
   const [filtroNome, setFiltroNome] = useState('');
   // Usa algoritmo concurrent do React 18 para adiar buscas sem bloquear UI
   const deferredFiltro = useDeferredValue(filtroNome);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Função reutilizável para buscar dados, agora visível para outros handlers
   const fetchData = useCallback(async (showSpinner = true) => {
     setLoading(true);
     setError(null);
-    // A filtragem por texto será feita no cliente, então o 'search' não é mais passado.
-    const params = { include_inactive: showInactive, limit: 1000 };
+    
+    const params = {
+      include_inactive: showInactive,
+      limit: rowsPerPage,
+      skip: page * rowsPerPage,
+      nome: deferredFiltro || null, // Envia o termo de busca para o backend
+    };
+
     try {
       switch (tab) {
         case 'projetos': {
-          const [projData, secData, statData] = await Promise.all([
-            getProjetos(params),
+          const projData = await getProjetos(params);
+          // As buscas abaixo podem ser otimizadas no futuro para não rodarem a cada página
+          const [secData, statData] = await Promise.all([
             getSecoes({ apenas_ativos: true }),
             getStatusProjetos({ apenas_ativos: true })
           ]);
-          setProjetos(Array.isArray(projData) ? projData : projData.items || []);
+          const items = projData.items ?? projData.results ?? [];
+          setProjetos(items);
+          const totalCount = projData.total ?? projData.count ?? 0;
+          setTotal(totalCount);
           setSecoes(Array.isArray(secData) ? secData : secData.items || []);
           setStatusProjetos(Array.isArray(statData) ? statData : statData.items || []);
           break;
         }
         case 'secoes': {
           const data = await getSecoes(params);
-          setSecoes(Array.isArray(data) ? data : data.items || []);
+          setSecoes(data.items || []);
+          setTotal(data.total || 0);
           break;
         }
         case 'equipes': {
           const [eqData, secData] = await Promise.all([getEquipes(params), getSecoes({ apenas_ativos: true })]);
-          setEquipes(Array.isArray(eqData) ? eqData : eqData.items || []);
+          setEquipes(eqData.items || []);
+          setTotal(eqData.total || 0);
           setSecoes(Array.isArray(secData) ? secData : secData.items || []);
           break;
         }
         case 'recursos': {
           const [recData, eqData] = await Promise.all([getRecursos(params), getEquipes({ apenas_ativos: true })]);
-          setRecursos(Array.isArray(recData) ? recData : recData.items || []);
+          setRecursos(recData.items || []);
+          setTotal(recData.total || 0);
           setEquipes(Array.isArray(eqData) ? eqData : eqData.items || []);
           break;
         }
         case 'statusProjetos': {
           const data = await getStatusProjetos(params);
-          setStatusProjetos(Array.isArray(data) ? data : data.items || []);
+          setStatusProjetos(data.items || []);
+          setTotal(data.total || 0);
           break;
         }
         case 'alocacoes': {
@@ -118,12 +135,18 @@ export default function GerenciamentoCascade() {
               getRecursos({ limit: 1000 }),
               getStatusProjetos({ limit: 1000 }),
           ]);
-          setAlocacoes(Array.isArray(alocData) ? alocData : alocData.items || []);
+          setAlocacoes(alocData.items || []);
+          setTotal(alocData.total || 0);
           setProjetos(Array.isArray(projData) ? projData : projData.items || []);
           setRecursos(Array.isArray(recData) ? recData : recData.items || []);
           setStatusProjetos(Array.isArray(statAlocData) ? statAlocData : statAlocData.items || []);
           break;
         }
+        case 'planejamento_horas':
+          // O componente PlanejamentoHoras busca seus próprios dados.
+          // Apenas garantimos que o estado de total seja zerado.
+          setTotal(0);
+          break;
         default:
           break;
       }
@@ -133,15 +156,17 @@ export default function GerenciamentoCascade() {
     } finally {
       setLoading(false);
     }
-  }, [tab, showInactive]);
+  }, [tab, showInactive, page, rowsPerPage, deferredFiltro]);
 
-  // Carrega dados quando aba ou flag de inativos muda (mostra spinner)
+  // Reseta a página para 0 quando o filtro de nome ou de inativos muda
+  useEffect(() => {
+    setPage(0);
+  }, [deferredFiltro, showInactive]);
+
+  // Carrega dados quando a função de busca é recriada (devido a mudança de dependências)
   useEffect(() => {
     fetchData(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, showInactive]);
-
-
+  }, [fetchData]);
 
   const handleOpenModal = useCallback((item = null) => {
     setCurrentItem(item);
@@ -222,6 +247,15 @@ export default function GerenciamentoCascade() {
   };
 
   const handleCloseNotification = () => setNotification({ ...notification, open: false });
+
+  const handleChangePage = useCallback((event, newPage) => {
+    setPage(newPage);
+  }, []);
+
+  const handleChangeRowsPerPage = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0); // Volta para a primeira página ao mudar o número de itens por página
+  }, []);
 
   /* =====================
      Memoizações de dados
@@ -305,38 +339,51 @@ export default function GerenciamentoCascade() {
     if (!currentColumns) return <Typography>Selecione um tipo de gerenciamento.</Typography>;
 
     return (
-      <TableContainer component={Paper} sx={{ maxHeight: '70vh' }}>
-        <Table stickyHeader>
-          <TableHead>
-            <TableRow>
-              {currentColumns.map(col => (
-                <TableCell key={col.id} sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>
-                  {col.label}
-                </TableCell>
-              ))}
-              <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredData.map(item => (
-              <TableRow key={item.id} sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}>
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <TableContainer component={Paper} sx={{ maxHeight: '70vh' }}>
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow>
                 {currentColumns.map(col => (
-                  <TableCell key={col.id}>{col.format ? col.format(item[col.id]) : item[col.id]}</TableCell>
+                  <TableCell key={col.id} sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>
+                    {col.label}
+                  </TableCell>
                 ))}
-                <TableCell>
-                  <IconButton onClick={() => handleEdit(item)}><EditIcon /></IconButton>
-                  <IconButton onClick={() => handleDelete(item)}>
-                    {/* Para alocações, o ícone de deletar será sempre vermelho, pois não há status 'inativo' explícito */}
-                    <DeleteIcon sx={{ color: '#d32f2f' }} />
-                  </IconButton>
-                </TableCell>
+                <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {filteredData.map(item => (
+                <TableRow key={item.id} sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}>
+                  {currentColumns.map(col => (
+                    <TableCell key={col.id}>{col.format ? col.format(item[col.id]) : item[col.id]}</TableCell>
+                  ))}
+                  <TableCell>
+                    <IconButton onClick={() => handleEdit(item)}><EditIcon /></IconButton>
+                    <IconButton onClick={() => handleDelete(item)}>
+                      {/* Para alocações, o ícone de deletar será sempre vermelho, pois não há status 'inativo' explícito */}
+                      <DeleteIcon sx={{ color: '#d32f2f' }} />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50, 100]}
+          component="div"
+          count={total} // Correção: usar o estado 'total' em vez de data.length
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Itens por página:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+        />
+      </Paper>
     );
-  }, [filteredData, currentColumns, handleEdit, handleDelete]);
+  }, [filteredData, currentColumns, handleEdit, handleDelete, total, rowsPerPage, page, handleChangePage, handleChangeRowsPerPage]);
 
   /* =====================
      Renderização
@@ -389,6 +436,8 @@ export default function GerenciamentoCascade() {
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
         </Box>
+      ) : tab === 'planejamento_horas' ? (
+        <PlanejamentoHoras setNotification={setNotification} />
       ) : (
         renderContent()
       )}
@@ -414,5 +463,3 @@ export default function GerenciamentoCascade() {
     </Box>
   );
 };
-
-
