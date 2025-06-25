@@ -66,11 +66,12 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
             setFormData({
                 nome: '',
                 descricao: '',
-                codigo_empresa: '',
+                codigo_empresa: '0', // Valor padrão definido
                 secao_id: '',
                 status_projeto_id: '',
                 data_inicio_prevista: new Date().toISOString().split('T')[0],
                 data_fim_prevista: '',
+                ativo: true,
             });
             setAlocacoes([]);
         }
@@ -89,37 +90,44 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
     if (validate()) setActiveStep(1);
   };
 
-  // Salva recursos mas mantém modal aberto
-  const handleSalvarRecurso = () => {
-    if (!validateAlocacoes()) return;
+  const buildFinalData = () => {
+    const dataToSave = {
+      ...formData,
+      secao_id: formData.secao_id ? parseInt(formData.secao_id, 10) : null,
+      status_projeto_id: formData.status_projeto_id ? parseInt(formData.status_projeto_id, 10) : null,
+      ativo: true,
+    };
+    if (dataToSave.data_fim_prevista === '') {
+      dataToSave.data_fim_prevista = null;
+    }
 
-    const dataToSave = { ...formData };
-    if (dataToSave.data_fim_prevista === '') dataToSave.data_fim_prevista = null;
-    const finalData = {
-      projeto: dataToSave,
+
+    return {
+      ...dataToSave,
       alocacoes: alocacoes.map(({ temp_id, ...rest }) => ({
         ...rest,
-        horas_planejadas: rest.horas_planejadas.map(p => ({ ...p, horas_planejadas: parseFloat(p.horas_planejadas) || 0 }))
-      }))
+        ativo: true,
+        recurso_id: rest.recurso_id ? parseInt(rest.recurso_id, 10) : null,
+        horas_planejadas: rest.horas_planejadas.map(p => ({
+          ...p,
+          horas_planejadas: p.horas_planejadas ? parseFloat(p.horas_planejadas) : 0,
+        })),
+      })),
     };
-    onSave(finalData); // salva mas mantém modal aberto
+  };
+
+  // Salva recursos mas mantém modal aberto
+  const handleSalvarRecurso = () => {
+    if (!validate() || !validateAlocacoes()) return;
+    const finalData = buildFinalData();
+    onSave(finalData, true); // Manter modal aberto
   };
 
   // Envia projeto (fecha modal)
   const handleEnviarProjeto = () => {
-    if (!validateAlocacoes()) return;
-    // monta payload final e envia
-    const dataToSave = { ...formData };
-    if (dataToSave.data_fim_prevista === '') dataToSave.data_fim_prevista = null;
-    const finalData = {
-      projeto: dataToSave,
-      alocacoes: alocacoes.map(({ temp_id, ...rest }) => ({
-        ...rest,
-        horas_planejadas: rest.horas_planejadas.map(p => ({ ...p, horas_planejadas: parseFloat(p.horas_planejadas) || 0 }))
-      }))
-    };
-    onSave(finalData);
-    onClose();
+    if (!validate() || !validateAlocacoes()) return;
+    const finalData = buildFinalData();
+    onSave(finalData, false); // Fechar modal após salvar
   };
 
   const handleChange = (e) => {
@@ -207,7 +215,6 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
             <Box>
                 <TextField autoFocus required margin="dense" name="nome" label="Nome do Projeto" type="text" fullWidth variant="outlined" value={formData.nome || ''} onChange={handleChange} error={!!errors.nome} helperText={errors.nome} sx={{ mt: 2 }} />
                 <TextField required margin="dense" name="descricao" label="Descrição" type="text" fullWidth multiline rows={4} variant="outlined" value={formData.descricao || ''} onChange={handleChange} error={!!errors.descricao} helperText={errors.descricao} />
-                <TextField margin="dense" name="codigo_empresa" label="Código da Empresa (Opcional)" type="text" fullWidth variant="outlined" value={formData.codigo_empresa || ''} onChange={handleChange} />
                 <FormControl fullWidth margin="dense" required error={!!errors.secao_id}>
                   <InputLabel>Seção</InputLabel>
                   <Select name="secao_id" value={formData.secao_id || ''} label="Seção" onChange={handleChange}>

@@ -187,7 +187,7 @@ export default function GerenciamentoCascade() {
     setModalOpen(false);
   };
 
-  const handleSave = async (data) => {
+  const handleSave = async (data, keepModalOpen = false) => {
     setLoading(true);
     try {
       const isEditing = !!currentItem;
@@ -197,7 +197,7 @@ export default function GerenciamentoCascade() {
         equipes: { create: createEquipe, update: updateEquipe },
         recursos: { create: createRecurso, update: updateRecurso },
         statusProjetos: { create: createStatusProjeto, update: updateStatusProjeto },
-      alocacoes: { create: createAlocacao, update: updateAlocacao },
+        alocacoes: { create: createAlocacao, update: updateAlocacao },
       };
       const { create, update } = apiMap[tab];
       const typeName = managementTypes.find(t => t.value === tab).label.slice(0, -1);
@@ -206,11 +206,17 @@ export default function GerenciamentoCascade() {
         await update(currentItem.id, data);
         setNotification({ open: true, message: `${typeName} atualizado com sucesso!`, severity: 'success' });
       } else {
-        await create(data);
+        const newItem = await create(data);
         setNotification({ open: true, message: `${typeName} criado com sucesso!`, severity: 'success' });
+        if (keepModalOpen) {
+          // Atualiza o item atual para que o modal entre em modo de edição
+          setCurrentItem(newItem.projeto || newItem);
+        }
       }
       await fetchData();
-      handleCloseModal();
+      if (!keepModalOpen) {
+        handleCloseModal();
+      }
     } catch (err) {
       const errorMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
       setNotification({ open: true, message: `Erro: ${errorMsg}`, severity: 'error' });

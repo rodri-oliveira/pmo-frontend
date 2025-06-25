@@ -129,7 +129,17 @@ const AlocacaoForm = ({ alocacao, index, onUpdate, onRemove, recursos }) => {
               <TextField label="Mês" type="number" value={plan.mes} onChange={(e) => handlePlanejamentoChange(planIndex, 'mes', parseInt(e.target.value, 10))} fullWidth disabled />
             </Grid>
             <Grid item xs={3}>
-              <TextField label="Horas" type="number" value={plan.horas_planejadas} onChange={(e) => handlePlanejamentoChange(planIndex, 'horas_planejadas', parseFloat(e.target.value))} fullWidth />
+              <TextField
+              label="Horas"
+              type="number"
+              value={plan.horas_planejadas}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                // Garante que o valor nunca seja NaN, definindo como 0 se a entrada for inválida/vazia.
+                handlePlanejamentoChange(planIndex, 'horas_planejadas', isNaN(value) ? 0 : value);
+              }}
+              fullWidth
+            />
             </Grid>
             <Grid item xs={1} sx={{ display: 'flex', alignItems: 'center' }}>
               <IconButton onClick={() => removePlanejamento(planIndex)}><DeleteIcon /></IconButton>
