@@ -63,6 +63,7 @@ export default function GerenciamentoCascade() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const [modalError, setModalError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
@@ -185,6 +186,7 @@ export default function GerenciamentoCascade() {
   const handleCloseModal = () => {
     setCurrentItem(null);
     setModalOpen(false);
+  setModalError('');
   };
 
   const handleSave = async (data, keepModalOpen = false) => {
@@ -209,17 +211,21 @@ export default function GerenciamentoCascade() {
         const newItem = await create(data);
         setNotification({ open: true, message: `${typeName} criado com sucesso!`, severity: 'success' });
         if (keepModalOpen) {
-          // Atualiza o item atual para que o modal entre em modo de edição
           setCurrentItem(newItem.projeto || newItem);
         }
       }
+      
       await fetchData();
+
       if (!keepModalOpen) {
         handleCloseModal();
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
-      setNotification({ open: true, message: `Erro: ${errorMsg}`, severity: 'error' });
+      console.error(`[handleSave] Falha ao salvar: ${err.message}`);
+      const errMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
+      setModalError(errMsg);
+      // Mantém o modal aberto para que o usuário possa corrigir os dados.
+      setModalOpen(true);
     } finally {
       setLoading(false);
     }
@@ -460,7 +466,7 @@ export default function GerenciamentoCascade() {
       )}
 
       {/* Modais Renderizados de forma performática */}
-      {tab === 'projetos' && <ProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} projeto={currentItem} secoes={secoes} statusProjetos={statusProjetos} />}
+      {tab === 'projetos' && <ProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} projeto={currentItem} secoes={secoes} statusProjetos={statusProjetos} apiError={modalError} />}
       {tab === 'alocacoes' && <AlocacaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} item={currentItem} projetos={projetos} recursos={recursos} statusOptions={statusProjetos} />}
       {tab === 'secoes' && <SecaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />}
       {tab === 'equipes' && <EquipeModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes} />}

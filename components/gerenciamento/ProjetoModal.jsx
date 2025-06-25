@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   FormControl, InputLabel, Select, MenuItem, FormHelperText, Typography, Divider,
-  Stepper, Step, StepLabel, Box
+  Stepper, Step, StepLabel, Box, Alert
 } from '@mui/material';
 import { getSecoes } from '../../services/secoes';
 import { getStatusProjetos } from '../../services/statusProjetos';
@@ -13,7 +13,7 @@ import AlocacaoForm from './AlocacaoForm';
 
 const wegBlue = '#00579d';
 
-export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, statusProjetos }) {
+export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, statusProjetos, apiError = '' }) {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
   const [recursos, setRecursos] = useState([]);
@@ -203,8 +203,9 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
       <DialogTitle sx={{ color: wegBlue, fontWeight: 'bold' }}>
         {isEditing ? 'Editar Projeto' : 'Novo Projeto'}
       </DialogTitle>
-      <DialogContent>
-        <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
+      <DialogContent sx={{ pt: 1, pb: 0 }}>
+        {apiError && <Alert severity="error" sx={{ mb: 2 }}>{apiError}</Alert>}
+        <Stepper activeStep={activeStep} alternativeLabel sx={{ pt: 2 }}>
             {steps.map((label) => (
                 <Step key={label}>
                     <StepLabel>{label}</StepLabel>
