@@ -138,13 +138,13 @@ export async function buscarTodosRecursos() {
  * @param {number} equipeId - ID da equipe para filtrar recursos (opcional)
  * @returns {Promise<Array<{ id: number, nome: string }>>}
  */
-export async function buscarRecursosPorNome(termo, equipeId = null) {
+export async function buscarRecursosPorNome(termo, secaoId = null) {
   if (!termo || termo.length < 2) return [];
   try {
-    // Endpoint de busca de recursos com filtro opcional por equipe
+    // Endpoint de busca de recursos com filtro opcional por seção
     let url = `/backend/v1/recursos/autocomplete?search=${encodeURIComponent(termo)}&apenas_ativos=true`;
-    if (equipeId) {
-      url += `&equipe_id=${equipeId}`;
+    if (secaoId) {
+      url += `&secao_id=${secaoId}`;
     }
     
     const resp = await fetch(url);
@@ -168,6 +168,21 @@ export async function buscarRecursosPorNome(termo, equipeId = null) {
  * @param {number} equipeId - ID da equipe
  * @returns {Promise<Array<{ id: number, nome: string }>>}
  */
+export async function buscarRecursosPorSecao(secaoId) {
+  if (!secaoId) return [];
+  try {
+    const resp = await fetch(`/backend/v1/recursos?secao_id=${secaoId}&apenas_ativos=true&limit=1000`);
+    if (!resp.ok) throw new Error('Erro ao buscar recursos por seção');
+    const data = await resp.json();
+    return (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+      .map(item => ({ id: item.id, nome: item.nome }));
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+// Mantido para compatibilidade antiga
 export async function buscarRecursosPorEquipe(equipeId) {
   if (!equipeId) return [];
   try {

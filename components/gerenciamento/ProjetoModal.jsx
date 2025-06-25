@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
-  FormControl, InputLabel, Select, MenuItem, FormHelperText, Typography, Divider
+  FormControl, InputLabel, Select, MenuItem, FormHelperText, Typography, Divider,
+  Stepper, Step, StepLabel, Box
 } from '@mui/material';
 import { getSecoes } from '../../services/secoes';
 import { getStatusProjetos } from '../../services/statusProjetos';
@@ -17,11 +18,39 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
   const [errors, setErrors] = useState({});
   const [recursos, setRecursos] = useState([]);
   const [alocacoes, setAlocacoes] = useState([]);
+  const [activeStep, setActiveStep] = useState(0);
+
+  const steps = ['Dados do Projeto', 'Alocação de Recursos'];
 
   const isEditing = !!projeto;
 
+  // Função para buscar recursos com filtro de seção
+  const fetchRecursos = useCallback(async (secaoId) => {
+    try {
+      const params = secaoId ? { secao_id: secaoId } : undefined;
+      const data = await getRecursos(params);
+      setRecursos((data && data.items) || []);
+    } catch (error) {
+      console.error('Erro ao buscar recursos:', error);
+      setRecursos([]);
+    }
+  }, []);
+
+    // Recarrega recursos quando a seção selecionada mudar
   useEffect(() => {
     if (open) {
+      if (formData.secao_id) {
+        fetchRecursos(formData.secao_id);
+      } else {
+        setRecursos([]);
+      }
+    }
+  }, [formData.secao_id, open, fetchRecursos]);
+
+  useEffect(() => {
+    if (open) {
+        setActiveStep(0); // Reset step when modal opens
+        setAlocacoes([]);
         if (projeto) {
             setFormData({
                 nome: projeto.nome || '',
@@ -45,27 +74,60 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
             });
             setAlocacoes([]);
         }
-        setErrors({});
     }
   }, [projeto, open]);
 
   useEffect(() => {
-    const fetchRecursos = async () => {
-        try {
-            const data = await getRecursos();
-            setRecursos(data.items || []);
-        } catch (error) {
-            console.error("Erro ao buscar recursos:", error);
-            setRecursos([]);
-        }
-    };
     if (open) {
-        fetchRecursos();
+      // Quando o modal abrir, buscar recursos com a seção atual (caso exista)
+      fetchRecursos(formData.secao_id);
     }
-  }, [open]);
+  }, [open, formData.secao_id, fetchRecursos]);
+
+  // Avança do passo 0 para 1
+  const handleAvancar = () => {
+    if (validate()) setActiveStep(1);
+  };
+
+  // Salva recursos mas mantém modal aberto
+  const handleSalvarRecurso = () => {
+    if (!validateAlocacoes()) return;
+
+    const dataToSave = { ...formData };
+    if (dataToSave.data_fim_prevista === '') dataToSave.data_fim_prevista = null;
+    const finalData = {
+      projeto: dataToSave,
+      alocacoes: alocacoes.map(({ temp_id, ...rest }) => ({
+        ...rest,
+        horas_planejadas: rest.horas_planejadas.map(p => ({ ...p, horas_planejadas: parseFloat(p.horas_planejadas) || 0 }))
+      }))
+    };
+    onSave(finalData); // salva mas mantém modal aberto
+  };
+
+  // Envia projeto (fecha modal)
+  const handleEnviarProjeto = () => {
+    if (!validateAlocacoes()) return;
+    // monta payload final e envia
+    const dataToSave = { ...formData };
+    if (dataToSave.data_fim_prevista === '') dataToSave.data_fim_prevista = null;
+    const finalData = {
+      projeto: dataToSave,
+      alocacoes: alocacoes.map(({ temp_id, ...rest }) => ({
+        ...rest,
+        horas_planejadas: rest.horas_planejadas.map(p => ({ ...p, horas_planejadas: parseFloat(p.horas_planejadas) || 0 }))
+      }))
+    };
+    onSave(finalData);
+    onClose();
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Se a seção mudar, limpamos as alocações para evitar inconsistência
+    if (name === 'secao_id' && value !== formData.secao_id) {
+      setAlocacoes([]);
+    }
     setFormData({ ...formData, [name]: value });
   };
 
@@ -81,25 +143,29 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
-    if (!validate()) {
-      return;
+  // Validação da etapa de alocação
+  const validateAlocacoes = () => {
+    if (alocacoes.length === 0) {
+      alert('Adicione pelo menos uma alocação de recurso.');
+      return false;
     }
-
-    const dataToSave = { ...formData };
-    if (dataToSave.data_fim_prevista === '') {
-      dataToSave.data_fim_prevista = null;
+    const recursoIds = new Set();
+  for (const aloc of alocacoes) {
+      if (!aloc.recurso_id) {
+        alert('Selecione um recurso para todas as alocações.');
+        return false;
+      }
+      if (recursoIds.has(aloc.recurso_id)) {
+      alert('Este recurso já está alocado neste projeto.');
+      return false;
     }
-
-    const finalData = {
-        projeto: dataToSave,
-        alocacoes: alocacoes.map(a => ({
-            ...a,
-            horas_planejadas: a.horas_planejadas.map(p => ({...p, horas_planejadas: parseFloat(p.horas_planejadas) || 0}))
-        }))
-    };
-
-    onSave(finalData);
+    recursoIds.add(aloc.recurso_id);
+    if (!aloc.horas_planejadas || aloc.horas_planejadas.length === 0) {
+        alert('Informe horas planejadas para todas as alocações.');
+        return false;
+      }
+    }
+    return true;
   };
 
   const handleAddAlocacao = () => {
@@ -129,55 +195,82 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
         {isEditing ? 'Editar Projeto' : 'Novo Projeto'}
       </DialogTitle>
       <DialogContent>
-        <TextField autoFocus required margin="dense" name="nome" label="Nome do Projeto" type="text" fullWidth variant="outlined" value={formData.nome || ''} onChange={handleChange} error={!!errors.nome} helperText={errors.nome} sx={{ mt: 2 }} />
-        <TextField required margin="dense" name="descricao" label="Descrição" type="text" fullWidth multiline rows={4} variant="outlined" value={formData.descricao || ''} onChange={handleChange} error={!!errors.descricao} helperText={errors.descricao} />
-        <TextField margin="dense" name="codigo_empresa" label="Código da Empresa (Opcional)" type="text" fullWidth variant="outlined" value={formData.codigo_empresa || ''} onChange={handleChange} />
-        <FormControl fullWidth margin="dense" required error={!!errors.secao_id}>
-          <InputLabel>Seção</InputLabel>
-          <Select name="secao_id" value={formData.secao_id || ''} label="Seção" onChange={handleChange}>
-            {secoes.map((secao) => (
-              <MenuItem key={secao.id} value={secao.id}>{secao.nome}</MenuItem>
+        <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
+            {steps.map((label) => (
+                <Step key={label}>
+                    <StepLabel>{label}</StepLabel>
+                </Step>
             ))}
-          </Select>
-          {errors.secao_id && <FormHelperText>{errors.secao_id}</FormHelperText>}
-        </FormControl>
-        <FormControl fullWidth margin="dense" required error={!!errors.status_projeto_id}>
-          <InputLabel>Status do Projeto</InputLabel>
-          <Select name="status_projeto_id" value={formData.status_projeto_id || ''} label="Status do Projeto" onChange={handleChange}>
-            {statusProjetos.map((status) => (
-              <MenuItem key={status.id} value={status.id}>{status.nome}</MenuItem>
-            ))}
-          </Select>
-          {errors.status_projeto_id && <FormHelperText>{errors.status_projeto_id}</FormHelperText>}
-        </FormControl>
-        <TextField required margin="dense" name="data_inicio_prevista" label="Data de Início Prevista" type="date" fullWidth variant="outlined" value={formData.data_inicio_prevista || ''} onChange={handleChange} error={!!errors.data_inicio_prevista} helperText={errors.data_inicio_prevista} InputLabelProps={{ shrink: true }} />
-        <TextField margin="dense" name="data_fim_prevista" label="Data de Fim Prevista (Opcional)" type="date" fullWidth variant="outlined" value={formData.data_fim_prevista || ''} onChange={handleChange} InputLabelProps={{ shrink: true }} />
+        </Stepper>
 
-        <Divider sx={{ my: 3 }}>
-            <Typography>Alocação de Recursos</Typography>
-        </Divider>
+        {activeStep === 0 && (
+            <Box>
+                <TextField autoFocus required margin="dense" name="nome" label="Nome do Projeto" type="text" fullWidth variant="outlined" value={formData.nome || ''} onChange={handleChange} error={!!errors.nome} helperText={errors.nome} sx={{ mt: 2 }} />
+                <TextField required margin="dense" name="descricao" label="Descrição" type="text" fullWidth multiline rows={4} variant="outlined" value={formData.descricao || ''} onChange={handleChange} error={!!errors.descricao} helperText={errors.descricao} />
+                <TextField margin="dense" name="codigo_empresa" label="Código da Empresa (Opcional)" type="text" fullWidth variant="outlined" value={formData.codigo_empresa || ''} onChange={handleChange} />
+                <FormControl fullWidth margin="dense" required error={!!errors.secao_id}>
+                  <InputLabel>Seção</InputLabel>
+                  <Select name="secao_id" value={formData.secao_id || ''} label="Seção" onChange={handleChange}>
+                    {secoes.map((secao) => (
+                      <MenuItem key={secao.id} value={secao.id}>{secao.nome}</MenuItem>
+                    ))}
+                  </Select>
+                  {errors.secao_id && <FormHelperText>{errors.secao_id}</FormHelperText>}
+                </FormControl>
+                <FormControl fullWidth margin="dense" required error={!!errors.status_projeto_id}>
+                  <InputLabel>Status do Projeto</InputLabel>
+                  <Select name="status_projeto_id" value={formData.status_projeto_id || ''} label="Status do Projeto" onChange={handleChange}>
+                    {statusProjetos.map((status) => (
+                      <MenuItem key={status.id} value={status.id}>{status.nome}</MenuItem>
+                    ))}
+                  </Select>
+                  {errors.status_projeto_id && <FormHelperText>{errors.status_projeto_id}</FormHelperText>}
+                </FormControl>
+                <TextField required margin="dense" name="data_inicio_prevista" label="Data de Início Prevista" type="date" fullWidth variant="outlined" value={formData.data_inicio_prevista || ''} onChange={handleChange} error={!!errors.data_inicio_prevista} helperText={errors.data_inicio_prevista} InputLabelProps={{ shrink: true }} />
+                <TextField margin="dense" name="data_fim_prevista" label="Data de Fim Prevista (Opcional)" type="date" fullWidth variant="outlined" value={formData.data_fim_prevista || ''} onChange={handleChange} InputLabelProps={{ shrink: true }} />
+            </Box>
+        )}
 
-        {alocacoes.map((alocacao, index) => (
-            <AlocacaoForm 
-                key={alocacao.id || alocacao.temp_id}
-                index={index}
-                alocacao={alocacao}
-                onUpdate={handleUpdateAlocacao}
-                onRemove={handleRemoveAlocacao}
-                recursos={recursos}
-            />
-        ))}
+        {activeStep === 1 && (
+            <Box>
+                <Divider sx={{ my: 3 }}>
+                    <Typography>Alocação de Recursos</Typography>
+                </Divider>
 
-        <Button onClick={handleAddAlocacao} sx={{ mt: 1 }}>
-            Adicionar Recurso
-        </Button>
+                {alocacoes.map((alocacao, index) => (
+                    <AlocacaoForm 
+                        key={alocacao.id || alocacao.temp_id}
+                        index={index}
+                        alocacao={alocacao}
+                        onUpdate={handleUpdateAlocacao}
+                        onRemove={handleRemoveAlocacao}
+                        recursos={recursos}
+                    />
+                ))}
 
+                <Button onClick={handleAddAlocacao} sx={{ mt: 1 }}>
+                    Adicionar Recurso
+                </Button>
+            </Box>
+        )}
       </DialogContent>
       <DialogActions sx={{ p: '16px 24px' }}>
         <Button onClick={onClose}>Cancelar</Button>
-        <Button onClick={handleSave} variant="contained" sx={{ backgroundColor: wegBlue }}>
-          {isEditing ? 'Salvar Alterações' : 'Criar Projeto'}
-        </Button>
+        <Box sx={{ flex: '1 1 auto' }} />
+        {activeStep === 0 && (
+            <Button onClick={handleAvancar} variant="contained" sx={{ backgroundColor: wegBlue }}>
+              Avançar
+            </Button>
+          )}
+          {activeStep === 1 && (
+            <>
+              <Button onClick={() => setActiveStep(0)}>Voltar</Button>
+              <Button onClick={handleSalvarRecurso}>Salvar Recurso</Button>
+              <Button onClick={handleEnviarProjeto} variant="contained" sx={{ backgroundColor: wegBlue }}>
+                Enviar
+              </Button>
+            </>
+          )}
       </DialogActions>
     </Dialog>
   );

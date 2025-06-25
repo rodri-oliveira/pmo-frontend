@@ -44,7 +44,7 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
       }
       carregarRecursos();
     }
-  }, [equipeId, options]);
+  }, [equipeId, options, onChange, value]);
 
   // Atualizar o valor do input quando o value mudar externamente
   useEffect(() => {
