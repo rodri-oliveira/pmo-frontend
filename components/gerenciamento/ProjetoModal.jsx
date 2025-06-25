@@ -66,7 +66,7 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
             setFormData({
                 nome: '',
                 descricao: '',
-                codigo_empresa: '0', // Valor padrão definido
+                codigo_empresa: '',
                 secao_id: '',
                 status_projeto_id: '',
                 data_inicio_prevista: new Date().toISOString().split('T')[0],
