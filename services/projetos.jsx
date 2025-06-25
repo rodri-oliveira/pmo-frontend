@@ -2,6 +2,9 @@ import { apiGet, apiPost, apiPut, apiDelete } from './api';
 
 const ENDPOINT = '/projetos';
 
+// Criar projeto junto com alocações
+export const createProjetoComAlocacoes = (data) => apiPost(`${ENDPOINT}/com-alocacoes`, data);
+
 // Buscar lista de projetos
 export const getProjetos = (params = {}) => {
   return apiGet(ENDPOINT, params);

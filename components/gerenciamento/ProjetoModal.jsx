@@ -103,8 +103,12 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
     }
 
 
+    // limpar opcionais vazios
+    if (!dataToSave.codigo_empresa) delete dataToSave.codigo_empresa;
+    if (!dataToSave.jira_project_key) delete dataToSave.jira_project_key;
+
     return {
-      ...dataToSave,
+      projeto: dataToSave,
       alocacoes: alocacoes.map(({ temp_id, ...rest }) => ({
         ...rest,
         ativo: true,

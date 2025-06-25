@@ -19,7 +19,7 @@ import { getSecoes, createSecao, updateSecao, deleteSecao } from '../../services
 import { getEquipes, createEquipe, updateEquipe, deleteEquipe } from '../../services/equipes';
 import { getRecursos, createRecurso, updateRecurso, deleteRecurso } from '../../services/recursos';
 import { getStatusProjetos, createStatusProjeto, updateStatusProjeto, deleteStatusProjeto } from '../../services/statusProjetos';
-import { getProjetos, createProjeto, updateProjeto, deleteProjeto } from '../../services/projetos';
+import { getProjetos, createProjeto, createProjetoComAlocacoes, updateProjeto, deleteProjeto } from '../../services/projetos';
 import { getAlocacoes, createAlocacao, updateAlocacao, deleteAlocacao } from '../../services/alocacoes';
 import PlanejamentoHoras from './PlanejamentoHoras';
 
@@ -194,7 +194,7 @@ export default function GerenciamentoCascade() {
     try {
       const isEditing = !!currentItem;
       const apiMap = {
-        projetos: { create: createProjeto, update: updateProjeto },
+        projetos: { create: createProjetoComAlocacoes, update: updateProjeto },
         secoes: { create: createSecao, update: updateSecao },
         equipes: { create: createEquipe, update: updateEquipe },
         recursos: { create: createRecurso, update: updateRecurso },
