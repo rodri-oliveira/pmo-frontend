@@ -93,6 +93,7 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
   const buildFinalData = () => {
     const dataToSave = {
       ...formData,
+      
       secao_id: formData.secao_id ? parseInt(formData.secao_id, 10) : null,
       status_projeto_id: formData.status_projeto_id ? parseInt(formData.status_projeto_id, 10) : null,
       ativo: true,

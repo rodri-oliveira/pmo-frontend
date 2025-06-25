@@ -135,8 +135,9 @@ const AlocacaoForm = ({ alocacao, index, onUpdate, onRemove, recursos }) => {
               value={plan.horas_planejadas}
               onChange={(e) => {
                 const value = parseFloat(e.target.value);
-                // Garante que o valor nunca seja NaN, definindo como 0 se a entrada for inválida/vazia.
-                handlePlanejamentoChange(planIndex, 'horas_planejadas', isNaN(value) ? 0 : value);
+                // Permite que o campo fique vazio, mas evita que NaN seja salvo no estado.
+                // Se a entrada for inválida (ex: texto), o campo é limpo.
+                handlePlanejamentoChange(planIndex, 'horas_planejadas', isNaN(value) ? '' : value);
               }}
               fullWidth
             />
