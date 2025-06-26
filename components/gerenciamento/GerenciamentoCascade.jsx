@@ -19,7 +19,7 @@ import { getSecoes, createSecao, updateSecao, deleteSecao } from '../../services
 import { getEquipes, createEquipe, updateEquipe, deleteEquipe } from '../../services/equipes';
 import { getRecursos, createRecurso, updateRecurso, deleteRecurso } from '../../services/recursos';
 import { getStatusProjetos, createStatusProjeto, updateStatusProjeto, deleteStatusProjeto } from '../../services/statusProjetos';
-import { getProjetos, createProjeto, createProjetoComAlocacoes, updateProjeto, deleteProjeto } from '../../services/projetos';
+import { getProjetos, getProjetosDetalhados, createProjetoComAlocacoes, updateProjeto, deleteProjeto } from '../../services/projetos';
 import { getAlocacoes, createAlocacao, updateAlocacao, deleteAlocacao } from '../../services/alocacoes';
 import PlanejamentoHoras from './PlanejamentoHoras';
 
@@ -32,6 +32,7 @@ const RecursoModal = dynamic(() => import('./RecursoModal'), { ssr: false });
 const StatusProjetoModal = dynamic(() => import('./StatusProjetoModal'), { ssr: false });
 const ProjetoModal = dynamic(() => import('./ProjetoModal'), { ssr: false });
 const AlocacaoModal = dynamic(() => import('./AlocacaoModal'), { ssr: false });
+const ProjetosDetalhesTable = dynamic(() => import('./ProjetosDetalhesTable'), { ssr: false });
 
 const wegBlue = '#00579d';
 
@@ -65,6 +66,7 @@ export default function GerenciamentoCascade() {
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   const [modalError, setModalError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [detailedView, setDetailedView] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
   const [filtroNome, setFiltroNome] = useState('');
@@ -80,20 +82,29 @@ export default function GerenciamentoCascade() {
     setError(null);
     
     const params = {
-      apenas_ativos: !showInactive,
-      limit: rowsPerPage,
-      skip: page * rowsPerPage,
-      nome: deferredFiltro || null, // Envia o termo de busca para o backend
+      ativo: !showInactive,
+      page: page + 1, // API espera page começando em 1
+      per_page: rowsPerPage,
+      search: deferredFiltro || null,
     };
 
     try {
       switch (tab) {
         case 'projetos': {
-          const projData = await getProjetos(params);
-          const items = Array.isArray(projData) ? projData : projData.items;
-          const totalCount = Array.isArray(projData) ? projData.length : (projData.total || (projData.items ? projData.items.length : 0));
-          setProjetos(items || []);
-          setTotal(totalCount || 0);
+          if (detailedView) {
+            const data = await getProjetosDetalhados(params);
+            setProjetos(data || []);
+            // A view detalhada não retorna o total, então buscamos separadamente
+            // para manter a paginação consistente.
+            const totalData = await getProjetos({ search: deferredFiltro, ativo: !showInactive });
+            setTotal(totalData.total || 0);
+          } else {
+            const projData = await getProjetos(params);
+            const items = Array.isArray(projData) ? projData : projData.items;
+            const totalCount = Array.isArray(projData) ? projData.length : (projData.total || (projData.items ? projData.items.length : 0));
+            setProjetos(items || []);
+            setTotal(totalCount || 0);
+          }
           const [secData, statData] = await Promise.all([
             getSecoes({ apenas_ativos: true }),
             getStatusProjetos({ apenas_ativos: true })
@@ -176,7 +187,7 @@ export default function GerenciamentoCascade() {
   // Carrega dados quando a função de busca é recriada (devido a mudança de dependências)
   useEffect(() => {
     fetchData(true);
-  }, [fetchData]);
+  }, [fetchData, detailedView]);
 
   const handleOpenModal = useCallback((item = null) => {
     setCurrentItem(item);
@@ -186,7 +197,7 @@ export default function GerenciamentoCascade() {
   const handleCloseModal = () => {
     setCurrentItem(null);
     setModalOpen(false);
-  setModalError('');
+    setModalError('');
   };
 
   const handleSave = async (data, keepModalOpen = false) => {
@@ -244,7 +255,7 @@ export default function GerenciamentoCascade() {
         equipes: { del: deleteEquipe, update: updateEquipe },
         recursos: { del: deleteRecurso, update: updateRecurso },
         statusProjetos: { del: deleteStatusProjeto, update: updateStatusProjeto },
-      alocacoes: { del: deleteAlocacao, update: updateAlocacao },
+        alocacoes: { del: deleteAlocacao, update: updateAlocacao },
       };
       const { del, update } = apiMap[tab];
 
@@ -269,216 +280,169 @@ export default function GerenciamentoCascade() {
 
   const handleCloseNotification = () => setNotification({ ...notification, open: false });
 
-  const handleChangePage = useCallback((event, newPage) => {
+  const handlePageChange = (event, newPage) => {
     setPage(newPage);
-  }, []);
-
-  const handleChangeRowsPerPage = useCallback((event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0); // Volta para a primeira página ao mudar o número de itens por página
-  }, []);
-
-  /* =====================
-     Memoizações de dados
-  ===================== */
-  const secaoMap = useMemo(() => secoes.reduce((acc, s) => ({ ...acc, [s.id]: s.nome }), {}), [secoes]);
-  const equipeMap = useMemo(() => equipes.reduce((acc, e) => ({ ...acc, [e.id]: e.nome }), {}), [equipes]);
-  const statusMap = useMemo(() => statusProjetos.reduce((acc, s) => ({ ...acc, [s.id]: s.nome }), {}), [statusProjetos]);
-  const projetoMap = useMemo(() => projetos.reduce((acc, p) => ({ ...acc, [p.id]: p.nome }), {}), [projetos]);
-  const recursoMap = useMemo(() => recursos.reduce((acc, r) => ({ ...acc, [r.id]: r.nome }), {}), [recursos]);
-  // O statusMap existente é para Status de Projeto. Vamos usá-lo para alocações também, conforme API.
-  const statusAlocacaoMap = statusMap;
-
-  const currentData = useMemo(() => {
-    const dataMap = { projetos, secoes, equipes, recursos, statusProjetos, alocacoes };
-    return dataMap[tab] || [];
-  }, [tab, projetos, secoes, equipes, recursos, statusProjetos, alocacoes]);
-
-  // Para alocações, garantimos que cada item possua "equipe_id" derivado do recurso, caso ainda não exista.
-  const currentDataWithDerivatives = useMemo(() => {
-    if (tab !== 'alocacoes') return currentData;
-    return currentData.map(aloc => ({
-      ...aloc,
-      equipe_id: aloc.equipe_id || recursoMap[aloc.recurso_id] ? recursos.find(r => r.id === aloc.recurso_id)?.equipe_id : null,
-    }));
-  }, [currentData, tab, recursos, recursoMap]);
-
-  const filteredData = useMemo(() => {
-    return currentDataWithDerivatives.filter(item => {
-      const isEntityActive = item.ativo === undefined ? true : item.ativo;
-      const isVisible = showInactive || isEntityActive;
-      if (!isVisible) return false;
-      if (!deferredFiltro) return true;
-
-      const lowerCaseFilter = deferredFiltro.toLowerCase();
-
-      if (tab === 'alocacoes') {
-        return (
-          item.projeto_nome?.toLowerCase().includes(lowerCaseFilter) ||
-          item.recurso_nome?.toLowerCase().includes(lowerCaseFilter) ||
-          item.equipe_nome?.toLowerCase().includes(lowerCaseFilter) ||
-          item.observacao?.toLowerCase().includes(lowerCaseFilter)
-        );
-      }
-
-      // Filtro padrão para outras abas
-      return (
-        item.nome?.toLowerCase().includes(lowerCaseFilter) ||
-        item.descricao?.toLowerCase().includes(lowerCaseFilter)
-      );
-    });
-  }, [currentDataWithDerivatives, showInactive, deferredFiltro, tab]);
-
-  const columns = {
-    projetos: [
-      { id: 'nome', label: 'Nome' },
-      { id: 'descricao', label: 'Descrição' },
-      { id: 'secao_id', label: 'Seção', format: (val) => secaoMap[val] || 'N/A' },
-      { id: 'status_projeto_id', label: 'Status', format: (val) => statusMap[val] || 'N/A' },
-      { id: 'data_inicio_prevista', label: 'Início Previsto', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString() : 'N/A' },
-    ],
-    secoes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
-    equipes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }, { id: 'secao_id', label: 'Seção', format: (val) => secaoMap[val] || 'N/A' }],
-    recursos: [{ id: 'nome', label: 'Nome' }, { id: 'equipe_principal_id', label: 'Equipe', format: (val) => equipeMap[val] || 'N/A' }],
-    statusProjetos: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
-    alocacoes: [
-      { id: 'projeto_nome', label: 'Projeto' },
-      { id: 'recurso_nome', label: 'Recurso' },
-      { id: 'equipe_nome', label: 'Equipe' },
-      { id: 'status_alocacao_id', label: 'Status', format: (val) => statusAlocacaoMap[val] || 'N/A' },
-      { id: 'data_inicio_alocacao', label: 'Início', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A' },
-      { id: 'observacao', label: 'Observação' },
-    ],
   };
-  const currentColumns = columns[tab];
 
-  // Callbacks estáveis para evitar recriação nas dependências
-  const handleEdit = useCallback((item) => handleOpenModal(item), [handleOpenModal]);
-  const handleDelete = useCallback((item) => handleDeleteToggle(item), [handleDeleteToggle]);
+  const handleRowsPerPageChange = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
-  const renderedTable = useMemo(() => {
-    if (!currentColumns) return <Typography>Selecione um tipo de gerenciamento.</Typography>;
+  const renderContent = () => {
+    if (loading && !modalOpen) {
+      return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}><CircularProgress /></Box>;
+    }
+    if (error) {
+      return <Typography color="error">Erro ao carregar dados: {error}</Typography>;
+    }
+
+    const dataMap = {
+      projetos,
+      secoes,
+      equipes,
+      recursos,
+      statusProjetos,
+      alocacoes,
+    };
+    const currentData = dataMap[tab] || [];
+
+    const columns = {
+      projetos: [
+        { id: 'nome', label: 'Nome' },
+        { id: 'descricao', label: 'Descrição' },
+        { id: 'secao_id', label: 'Seção', format: (val) => secoes.find(s => s.id === val)?.nome || 'N/A' },
+        { id: 'status_projeto_id', label: 'Status', format: (val) => statusProjetos.find(s => s.id === val)?.nome || 'N/A' },
+        { id: 'data_inicio_prevista', label: 'Início Previsto', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString() : 'N/A' },
+      ],
+      secoes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
+      equipes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }, { id: 'secao_id', label: 'Seção', format: (val) => secoes.find(s => s.id === val)?.nome || 'N/A' }],
+      recursos: [{ id: 'nome', label: 'Nome' }, { id: 'equipe_principal_id', label: 'Equipe', format: (val) => equipes.find(e => e.id === val)?.nome || 'N/A' }],
+      statusProjetos: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
+      alocacoes: [
+        { id: 'projeto_nome', label: 'Projeto' },
+        { id: 'recurso_nome', label: 'Recurso' },
+        { id: 'equipe_nome', label: 'Equipe' },
+        { id: 'status_alocacao_id', label: 'Status', format: (val) => statusProjetos.find(s => s.id === val)?.nome || 'N/A' },
+        { id: 'data_inicio_alocacao', label: 'Início', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A' },
+        { id: 'observacao', label: 'Observação' },
+      ],
+    };
+    const currentColumns = columns[tab];
 
     return (
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <TableContainer component={Paper} sx={{ maxHeight: '70vh' }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
+      <TableContainer component={Paper}>
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              {currentColumns.map(col => (
+                <TableCell key={col.id} sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>
+                  {col.label}
+                </TableCell>
+              ))}
+              <TableCell align="center" sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold', width: '120px' }}>
+                Ações
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {currentData.map((item, index) => (
+              <TableRow key={item.id || index} sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}>
                 {currentColumns.map(col => (
-                  <TableCell key={col.id} sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>
-                    {col.label}
-                  </TableCell>
+                  <TableCell key={col.id}>{col.format ? col.format(item[col.id]) : item[col.id]}</TableCell>
                 ))}
-                <TableCell align="center" sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold', width: '120px' }}>
-                  Ações
+                <TableCell>
+                  <IconButton onClick={() => handleOpenModal(item)}><EditIcon /></IconButton>
+                  <IconButton onClick={() => handleDeleteToggle(item)}>
+                    {item.ativo ? <DeleteIcon /> : <RestoreFromTrashIcon />}
+                  </IconButton>
                 </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredData.map((item, index) => (
-                <TableRow key={item.id || index} sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}>
-                  {currentColumns.map(col => (
-                    <TableCell key={col.id}>{col.format ? col.format(item[col.id]) : item[col.id]}</TableCell>
-                  ))}
-                  <TableCell>
-                    <IconButton onClick={() => handleEdit(item)}><EditIcon /></IconButton>
-                    <IconButton onClick={() => handleDelete(item)}>
-                      {/* Para alocações, o ícone de deletar será sempre vermelho, pois não há status 'inativo' explícito */}
-                      <DeleteIcon sx={{ color: '#d32f2f' }} />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50, 100]}
-          component="div"
-          count={total} // Correção: usar o estado 'total' em vez de data.length
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Itens por página:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
-        />
-      </Paper>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     );
-  }, [filteredData, currentColumns, handleEdit, handleDelete, total, rowsPerPage, page, handleChangePage, handleChangeRowsPerPage]);
-
-  /* =====================
-     Renderização
-  ===================== */
-
-  // O retorno da função antes era 'renderContent()'; substituímos pelo JSX memoizado.
-  const renderContent = () => renderedTable;
+  };
 
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom sx={{ color: wegBlue, fontWeight: 'bold' }}>
         Gerenciamento do Sistema
       </Typography>
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-          <FormControl sx={{ minWidth: 240 }}>
+
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+          <FormControl variant="outlined" sx={{ m: 1, minWidth: 200 }}>
             <InputLabel>Tipo de Gerenciamento</InputLabel>
-            <Select value={tab} label="Tipo de Gerenciamento" onChange={handleTabChange}>
-              {managementTypes.map(type => (
-                <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
-              ))}
+            <Select value={tab} onChange={handleTabChange} label="Tipo de Gerenciamento">
+              {managementTypes.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
             </Select>
           </FormControl>
+
           <TextField
-            label="Filtrar por nome ou descrição..."
+            label="Filtrar por nome..."
             variant="outlined"
             value={filtroNome}
             onChange={(e) => setFiltroNome(e.target.value)}
-            sx={{ flexGrow: 1, maxWidth: 400 }}
+            sx={{ m: 1, flexGrow: 1 }}
           />
+
           <FormControlLabel
             control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
-            label="Mostrar inativos"
-            sx={{ ml: 'auto' }}
+            label="Mostrar Inativos"
+            sx={{ m: 1 }}
           />
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenModal()}
-            sx={{ backgroundColor: wegBlue, '&:hover': { backgroundColor: '#004175' } }}
-          >
-            Novo Item
-          </Button>
+
+          {tab === 'projetos' && (
+            <FormControlLabel
+              control={<Switch checked={detailedView} onChange={(e) => setDetailedView(e.target.checked)} />}
+              label="Visão Detalhada"
+              sx={{ m: 1 }}
+            />
+          )}
+
+          {tab !== 'planejamento_horas' && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenModal()}
+              sx={{ m: 1, backgroundColor: wegBlue, '&:hover': { backgroundColor: '#00447c' } }}
+            >
+              Novo Item
+            </Button>
+          )}
         </Box>
       </Paper>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : tab === 'planejamento_horas' ? (
-        <PlanejamentoHoras setNotification={setNotification} />
+      {tab === 'projetos' && detailedView ? (
+        <ProjetosDetalhesTable data={projetos} />
       ) : (
         renderContent()
       )}
+      
+      {total > 0 && tab !== 'planejamento_horas' && (
+        <TablePagination
+          component="div"
+          count={total}
+          page={page}
+          onPageChange={handlePageChange}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          rowsPerPageOptions={[5, 10, 25, 50]}
+        />
+      )}
 
-      {/* Modais Renderizados de forma performática */}
-      {tab === 'projetos' && <ProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} projeto={currentItem} secoes={secoes} statusProjetos={statusProjetos} apiError={modalError} />}
-      {tab === 'alocacoes' && <AlocacaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} item={currentItem} projetos={projetos} recursos={recursos} statusOptions={statusProjetos} />}
-      {tab === 'secoes' && <SecaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />}
-      {tab === 'equipes' && <EquipeModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes} />}
-      {tab === 'recursos' && <RecursoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} recurso={currentItem} equipes={equipes} />}
-      {tab === 'statusProjetos' && <StatusProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} statusProjeto={currentItem} />}
+      {modalOpen && (
+        tab === 'projetos' && <ProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} projeto={currentItem} secoes={secoes} statusProjetos={statusProjetos} apiError={modalError} />
+        || tab === 'alocacoes' && <AlocacaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} item={currentItem} projetos={projetos} recursos={recursos} statusOptions={statusProjetos} />
+        || tab === 'secoes' && <SecaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />
+        || tab === 'equipes' && <EquipeModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes} />
+        || tab === 'recursos' && <RecursoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} recurso={currentItem} equipes={equipes} />
+        || tab === 'statusProjetos' && <StatusProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} statusProjeto={currentItem} />
+      )}
 
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={6000}
-        onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
+      <Snackbar open={notification.open} autoHideDuration={6000} onClose={handleCloseNotification}>
         <Alert onClose={handleCloseNotification} severity={notification.severity} sx={{ width: '100%' }}>
           {notification.message}
         </Alert>

@@ -10,6 +10,11 @@ export const getProjetos = (params = {}) => {
   return apiGet(ENDPOINT, params);
 };
 
+// Buscar lista de projetos com alocações e horas
+export const getProjetosDetalhados = (params = {}) => {
+  return apiGet(`${ENDPOINT}/detalhados`, params);
+};
+
 // Buscar projeto por ID
 export const getProjetoById = (id) => {
   return apiGet(`${ENDPOINT}/${id}/`);
