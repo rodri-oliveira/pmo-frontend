@@ -12,7 +12,24 @@ export const getProjetos = (params = {}) => {
 
 // Buscar lista de projetos com alocações e horas
 export const getProjetosDetalhados = (params = {}) => {
-  return apiGet(`${ENDPOINT}/detalhados`, params);
+  const finalParams = {
+    page: params.page || 1,
+    per_page: params.per_page || 10,
+  };
+
+  if (params.search) {
+    finalParams.search = params.search;
+  }
+  // Garante que `ativo=false` seja enviado, mas `ativo=null/undefined` não.
+  if (params.ativo !== null && params.ativo !== undefined) {
+    finalParams.ativo = params.ativo;
+  }
+  // Envia `com_alocacoes=true` apenas se for explicitamente true.
+  if (params.com_alocacoes === true) {
+    finalParams.com_alocacoes = true;
+  }
+
+  return apiGet(`${ENDPOINT}/detalhados`, finalParams);
 };
 
 // Buscar projeto por ID

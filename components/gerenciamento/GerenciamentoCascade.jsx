@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import React, { useState, useEffect, useCallback, useMemo, useDeferredValue, startTransition } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useDeferredValue, useTransition } from 'react';
 import {
   Box, Typography, Paper, Button, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, CircularProgress,
@@ -68,6 +68,8 @@ export default function GerenciamentoCascade() {
   const [modalOpen, setModalOpen] = useState(false);
   const [detailedView, setDetailedView] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
+  const [alocacaoModalOpen, setAlocacaoModalOpen] = useState(false);
+  const [currentAlocacao, setCurrentAlocacao] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
   const [filtroNome, setFiltroNome] = useState('');
   // Usa algoritmo concurrent do React 18 para adiar buscas sem bloquear UI
@@ -75,6 +77,7 @@ export default function GerenciamentoCascade() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [isPending, startTransition] = useTransition();
 
   // Função reutilizável para buscar dados, agora visível para outros handlers
   const fetchData = useCallback(async (showSpinner = true) => {
@@ -92,12 +95,17 @@ export default function GerenciamentoCascade() {
       switch (tab) {
         case 'projetos': {
           if (detailedView) {
-            const data = await getProjetosDetalhados(params);
-            setProjetos(data || []);
-            // A view detalhada não retorna o total, então buscamos separadamente
-            // para manter a paginação consistente.
-            const totalData = await getProjetos({ search: deferredFiltro, ativo: !showInactive });
-            setTotal(totalData.total || 0);
+            const data = await getProjetosDetalhados({
+              page: page + 1,
+              per_page: rowsPerPage,
+              search: deferredFiltro,
+              ativo: !showInactive,
+              com_alocacoes: true
+            });
+            const items = Array.isArray(data) ? data : data.items;
+            const totalCount = Array.isArray(data) ? data.length : (data.total || (data.items ? data.items.length : 0));
+            setProjetos(items || []);
+            setTotal(totalCount || 0);
           } else {
             const projData = await getProjetos(params);
             const items = Array.isArray(projData) ? projData : projData.items;
@@ -177,7 +185,7 @@ export default function GerenciamentoCascade() {
     } finally {
       setLoading(false);
     }
-  }, [tab, showInactive, page, rowsPerPage, deferredFiltro]);
+  }, [tab, showInactive, page, rowsPerPage, deferredFiltro, detailedView]);
 
   // Reseta a página para 0 quando o filtro de nome ou de inativos muda
   useEffect(() => {
@@ -185,9 +193,14 @@ export default function GerenciamentoCascade() {
   }, [deferredFiltro, showInactive]);
 
   // Carrega dados quando a função de busca é recriada (devido a mudança de dependências)
+  // Ao alternar detailedView, zeramos page antes de buscar dados para evitar requisição em página inexistente
+  useEffect(() => {
+    setPage(0);
+  }, [detailedView]);
+
   useEffect(() => {
     fetchData(true);
-  }, [fetchData, detailedView]);
+  }, [fetchData, page, detailedView]);
 
   const handleOpenModal = useCallback((item = null) => {
     setCurrentItem(item);
@@ -280,6 +293,68 @@ export default function GerenciamentoCascade() {
 
   const handleCloseNotification = () => setNotification({ ...notification, open: false });
 
+  // Handlers específicos para o modal de alocação na visão detalhada
+  const handleEditAlocacao = (alocacao) => {
+    setCurrentAlocacao(alocacao);
+    setAlocacaoModalOpen(true);
+  };
+
+  const handleCloseAlocacaoModal = () => {
+    setCurrentAlocacao(null);
+    setAlocacaoModalOpen(false);
+    setModalError('');
+  };
+
+  const handleSaveAlocacao = async (data) => {
+    setLoading(true);
+    try {
+      if (currentAlocacao && currentAlocacao.id) {
+        await updateAlocacao(currentAlocacao.id, data);
+        setNotification({ open: true, message: 'Alocação atualizada com sucesso!', severity: 'success' });
+      } else {
+        // A criação de alocação pela visão detalhada pode ser implementada aqui se necessário
+      }
+      await fetchData();
+      handleCloseAlocacaoModal();
+    } catch (err) {
+      const errMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
+      setModalError(errMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAlocacao = async (alocacao) => {
+    if (!window.confirm(`Tem certeza que deseja excluir esta alocação?`)) return;
+
+    setLoading(true);
+    try {
+      await deleteAlocacao(alocacao.id);
+      setNotification({ open: true, message: 'Alocação excluída com sucesso!', severity: 'success' });
+      await fetchData();
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
+      setNotification({ open: true, message: `Erro: ${errorMsg}`, severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveHoras = async (projetoId, alocacaoId, horas) => {
+    setLoading(true);
+    try {
+      const planejamentos = horas.map(({ id, ...rest }) => rest);
+      await planejamentoHoras(projetoId, alocacaoId, planejamentos);
+      setNotification({ open: true, message: 'Horas planejadas salvas com sucesso!', severity: 'success' });
+      await fetchData();
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro ao salvar as horas.';
+      setNotification({ open: true, message: `Erro: ${errorMsg}`, severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePageChange = (event, newPage) => {
     setPage(newPage);
   };
@@ -287,6 +362,13 @@ export default function GerenciamentoCascade() {
   const handleRowsPerPageChange = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  const handleDetailedViewChange = (checked) => {
+    startTransition(() => {
+      setDetailedView(checked);
+      setPage(0); // garante que a busca comece da primeira página
+    });
   };
 
   const renderContent = () => {
@@ -331,7 +413,7 @@ export default function GerenciamentoCascade() {
     const currentColumns = columns[tab];
 
     return (
-      <TableContainer component={Paper}>
+      <TableContainer sx={{ maxHeight: '70vh' }}>
         <Table stickyHeader>
           <TableHead>
             <TableRow>
@@ -396,9 +478,9 @@ export default function GerenciamentoCascade() {
 
           {tab === 'projetos' && (
             <FormControlLabel
-              control={<Switch checked={detailedView} onChange={(e) => setDetailedView(e.target.checked)} />}
+              control={<Switch checked={detailedView} onChange={(e) => handleDetailedViewChange(e.target.checked)} />}
               label="Visão Detalhada"
-              sx={{ m: 1 }}
+              sx={{ m: 1, opacity: isPending ? 0.7 : 1 }}
             />
           )}
 
@@ -415,31 +497,68 @@ export default function GerenciamentoCascade() {
         </Box>
       </Paper>
 
-      {tab === 'projetos' && detailedView ? (
-        <ProjetosDetalhesTable data={projetos} />
-      ) : (
-        renderContent()
-      )}
+      <>
+        {tab === 'projetos' && detailedView ? (
+          <Paper sx={{ width: '100%', overflow: 'hidden', mb: 2 }}>
+            <ProjetosDetalhesTable 
+              projetos={projetos} 
+              onEditProjeto={handleOpenModal} 
+              onEditAlocacao={handleEditAlocacao}
+              onDeleteAlocacao={handleDeleteAlocacao}
+              onSaveHoras={handleSaveHoras}
+            />
+            {total > 0 && (
+              <TablePagination
+                component="div"
+                count={total}
+                page={page}
+                onPageChange={handlePageChange}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleRowsPerPageChange}
+                rowsPerPageOptions={[10, 25, 50]}
+              />
+            )}
+          </Paper>
+        ) : (
+          <Paper sx={{ width: '100%', overflow: 'hidden', mb: 2 }}>
+            {renderContent()}
+            {total > 0 && tab !== 'planejamento_horas' && (
+              <TablePagination
+                component="div"
+                count={total}
+                page={page}
+                onPageChange={handlePageChange}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleRowsPerPageChange}
+                rowsPerPageOptions={[10, 25, 50]}
+              />
+            )}
+          </Paper>
+        )}
+      </>
       
-      {total > 0 && tab !== 'planejamento_horas' && (
-        <TablePagination
-          component="div"
-          count={total}
-          page={page}
-          onPageChange={handlePageChange}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleRowsPerPageChange}
-          rowsPerPageOptions={[5, 10, 25, 50]}
-        />
+      {modalOpen && (
+        (tab === 'projetos' && <ProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} projeto={currentItem} secoes={secoes} statusProjetos={statusProjetos} apiError={modalError} />)
+        || (tab === 'alocacoes' && <AlocacaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} alocacao={currentItem} projetos={projetos} recursos={recursos} statusOptions={statusProjetos} error={modalError} loading={loading} />)
+        || (tab === 'secoes' && <SecaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />)
+        || (tab === 'equipes' && <EquipeModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes} />)
+        || (tab === 'recursos' && <RecursoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} recurso={currentItem} equipes={equipes} />)
+        || (tab === 'statusProjetos' && <StatusProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} statusProjeto={currentItem} />)
       )}
 
-      {modalOpen && (
-        tab === 'projetos' && <ProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} projeto={currentItem} secoes={secoes} statusProjetos={statusProjetos} apiError={modalError} />
-        || tab === 'alocacoes' && <AlocacaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} item={currentItem} projetos={projetos} recursos={recursos} statusOptions={statusProjetos} />
-        || tab === 'secoes' && <SecaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />
-        || tab === 'equipes' && <EquipeModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes} />
-        || tab === 'recursos' && <RecursoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} recurso={currentItem} equipes={equipes} />
-        || tab === 'statusProjetos' && <StatusProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} statusProjeto={currentItem} />
+      {/* Modal de Alocação para a Visão Detalhada */}
+      {alocacaoModalOpen && (
+        <AlocacaoModal
+          open={alocacaoModalOpen}
+          onClose={handleCloseAlocacaoModal}
+          onSave={handleSaveAlocacao}
+          alocacao={currentAlocacao}
+          projetos={projetos}
+          recursos={recursos}
+          statusOptions={statusProjetos}
+          error={modalError}
+          loading={loading}
+        />
       )}
 
       <Snackbar open={notification.open} autoHideDuration={6000} onClose={handleCloseNotification}>
