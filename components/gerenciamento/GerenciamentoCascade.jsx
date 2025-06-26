@@ -1,56 +1,116 @@
 "use client";
 
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import React, { useState, useEffect, useCallback, useMemo, useDeferredValue, useTransition } from 'react';
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useDeferredValue,
+  useTransition,
+} from "react";
 import {
-  Box, Typography, Paper, Button, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, IconButton, CircularProgress,
-  Select, MenuItem, FormControl, InputLabel,
-  Alert, Snackbar,
-  Switch, FormControlLabel, TextField, TablePagination, Autocomplete
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
+  Box,
+  Typography,
+  Paper,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  CircularProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Alert,
+  Snackbar,
+  Switch,
+  FormControlLabel,
+  TextField,
+  TablePagination,
+  Autocomplete,
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash";
 
 // Importações dos serviços de API padronizados
-import { getSecoes, createSecao, updateSecao, deleteSecao } from '../../services/secoes';
-import { getEquipes, createEquipe, updateEquipe, deleteEquipe } from '../../services/equipes';
-import { getRecursos, createRecurso, updateRecurso, deleteRecurso } from '../../services/recursos';
-import { getStatusProjetos, createStatusProjeto, updateStatusProjeto, deleteStatusProjeto } from '../../services/statusProjetos';
-import { getProjetos, getProjetosDetalhados, createProjetoComAlocacoes, updateProjeto, deleteProjeto } from '../../services/projetos';
-import { getAlocacoes, createAlocacao, updateAlocacao, deleteAlocacao } from '../../services/alocacoes';
-import PlanejamentoHoras from './PlanejamentoHoras';
+import {
+  getSecoes,
+  createSecao,
+  updateSecao,
+  deleteSecao,
+} from "../../services/secoes";
+import {
+  getEquipes,
+  createEquipe,
+  updateEquipe,
+  deleteEquipe,
+} from "../../services/equipes";
+import {
+  getRecursos,
+  createRecurso,
+  updateRecurso,
+  deleteRecurso,
+} from "../../services/recursos";
+import {
+  getStatusProjetos,
+  createStatusProjeto,
+  updateStatusProjeto,
+  deleteStatusProjeto,
+} from "../../services/statusProjetos";
+import {
+  getProjetos,
+  getProjetosDetalhados,
+  createProjetoComAlocacoes,
+  updateProjeto,
+  deleteProjeto,
+} from "../../services/projetos";
+import {
+  getAlocacoes,
+  createAlocacao,
+  updateAlocacao,
+  deleteAlocacao,
+} from "../../services/alocacoes";
+import PlanejamentoHoras from "./PlanejamentoHoras";
 
 // Importações dos Modais (lazy loaded para melhorar performance)
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 
-const SecaoModal = dynamic(() => import('./SecaoModal'), { ssr: false });
-const EquipeModal = dynamic(() => import('./EquipeModal'), { ssr: false });
-const RecursoModal = dynamic(() => import('./RecursoModal'), { ssr: false });
-const StatusProjetoModal = dynamic(() => import('./StatusProjetoModal'), { ssr: false });
-const ProjetoModal = dynamic(() => import('./ProjetoModal'), { ssr: false });
-const AlocacaoModal = dynamic(() => import('./AlocacaoModal'), { ssr: false });
-const ProjetosDetalhesTable = dynamic(() => import('./ProjetosDetalhesTable'), { ssr: false });
+const SecaoModal = dynamic(() => import("./SecaoModal"), { ssr: false });
+const EquipeModal = dynamic(() => import("./EquipeModal"), { ssr: false });
+const RecursoModal = dynamic(() => import("./RecursoModal"), { ssr: false });
+const StatusProjetoModal = dynamic(() => import("./StatusProjetoModal"), {
+  ssr: false,
+});
+const ProjetoModal = dynamic(() => import("./ProjetoModal"), { ssr: false });
+const AlocacaoModal = dynamic(() => import("./AlocacaoModal"), { ssr: false });
+const ProjetosDetalhesTable = dynamic(() => import("./ProjetosDetalhesTable"), {
+  ssr: false,
+});
 
-const wegBlue = '#00579d';
+const wegBlue = "#00579d";
 
 const managementTypes = [
-  { value: 'projetos', label: 'Projetos' },
-  { value: 'statusProjetos', label: 'Status de Projeto' },
-  { value: 'secoes', label: 'Seções' },
-  { value: 'equipes', label: 'Equipes' },
-  { value: 'recursos', label: 'Recursos' },
-  { value: 'alocacoes', label: 'Alocações' },
-  { value: 'planejamento_horas', label: 'Planejamento de Horas' },
+  { value: "projetos", label: "Projetos" },
+  { value: "statusProjetos", label: "Status de Projeto" },
+  { value: "secoes", label: "Seções" },
+  { value: "equipes", label: "Equipes" },
+  { value: "recursos", label: "Recursos" },
+  { value: "alocacoes", label: "Alocações" },
+  { value: "planejamento_horas", label: "Planejamento de Horas" },
 ];
 
 export default function GerenciamentoCascade() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const tab = searchParams.get('tab') || 'projetos';
+  const tab = searchParams.get("tab") || "projetos";
 
   // Estados para os dados
   const [projetos, setProjetos] = useState([]);
@@ -63,135 +123,191 @@ export default function GerenciamentoCascade() {
   // Estados de UI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
-  const [modalError, setModalError] = useState('');
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const [modalError, setModalError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [detailedView, setDetailedView] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [alocacaoModalOpen, setAlocacaoModalOpen] = useState(false);
   const [currentAlocacao, setCurrentAlocacao] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
-  const [filtroNome, setFiltroNome] = useState('');
-  const [filtroSecao, setFiltroSecao] = useState('');
-  const [filtroRecurso, setFiltroRecurso] = useState('');
+  const [filtroNome, setFiltroNome] = useState("");
+  const [filtroSecao, setFiltroSecao] = useState("");
+  const [filtroRecurso, setFiltroRecurso] = useState("");
   // Usa algoritmo concurrent do React 18 para adiar buscas sem bloquear UI
   const deferredFiltro = useDeferredValue(filtroNome);
   const [total, setTotal] = useState(0);
+
+  // Opções de recursos filtradas por seção em visão detalhada
+  const recursosOptions = useMemo(() => {
+    if (tab === "projetos" && detailedView && filtroSecao) {
+      return projetos
+        .filter((p) => p.secao?.id === filtroSecao)
+        .flatMap((p) => p.alocacoes.map((a) => a.recurso.nome))
+        .filter((v, i, a) => a.indexOf(v) === i);
+    }
+    return recursos.map((r) => r.nome);
+  }, [tab, detailedView, filtroSecao, projetos, recursos]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [isPending, startTransition] = useTransition();
 
   // Função reutilizável para buscar dados, agora visível para outros handlers
-  const fetchData = useCallback(async (showSpinner = true) => {
-    setLoading(true);
-    setError(null);
-    
-    const params = {
-      ativo: !showInactive,
-      page: page + 1, // API espera page começando em 1
-      per_page: rowsPerPage,
-      search: deferredFiltro || null,
-      ...(filtroSecao && { secao_id: filtroSecao }),
-      ...(filtroRecurso && { recurso: filtroRecurso }),
-    };
+  const fetchData = useCallback(
+    async (showSpinner = true) => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      switch (tab) {
-        case 'projetos': {
-          if (detailedView) {
-            const data = await getProjetosDetalhados({
-              page: page + 1,
-              per_page: rowsPerPage,
-              search: deferredFiltro,
-              ativo: !showInactive,
-              com_alocacoes: true,
-               ...(filtroSecao && { secao_id: filtroSecao }),
-               ...(filtroRecurso && { recurso: filtroRecurso }),
-             });
-            const items = Array.isArray(data) ? data : data.items;
-            const totalCount = Array.isArray(data) ? data.length : (data.total || (data.items ? data.items.length : 0));
-            setProjetos(items || []);
-            setTotal(totalCount || 0);
-          } else {
-            const projData = await getProjetos(params);
-            const items = Array.isArray(projData) ? projData : projData.items;
-            const totalCount = Array.isArray(projData) ? projData.length : (projData.total || (projData.items ? projData.items.length : 0));
-            setProjetos(items || []);
-            setTotal(totalCount || 0);
+      const params = {
+        ativo: !showInactive,
+        page: page + 1, // API espera page começando em 1
+        per_page: rowsPerPage,
+        search: deferredFiltro || null,
+        ...(filtroSecao && { secao_id: filtroSecao }),
+        ...(filtroRecurso && { recurso: filtroRecurso }),
+      };
+
+      try {
+        switch (tab) {
+          case "projetos": {
+            if (detailedView) {
+              const data = await getProjetosDetalhados({
+                page: page + 1,
+                per_page: rowsPerPage,
+                search: deferredFiltro,
+                ativo: !showInactive,
+                com_alocacoes: true,
+                ...(filtroSecao && { secao_id: filtroSecao }),
+                ...(filtroRecurso && { recurso: filtroRecurso }),
+              });
+              const items = Array.isArray(data) ? data : data.items;
+              const totalCount = Array.isArray(data)
+                ? data.length
+                : data.total || (data.items ? data.items.length : 0);
+              setProjetos(items || []);
+              setTotal(totalCount || 0);
+            } else {
+              const projData = await getProjetos(params);
+              const items = Array.isArray(projData) ? projData : projData.items;
+              const totalCount = Array.isArray(projData)
+                ? projData.length
+                : projData.total ||
+                  (projData.items ? projData.items.length : 0);
+              setProjetos(items || []);
+              setTotal(totalCount || 0);
+            }
+            const [secData, statData] = await Promise.all([
+              getSecoes({ apenas_ativos: true }),
+              getStatusProjetos({ apenas_ativos: true }),
+            ]);
+            setSecoes(Array.isArray(secData) ? secData : secData.items || []);
+            setStatusProjetos(
+              Array.isArray(statData) ? statData : statData.items || [],
+            );
+            break;
           }
-          const [secData, statData] = await Promise.all([
-            getSecoes({ apenas_ativos: true }),
-            getStatusProjetos({ apenas_ativos: true })
-          ]);
-          setSecoes(Array.isArray(secData) ? secData : secData.items || []);
-          setStatusProjetos(Array.isArray(statData) ? statData : statData.items || []);
-          break;
+          case "secoes": {
+            const data = await getSecoes(params);
+            const items = Array.isArray(data) ? data : data.items;
+            const totalCount = Array.isArray(data)
+              ? data.length
+              : data.total || (data.items ? data.items.length : 0);
+            setSecoes(items || []);
+            setTotal(totalCount || 0);
+            break;
+          }
+          case "equipes": {
+            const [eqData, secData] = await Promise.all([
+              getEquipes(params),
+              getSecoes({ apenas_ativos: true }),
+            ]);
+            const items = Array.isArray(eqData) ? eqData : eqData.items;
+            const totalCount = Array.isArray(eqData)
+              ? eqData.length
+              : eqData.total || (eqData.items ? eqData.items.length : 0);
+            setEquipes(items || []);
+            setTotal(totalCount || 0);
+            setSecoes(Array.isArray(secData) ? secData : secData.items || []);
+            break;
+          }
+          case "recursos": {
+            const [recData, eqData] = await Promise.all([
+              getRecursos(params),
+              getEquipes({ apenas_ativos: true }),
+            ]);
+            const items = Array.isArray(recData) ? recData : recData.items;
+            const totalCount = Array.isArray(recData)
+              ? recData.length
+              : recData.total || (recData.items ? recData.items.length : 0);
+            setRecursos(items || []);
+            setTotal(totalCount || 0);
+            setEquipes(Array.isArray(eqData) ? eqData : eqData.items || []);
+            break;
+          }
+          case "statusProjetos": {
+            const data = await getStatusProjetos(params);
+            const items = Array.isArray(data) ? data : data.items;
+            const totalCount = Array.isArray(data)
+              ? data.length
+              : data.total || (data.items ? data.items.length : 0);
+            setStatusProjetos(items || []);
+            setTotal(totalCount || 0);
+            break;
+          }
+          case "alocacoes": {
+            const [alocData, projData, recData, statAlocData] =
+              await Promise.all([
+                getAlocacoes(params),
+                getProjetos({ limit: 1000 }),
+                getRecursos({ limit: 1000 }),
+                getStatusProjetos({ limit: 1000 }),
+              ]);
+            const items = Array.isArray(alocData) ? alocData : alocData.items;
+            const totalCount = Array.isArray(alocData)
+              ? alocData.length
+              : alocData.total || (alocData.items ? alocData.items.length : 0);
+            setAlocacoes(items || []);
+            setTotal(totalCount || 0);
+            setProjetos(
+              Array.isArray(projData) ? projData : projData.items || [],
+            );
+            setRecursos(Array.isArray(recData) ? recData : recData.items || []);
+            setStatusProjetos(
+              Array.isArray(statAlocData)
+                ? statAlocData
+                : statAlocData.items || [],
+            );
+            break;
+          }
+          case "planejamento_horas":
+            // O componente PlanejamentoHoras busca seus próprios dados.
+            // Apenas garantimos que o estado de total seja zerado.
+            setTotal(0);
+            break;
+          default:
+            break;
         }
-        case 'secoes': {
-          const data = await getSecoes(params);
-          const items = Array.isArray(data) ? data : data.items;
-          const totalCount = Array.isArray(data) ? data.length : (data.total || (data.items ? data.items.length : 0));
-          setSecoes(items || []);
-          setTotal(totalCount || 0);
-          break;
-        }
-        case 'equipes': {
-          const [eqData, secData] = await Promise.all([getEquipes(params), getSecoes({ apenas_ativos: true })]);
-          const items = Array.isArray(eqData) ? eqData : eqData.items;
-          const totalCount = Array.isArray(eqData) ? eqData.length : (eqData.total || (eqData.items ? eqData.items.length : 0));
-          setEquipes(items || []);
-          setTotal(totalCount || 0);
-          setSecoes(Array.isArray(secData) ? secData : secData.items || []);
-          break;
-        }
-        case 'recursos': {
-          const [recData, eqData] = await Promise.all([getRecursos(params), getEquipes({ apenas_ativos: true })]);
-          const items = Array.isArray(recData) ? recData : recData.items;
-          const totalCount = Array.isArray(recData) ? recData.length : (recData.total || (recData.items ? recData.items.length : 0));
-          setRecursos(items || []);
-          setTotal(totalCount || 0);
-          setEquipes(Array.isArray(eqData) ? eqData : eqData.items || []);
-          break;
-        }
-        case 'statusProjetos': {
-          const data = await getStatusProjetos(params);
-          const items = Array.isArray(data) ? data : data.items;
-          const totalCount = Array.isArray(data) ? data.length : (data.total || (data.items ? data.items.length : 0));
-          setStatusProjetos(items || []);
-          setTotal(totalCount || 0);
-          break;
-        }
-        case 'alocacoes': {
-          const [alocData, projData, recData, statAlocData] = await Promise.all([
-              getAlocacoes(params),
-              getProjetos({ limit: 1000 }),
-              getRecursos({ limit: 1000 }),
-              getStatusProjetos({ limit: 1000 }),
-          ]);
-          const items = Array.isArray(alocData) ? alocData : alocData.items;
-          const totalCount = Array.isArray(alocData) ? alocData.length : (alocData.total || (alocData.items ? alocData.items.length : 0));
-          setAlocacoes(items || []);
-          setTotal(totalCount || 0);
-          setProjetos(Array.isArray(projData) ? projData : projData.items || []);
-          setRecursos(Array.isArray(recData) ? recData : recData.items || []);
-          setStatusProjetos(Array.isArray(statAlocData) ? statAlocData : statAlocData.items || []);
-          break;
-        }
-        case 'planejamento_horas':
-          // O componente PlanejamentoHoras busca seus próprios dados.
-          // Apenas garantimos que o estado de total seja zerado.
-          setTotal(0);
-          break;
-        default:
-          break;
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error(`Erro ao buscar dados para ${tab}:`, err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [tab, showInactive, page, rowsPerPage, deferredFiltro, detailedView]);
+    },
+    [
+      tab,
+      showInactive,
+      page,
+      rowsPerPage,
+      deferredFiltro,
+      filtroSecao,
+      filtroRecurso,
+      detailedView,
+    ],
+  );
 
   // Reseta a página para 0 quando o filtro de nome ou de inativos muda
   useEffect(() => {
@@ -216,7 +332,7 @@ export default function GerenciamentoCascade() {
   const handleCloseModal = () => {
     setCurrentItem(null);
     setModalOpen(false);
-    setModalError('');
+    setModalError("");
   };
 
   const handleSave = async (data, keepModalOpen = false) => {
@@ -228,23 +344,36 @@ export default function GerenciamentoCascade() {
         secoes: { create: createSecao, update: updateSecao },
         equipes: { create: createEquipe, update: updateEquipe },
         recursos: { create: createRecurso, update: updateRecurso },
-        statusProjetos: { create: createStatusProjeto, update: updateStatusProjeto },
+        statusProjetos: {
+          create: createStatusProjeto,
+          update: updateStatusProjeto,
+        },
         alocacoes: { create: createAlocacao, update: updateAlocacao },
       };
       const { create, update } = apiMap[tab];
-      const typeName = managementTypes.find(t => t.value === tab).label.slice(0, -1);
+      const typeName = managementTypes
+        .find((t) => t.value === tab)
+        .label.slice(0, -1);
 
       if (isEditing) {
         await update(currentItem.id, data);
-        setNotification({ open: true, message: `${typeName} atualizado com sucesso!`, severity: 'success' });
+        setNotification({
+          open: true,
+          message: `${typeName} atualizado com sucesso!`,
+          severity: "success",
+        });
       } else {
         const newItem = await create(data);
-        setNotification({ open: true, message: `${typeName} criado com sucesso!`, severity: 'success' });
+        setNotification({
+          open: true,
+          message: `${typeName} criado com sucesso!`,
+          severity: "success",
+        });
         if (keepModalOpen) {
           setCurrentItem(newItem.projeto || newItem);
         }
       }
-      
+
       await fetchData();
 
       if (!keepModalOpen) {
@@ -252,7 +381,8 @@ export default function GerenciamentoCascade() {
       }
     } catch (err) {
       console.error(`[handleSave] Falha ao salvar: ${err.message}`);
-      const errMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
+      const errMsg =
+        err.response?.data?.detail || err.message || "Ocorreu um erro.";
       setModalError(errMsg);
       // Mantém o modal aberto para que o usuário possa corrigir os dados.
       setModalOpen(true);
@@ -262,42 +392,59 @@ export default function GerenciamentoCascade() {
   };
 
   // Manipula a exclusão ou restauração de itens com memoização correta
-  const handleDeleteToggle = useCallback(async (item) => {
-    const action = item.ativo ? 'inativar' : 'reativar';
-    if (!window.confirm(`Tem certeza que deseja ${action} este item?`)) return;
+  const handleDeleteToggle = useCallback(
+    async (item) => {
+      const action = item.ativo ? "inativar" : "reativar";
+      if (!window.confirm(`Tem certeza que deseja ${action} este item?`))
+        return;
 
-    setLoading(true);
-    try {
-      const apiMap = {
-        projetos: { del: deleteProjeto, update: updateProjeto },
-        secoes: { del: deleteSecao, update: updateSecao },
-        equipes: { del: deleteEquipe, update: updateEquipe },
-        recursos: { del: deleteRecurso, update: updateRecurso },
-        statusProjetos: { del: deleteStatusProjeto, update: updateStatusProjeto },
-        alocacoes: { del: deleteAlocacao, update: updateAlocacao },
-      };
-      const { del, update } = apiMap[tab];
+      setLoading(true);
+      try {
+        const apiMap = {
+          projetos: { del: deleteProjeto, update: updateProjeto },
+          secoes: { del: deleteSecao, update: updateSecao },
+          equipes: { del: deleteEquipe, update: updateEquipe },
+          recursos: { del: deleteRecurso, update: updateRecurso },
+          statusProjetos: {
+            del: deleteStatusProjeto,
+            update: updateStatusProjeto,
+          },
+          alocacoes: { del: deleteAlocacao, update: updateAlocacao },
+        };
+        const { del, update } = apiMap[tab];
 
-      if (item.ativo) {
-        await del(item.id);
-      } else {
-        await update(item.id, { ativo: true });
+        if (item.ativo) {
+          await del(item.id);
+        } else {
+          await update(item.id, { ativo: true });
+        }
+        setNotification({
+          open: true,
+          message: `Item ${action} com sucesso!`,
+          severity: "success",
+        });
+        await fetchData();
+      } catch (err) {
+        const errorMsg =
+          err.response?.data?.detail || err.message || "Ocorreu um erro.";
+        setNotification({
+          open: true,
+          message: `Erro: ${errorMsg}`,
+          severity: "error",
+        });
+      } finally {
+        setLoading(false);
       }
-      setNotification({ open: true, message: `Item ${action} com sucesso!`, severity: 'success' });
-      await fetchData();
-    } catch (err) {
-      const errorMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
-      setNotification({ open: true, message: `Erro: ${errorMsg}`, severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  }, [tab, fetchData]);
+    },
+    [tab, fetchData],
+  );
 
   const handleTabChange = (event) => {
     router.push(`${pathname}?tab=${event.target.value}`);
   };
 
-  const handleCloseNotification = () => setNotification({ ...notification, open: false });
+  const handleCloseNotification = () =>
+    setNotification({ ...notification, open: false });
 
   // Handlers específicos para o modal de alocação na visão detalhada
   const handleEditAlocacao = (alocacao) => {
@@ -308,7 +455,7 @@ export default function GerenciamentoCascade() {
   const handleCloseAlocacaoModal = () => {
     setCurrentAlocacao(null);
     setAlocacaoModalOpen(false);
-    setModalError('');
+    setModalError("");
   };
 
   const handleSaveAlocacao = async (data) => {
@@ -316,14 +463,19 @@ export default function GerenciamentoCascade() {
     try {
       if (currentAlocacao && currentAlocacao.id) {
         await updateAlocacao(currentAlocacao.id, data);
-        setNotification({ open: true, message: 'Alocação atualizada com sucesso!', severity: 'success' });
+        setNotification({
+          open: true,
+          message: "Alocação atualizada com sucesso!",
+          severity: "success",
+        });
       } else {
         // A criação de alocação pela visão detalhada pode ser implementada aqui se necessário
       }
       await fetchData();
       handleCloseAlocacaoModal();
     } catch (err) {
-      const errMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
+      const errMsg =
+        err.response?.data?.detail || err.message || "Ocorreu um erro.";
       setModalError(errMsg);
     } finally {
       setLoading(false);
@@ -331,16 +483,26 @@ export default function GerenciamentoCascade() {
   };
 
   const handleDeleteAlocacao = async (alocacao) => {
-    if (!window.confirm(`Tem certeza que deseja excluir esta alocação?`)) return;
+    if (!window.confirm(`Tem certeza que deseja excluir esta alocação?`))
+      return;
 
     setLoading(true);
     try {
       await deleteAlocacao(alocacao.id);
-      setNotification({ open: true, message: 'Alocação excluída com sucesso!', severity: 'success' });
+      setNotification({
+        open: true,
+        message: "Alocação excluída com sucesso!",
+        severity: "success",
+      });
       await fetchData();
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro.';
-      setNotification({ open: true, message: `Erro: ${errorMsg}`, severity: 'error' });
+      const errorMsg =
+        err.response?.data?.detail || err.message || "Ocorreu um erro.";
+      setNotification({
+        open: true,
+        message: `Erro: ${errorMsg}`,
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -351,11 +513,22 @@ export default function GerenciamentoCascade() {
     try {
       const planejamentos = horas.map(({ id, ...rest }) => rest);
       await planejamentoHoras(projetoId, alocacaoId, planejamentos);
-      setNotification({ open: true, message: 'Horas planejadas salvas com sucesso!', severity: 'success' });
+      setNotification({
+        open: true,
+        message: "Horas planejadas salvas com sucesso!",
+        severity: "success",
+      });
       await fetchData();
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || err.message || 'Ocorreu um erro ao salvar as horas.';
-      setNotification({ open: true, message: `Erro: ${errorMsg}`, severity: 'error' });
+      const errorMsg =
+        err.response?.data?.detail ||
+        err.message ||
+        "Ocorreu um erro ao salvar as horas.";
+      setNotification({
+        open: true,
+        message: `Erro: ${errorMsg}`,
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -379,10 +552,23 @@ export default function GerenciamentoCascade() {
 
   const renderContent = () => {
     if (loading && !modalOpen) {
-      return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}><CircularProgress /></Box>;
+      return (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "50vh",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      );
     }
     if (error) {
-      return <Typography color="error">Erro ao carregar dados: {error}</Typography>;
+      return (
+        <Typography color="error">Erro ao carregar dados: {error}</Typography>
+      );
     }
 
     const dataMap = {
@@ -397,50 +583,119 @@ export default function GerenciamentoCascade() {
 
     const columns = {
       projetos: [
-        { id: 'nome', label: 'Nome' },
-        { id: 'descricao', label: 'Descrição' },
-        { id: 'secao_id', label: 'Seção', format: (val) => secoes.find(s => s.id === val)?.nome || 'N/A' },
-        { id: 'status_projeto_id', label: 'Status', format: (val) => statusProjetos.find(s => s.id === val)?.nome || 'N/A' },
-        { id: 'data_inicio_prevista', label: 'Início Previsto', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString() : 'N/A' },
+        { id: "nome", label: "Nome" },
+        { id: "descricao", label: "Descrição" },
+        {
+          id: "secao_id",
+          label: "Seção",
+          format: (val) => secoes.find((s) => s.id === val)?.nome || "N/A",
+        },
+        {
+          id: "status_projeto_id",
+          label: "Status",
+          format: (val) =>
+            statusProjetos.find((s) => s.id === val)?.nome || "N/A",
+        },
+        {
+          id: "data_inicio_prevista",
+          label: "Início Previsto",
+          format: (val) =>
+            val ? new Date(val + "T00:00:00").toLocaleDateString() : "N/A",
+        },
       ],
-      secoes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
-      equipes: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }, { id: 'secao_id', label: 'Seção', format: (val) => secoes.find(s => s.id === val)?.nome || 'N/A' }],
-      recursos: [{ id: 'nome', label: 'Nome' }, { id: 'equipe_principal_id', label: 'Equipe', format: (val) => equipes.find(e => e.id === val)?.nome || 'N/A' }],
-      statusProjetos: [{ id: 'nome', label: 'Nome' }, { id: 'descricao', label: 'Descrição' }],
+      secoes: [
+        { id: "nome", label: "Nome" },
+        { id: "descricao", label: "Descrição" },
+      ],
+      equipes: [
+        { id: "nome", label: "Nome" },
+        { id: "descricao", label: "Descrição" },
+        {
+          id: "secao_id",
+          label: "Seção",
+          format: (val) => secoes.find((s) => s.id === val)?.nome || "N/A",
+        },
+      ],
+      recursos: [
+        { id: "nome", label: "Nome" },
+        {
+          id: "equipe_principal_id",
+          label: "Equipe",
+          format: (val) => equipes.find((e) => e.id === val)?.nome || "N/A",
+        },
+      ],
+      statusProjetos: [
+        { id: "nome", label: "Nome" },
+        { id: "descricao", label: "Descrição" },
+      ],
       alocacoes: [
-        { id: 'projeto_nome', label: 'Projeto' },
-        { id: 'recurso_nome', label: 'Recurso' },
-        { id: 'equipe_nome', label: 'Equipe' },
-        { id: 'status_alocacao_id', label: 'Status', format: (val) => statusProjetos.find(s => s.id === val)?.nome || 'N/A' },
-        { id: 'data_inicio_alocacao', label: 'Início', format: (val) => val ? new Date(val + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A' },
-        { id: 'observacao', label: 'Observação' },
+        { id: "projeto_nome", label: "Projeto" },
+        { id: "recurso_nome", label: "Recurso" },
+        { id: "equipe_nome", label: "Equipe" },
+        {
+          id: "status_alocacao_id",
+          label: "Status",
+          format: (val) =>
+            statusProjetos.find((s) => s.id === val)?.nome || "N/A",
+        },
+        {
+          id: "data_inicio_alocacao",
+          label: "Início",
+          format: (val) =>
+            val
+              ? new Date(val + "T00:00:00").toLocaleDateString("pt-BR")
+              : "N/A",
+        },
+        { id: "observacao", label: "Observação" },
       ],
     };
     const currentColumns = columns[tab];
 
     return (
-      <TableContainer sx={{ maxHeight: '70vh' }}>
+      <TableContainer sx={{ maxHeight: "70vh" }}>
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              {currentColumns.map(col => (
-                <TableCell key={col.id} sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>
+              {currentColumns.map((col) => (
+                <TableCell
+                  key={col.id}
+                  sx={{
+                    backgroundColor: wegBlue,
+                    color: "white",
+                    fontWeight: "bold",
+                  }}
+                >
                   {col.label}
                 </TableCell>
               ))}
-              <TableCell align="center" sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold', width: '120px' }}>
+              <TableCell
+                align="center"
+                sx={{
+                  backgroundColor: wegBlue,
+                  color: "white",
+                  fontWeight: "bold",
+                  width: "120px",
+                }}
+              >
                 Ações
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {currentData.map((item, index) => (
-              <TableRow key={item.id || index} sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}>
-                {currentColumns.map(col => (
-                  <TableCell key={col.id}>{col.format ? col.format(item[col.id]) : item[col.id]}</TableCell>
+              <TableRow
+                key={item.id || index}
+                sx={{ "&:hover": { backgroundColor: "#f5f5f5" } }}
+              >
+                {currentColumns.map((col) => (
+                  <TableCell key={col.id}>
+                    {col.format ? col.format(item[col.id]) : item[col.id]}
+                  </TableCell>
                 ))}
                 <TableCell>
-                  <IconButton onClick={() => handleOpenModal(item)}><EditIcon /></IconButton>
+                  <IconButton onClick={() => handleOpenModal(item)}>
+                    <EditIcon />
+                  </IconButton>
                   <IconButton onClick={() => handleDeleteToggle(item)}>
                     {item.ativo ? <DeleteIcon /> : <RestoreFromTrashIcon />}
                   </IconButton>
@@ -455,83 +710,131 @@ export default function GerenciamentoCascade() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom sx={{ color: wegBlue, fontWeight: 'bold' }}>
+      <Typography
+        variant="h4"
+        gutterBottom
+        sx={{ color: wegBlue, fontWeight: "bold" }}
+      >
         Gerenciamento do Sistema
       </Typography>
 
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-          <FormControl variant="outlined" sx={{ m: 1, minWidth: 200 }}>
+        <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
+          <FormControl sx={{ m: 1, minWidth: 200 }} variant="outlined">
             <InputLabel>Tipo de Gerenciamento</InputLabel>
-            <Select value={tab} onChange={handleTabChange} label="Tipo de Gerenciamento">
-              {managementTypes.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
-            </Select>
-          </FormControl>
-
-          <TextField
-            label="Filtrar por nome..."
-            variant="outlined"
-            value={filtroNome}
-            onChange={(e) => setFiltroNome(e.target.value)}
-            sx={{ m: 1, flexGrow: 1, maxWidth: 220 }}
-          />
-          <FormControl variant="outlined" sx={{ m: 1, minWidth: 160 }}>
-            <InputLabel id="secao-filter-label">Seção</InputLabel>
             <Select
-              labelId="secao-filter-label"
-              value={filtroSecao}
-              label="Seção"
-              onChange={(e) => setFiltroSecao(e.target.value)}
+              value={tab}
+              onChange={handleTabChange}
+              label="Tipo de Gerenciamento"
             >
-              <MenuItem value=""><em>Todas</em></MenuItem>
-              {secoes.map((s) => (
-                <MenuItem key={s.id} value={s.id}>{s.nome}</MenuItem>
+              {managementTypes.map((t) => (
+                <MenuItem key={t.value} value={t.value}>
+                  {t.label}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
 
-          <Autocomplete
-            freeSolo
-            options={recursos.map((r) => r.nome)}
-            value={filtroRecurso}
-            onInputChange={(event, newValue) => setFiltroRecurso(newValue)}
-            renderInput={(params) => <TextField {...params} label="Recurso" variant="outlined" />}
-            sx={{ m: 1, width: 200 }}
+          <TextField
+            label="Filtrar por nome…"
+            value={filtroNome}
+            onChange={(e) => setFiltroNome(e.target.value)}
+            variant="outlined"
+            sx={{ m: 1, flexGrow: 1, maxWidth: 220 }}
           />
 
-          <FormControlLabel
-            control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
-            label="Visão Detalhada"
-            sx={{ m: 1, opacity: isPending ? 0.7 : 1 }}
-          />
-
-          {tab === 'projetos' && (
-            <FormControlLabel
-              control={<Switch checked={detailedView} onChange={(e) => handleDetailedViewChange(e.target.checked)} />}
-              label="Visão Detalhada"
-              sx={{ m: 1, opacity: isPending ? 0.7 : 1 }}
-            />
+          {/* Aparece só em projetos/detailed */}
+          {tab === "projetos" && (
+            <>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={showInactive}
+                    onChange={(e) => setShowInactive(e.target.checked)}
+                  />
+                }
+                label="Mostrar Inativos"
+                sx={{ m: 1 }}
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={detailedView}
+                    onChange={(e) => {
+                      console.log("toggle detailedView:", e.target.checked);
+                      handleDetailedViewChange(e.target.checked);
+                    }}
+                  />
+                }
+                label="Visão Detalhada"
+                sx={{ m: 1, opacity: isPending ? 0.7 : 1 }}
+              />
+            </>
           )}
 
-          {tab !== 'planejamento_horas' && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenModal()}
-              sx={{ m: 1, backgroundColor: wegBlue, '&:hover': { backgroundColor: '#00447c' } }}
-            >
-              Novo Item
-            </Button>
+          {/* Filtros extras só em detailedView */}
+          {tab === "projetos" && detailedView && (
+            <>
+              <FormControl sx={{ m: 1, minWidth: 160 }} variant="outlined">
+                <InputLabel id="secao-filter-label">Seção</InputLabel>
+                <Select
+                  labelId="secao-filter-label"
+                  value={filtroSecao}
+                  onChange={(e) => {
+                    console.log("secao:", e.target.value);
+                    setFiltroSecao(e.target.value);
+                    setPage(0);
+                  }}
+                  label="Seção"
+                >
+                  <MenuItem value="">
+                    <em>Todas</em>
+                  </MenuItem>
+                  {secoes.map((s) => (
+                    <MenuItem key={s.id} value={s.id}>
+                      {s.nome}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Autocomplete
+                freeSolo
+                options={recursosOptions}
+                value={filtroRecurso}
+                onInputChange={(_, v) => {
+                  console.log("recurso:", v);
+                  setFiltroRecurso(v);
+                  setPage(0);
+                }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Recurso" variant="outlined" />
+                )}
+                sx={{ m: 1, width: 200 }}
+              />
+            </>
           )}
+
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenModal()}
+            sx={{
+              m: 1,
+              backgroundColor: wegBlue,
+              "&:hover": { backgroundColor: "#00447c" },
+            }}
+          >
+            + NOVO ITEM
+          </Button>
         </Box>
       </Paper>
 
       <>
-        {tab === 'projetos' && detailedView ? (
-          <Paper sx={{ width: '100%', overflow: 'hidden', mb: 2 }}>
-            <ProjetosDetalhesTable 
-              projetos={projetos} 
-              onEditProjeto={handleOpenModal} 
+        {tab === "projetos" && detailedView ? (
+          <Paper sx={{ width: "100%", overflow: "hidden", mb: 2 }}>
+            <ProjetosDetalhesTable
+              projetos={projetos}
+              onEditProjeto={handleOpenModal}
               onEditAlocacao={handleEditAlocacao}
               onDeleteAlocacao={handleDeleteAlocacao}
               onSaveHoras={handleSaveHoras}
@@ -549,9 +852,9 @@ export default function GerenciamentoCascade() {
             )}
           </Paper>
         ) : (
-          <Paper sx={{ width: '100%', overflow: 'hidden', mb: 2 }}>
+          <Paper sx={{ width: "100%", overflow: "hidden", mb: 2 }}>
             {renderContent()}
-            {total > 0 && tab !== 'planejamento_horas' && (
+            {total > 0 && tab !== "planejamento_horas" && (
               <TablePagination
                 component="div"
                 count={total}
@@ -565,15 +868,66 @@ export default function GerenciamentoCascade() {
           </Paper>
         )}
       </>
-      
-      {modalOpen && (
-        (tab === 'projetos' && <ProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} projeto={currentItem} secoes={secoes} statusProjetos={statusProjetos} apiError={modalError} />)
-        || (tab === 'alocacoes' && <AlocacaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} alocacao={currentItem} projetos={projetos} recursos={recursos} statusOptions={statusProjetos} error={modalError} loading={loading} />)
-        || (tab === 'secoes' && <SecaoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} secao={currentItem} />)
-        || (tab === 'equipes' && <EquipeModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} equipe={currentItem} secoes={secoes} />)
-        || (tab === 'recursos' && <RecursoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} recurso={currentItem} equipes={equipes} />)
-        || (tab === 'statusProjetos' && <StatusProjetoModal open={modalOpen} onClose={handleCloseModal} onSave={handleSave} statusProjeto={currentItem} />)
-      )}
+
+      {modalOpen &&
+        ((tab === "projetos" && (
+          <ProjetoModal
+            open={modalOpen}
+            onClose={handleCloseModal}
+            onSave={handleSave}
+            projeto={currentItem}
+            secoes={secoes}
+            statusProjetos={statusProjetos}
+            apiError={modalError}
+          />
+        )) ||
+          (tab === "alocacoes" && (
+            <AlocacaoModal
+              open={modalOpen}
+              onClose={handleCloseModal}
+              onSave={handleSave}
+              alocacao={currentItem}
+              projetos={projetos}
+              recursos={recursos}
+              statusOptions={statusProjetos}
+              error={modalError}
+              loading={loading}
+            />
+          )) ||
+          (tab === "secoes" && (
+            <SecaoModal
+              open={modalOpen}
+              onClose={handleCloseModal}
+              onSave={handleSave}
+              secao={currentItem}
+            />
+          )) ||
+          (tab === "equipes" && (
+            <EquipeModal
+              open={modalOpen}
+              onClose={handleCloseModal}
+              onSave={handleSave}
+              equipe={currentItem}
+              secoes={secoes}
+            />
+          )) ||
+          (tab === "recursos" && (
+            <RecursoModal
+              open={modalOpen}
+              onClose={handleCloseModal}
+              onSave={handleSave}
+              recurso={currentItem}
+              equipes={equipes}
+            />
+          )) ||
+          (tab === "statusProjetos" && (
+            <StatusProjetoModal
+              open={modalOpen}
+              onClose={handleCloseModal}
+              onSave={handleSave}
+              statusProjeto={currentItem}
+            />
+          )))}
 
       {/* Modal de Alocação para a Visão Detalhada */}
       {alocacaoModalOpen && (
@@ -590,11 +944,19 @@ export default function GerenciamentoCascade() {
         />
       )}
 
-      <Snackbar open={notification.open} autoHideDuration={6000} onClose={handleCloseNotification}>
-        <Alert onClose={handleCloseNotification} severity={notification.severity} sx={{ width: '100%' }}>
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+      >
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          sx={{ width: "100%" }}
+        >
           {notification.message}
         </Alert>
       </Snackbar>
     </Box>
   );
-};
+}
