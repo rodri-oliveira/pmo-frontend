@@ -20,12 +20,15 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 
 // Nomes dos meses para exibição amigável
 const mesesNomes = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
+
+const wegBlue = '#00579d';
 
 const style = {
   position: 'absolute',
@@ -123,7 +126,7 @@ function HorasPlanejadasModal({ open, onClose, onSave, alocacao, projetoId }) {
   );
 }
 
-import EditIcon from '@mui/icons-material/Edit';
+
 
 function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveHoras }) {
   const [open, setOpen] = useState(false);
@@ -159,16 +162,12 @@ function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveH
           {projeto.nome}
         </TableCell>
         <TableCell>{projeto.secao?.nome || 'N/A'}</TableCell>
-        <TableCell>{projeto.status_projeto?.nome || 'N/A'}</TableCell>
+        
         <TableCell>{projeto.data_inicio_prevista || 'N/A'}</TableCell>
-        <TableCell>
-          <IconButton onClick={() => onEditProjeto(projeto)} size="small">
-            <EditIcon />
-          </IconButton>
-        </TableCell>
+
       </TableRow>
       <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 1 }}>
               <Typography variant="h6" gutterBottom component="div">
@@ -178,11 +177,12 @@ function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveH
                 <Table size="small" aria-label="alocacoes">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Recurso</TableCell>
-                      <TableCell>Data Início</TableCell>
-                      <TableCell>Data Fim</TableCell>
-                      <TableCell>Horas Planejadas</TableCell>
-                      <TableCell>Ações</TableCell>
+                      <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Recurso</TableCell>
+                      <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Data Início</TableCell>
+                      <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Data Fim</TableCell>
+                      <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Status</TableCell>
+                      <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Horas Planejadas</TableCell>
+                      <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -191,6 +191,7 @@ function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveH
                         <TableCell>{alocacao.recurso.nome}</TableCell>
                         <TableCell>{alocacao.data_inicio_alocacao}</TableCell>
                         <TableCell>{alocacao.data_fim_alocacao || 'Indeterminado'}</TableCell>
+                        <TableCell>{alocacao.status?.nome || 'N/A'}</TableCell>
                         <TableCell align="center">
                           <Button
                             variant="outlined"
@@ -223,18 +224,19 @@ function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveH
   );
 }
 
+
+
 export default function ProjetosDetalhesTable({ projetos, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveHoras }) {
   return (
-    <TableContainer component={Paper}>
-      <Table aria-label="collapsible table">
+    <TableContainer component={Paper} sx={{ maxHeight: '70vh' }}>
+      <Table stickyHeader aria-label="collapsible table">
+      
         <TableHead>
-          <TableRow>
-            <TableCell />
-            <TableCell>Nome do Projeto</TableCell>
-            <TableCell>Seção</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell>Início Previsto</TableCell>
-            <TableCell>Ações</TableCell>
+          <TableRow sx={{ backgroundColor: wegBlue }}>
+            <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }} />
+            <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Nome do Projeto</TableCell>
+            <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Seção</TableCell>
+            <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Início Previsto</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
