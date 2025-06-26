@@ -21,6 +21,12 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
 
+// Nomes dos meses para exibição amigável
+const mesesNomes = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
 const style = {
   position: 'absolute',
   top: '50%',
@@ -39,7 +45,14 @@ function HorasPlanejadasModal({ open, onClose, onSave, alocacao, projetoId }) {
 
   useEffect(() => {
     if (alocacao?.horas_planejadas) {
-      setHoras(JSON.parse(JSON.stringify(alocacao.horas_planejadas)));
+      // Converte para estrutura usada no modal (campo horas)
+      const convertidas = alocacao.horas_planejadas.map((hp) => ({
+        id: hp.id ?? null,
+        ano: hp.ano,
+        mes: hp.mes,
+        horas: hp.horas_planejadas ?? hp.horas ?? 0,
+      }));
+      setHoras(convertidas);
     } else {
       setHoras([]);
     }
@@ -82,10 +95,21 @@ function HorasPlanejadasModal({ open, onClose, onSave, alocacao, projetoId }) {
         <Grid container spacing={2} sx={{ mt: 2, maxHeight: 300, overflowY: 'auto' }}>
           {horas.map((h, index) => (
             <Grid item xs={12} container spacing={1} key={index} alignItems="center">
-              <Grid item xs={3}><TextField label="Mês" type="number" value={h.mes} onChange={(e) => handleChange(index, 'mes', e.target.value)} fullWidth /></Grid>
+              <Grid item xs={3}>
+                <TextField
+                  label="Mês"
+                  value={mesesNomes[h.mes - 1]}
+                  disabled
+                  fullWidth
+                />
+              </Grid>
               <Grid item xs={3}><TextField label="Ano" type="number" value={h.ano} onChange={(e) => handleChange(index, 'ano', e.target.value)} fullWidth /></Grid>
               <Grid item xs={4}><TextField label="Horas" type="number" value={h.horas} onChange={(e) => handleChange(index, 'horas', e.target.value)} fullWidth /></Grid>
-              <Grid item xs={2}><IconButton onClick={() => handleRemove(index)}><DeleteIcon /></IconButton></Grid>
+              <Grid item xs={2}>
+                <IconButton onClick={() => handleRemove(index)} sx={{ color: 'error.main' }}>
+                  <DeleteIcon />
+                </IconButton>
+              </Grid>
             </Grid>
           ))}
         </Grid>
