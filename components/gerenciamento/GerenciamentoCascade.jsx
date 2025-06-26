@@ -7,7 +7,7 @@ import {
   TableContainer, TableHead, TableRow, IconButton, CircularProgress,
   Select, MenuItem, FormControl, InputLabel,
   Alert, Snackbar,
-  Switch, FormControlLabel, TextField, TablePagination
+  Switch, FormControlLabel, TextField, TablePagination, Autocomplete
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -72,6 +72,8 @@ export default function GerenciamentoCascade() {
   const [currentAlocacao, setCurrentAlocacao] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
   const [filtroNome, setFiltroNome] = useState('');
+  const [filtroSecao, setFiltroSecao] = useState('');
+  const [filtroRecurso, setFiltroRecurso] = useState('');
   // Usa algoritmo concurrent do React 18 para adiar buscas sem bloquear UI
   const deferredFiltro = useDeferredValue(filtroNome);
   const [total, setTotal] = useState(0);
@@ -89,6 +91,8 @@ export default function GerenciamentoCascade() {
       page: page + 1, // API espera page começando em 1
       per_page: rowsPerPage,
       search: deferredFiltro || null,
+      ...(filtroSecao && { secao_id: filtroSecao }),
+      ...(filtroRecurso && { recurso: filtroRecurso }),
     };
 
     try {
@@ -100,8 +104,10 @@ export default function GerenciamentoCascade() {
               per_page: rowsPerPage,
               search: deferredFiltro,
               ativo: !showInactive,
-              com_alocacoes: true
-            });
+              com_alocacoes: true,
+               ...(filtroSecao && { secao_id: filtroSecao }),
+               ...(filtroRecurso && { recurso: filtroRecurso }),
+             });
             const items = Array.isArray(data) ? data : data.items;
             const totalCount = Array.isArray(data) ? data.length : (data.total || (data.items ? data.items.length : 0));
             setProjetos(items || []);
@@ -190,7 +196,7 @@ export default function GerenciamentoCascade() {
   // Reseta a página para 0 quando o filtro de nome ou de inativos muda
   useEffect(() => {
     setPage(0);
-  }, [deferredFiltro, showInactive]);
+  }, [deferredFiltro, filtroSecao, filtroRecurso, showInactive]);
 
   // Carrega dados quando a função de busca é recriada (devido a mudança de dependências)
   // Ao alternar detailedView, zeramos page antes de buscar dados para evitar requisição em página inexistente
@@ -454,7 +460,7 @@ export default function GerenciamentoCascade() {
       </Typography>
 
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
           <FormControl variant="outlined" sx={{ m: 1, minWidth: 200 }}>
             <InputLabel>Tipo de Gerenciamento</InputLabel>
             <Select value={tab} onChange={handleTabChange} label="Tipo de Gerenciamento">
@@ -467,13 +473,36 @@ export default function GerenciamentoCascade() {
             variant="outlined"
             value={filtroNome}
             onChange={(e) => setFiltroNome(e.target.value)}
-            sx={{ m: 1, flexGrow: 1 }}
+            sx={{ m: 1, flexGrow: 1, maxWidth: 220 }}
+          />
+          <FormControl variant="outlined" sx={{ m: 1, minWidth: 160 }}>
+            <InputLabel id="secao-filter-label">Seção</InputLabel>
+            <Select
+              labelId="secao-filter-label"
+              value={filtroSecao}
+              label="Seção"
+              onChange={(e) => setFiltroSecao(e.target.value)}
+            >
+              <MenuItem value=""><em>Todas</em></MenuItem>
+              {secoes.map((s) => (
+                <MenuItem key={s.id} value={s.id}>{s.nome}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Autocomplete
+            freeSolo
+            options={recursos.map((r) => r.nome)}
+            value={filtroRecurso}
+            onInputChange={(event, newValue) => setFiltroRecurso(newValue)}
+            renderInput={(params) => <TextField {...params} label="Recurso" variant="outlined" />}
+            sx={{ m: 1, width: 200 }}
           />
 
           <FormControlLabel
             control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
-            label="Mostrar Inativos"
-            sx={{ m: 1 }}
+            label="Visão Detalhada"
+            sx={{ m: 1, opacity: isPending ? 0.7 : 1 }}
           />
 
           {tab === 'projetos' && (
