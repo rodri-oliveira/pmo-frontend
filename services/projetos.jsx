@@ -29,6 +29,14 @@ export const getProjetosDetalhados = (params = {}) => {
     finalParams.com_alocacoes = true;
   }
 
+  // Adiciona os filtros de seção e recurso se eles existirem
+  if (params.secao_id) {
+    finalParams.secao_id = params.secao_id;
+  }
+  if (params.recurso) {
+    finalParams.recurso = params.recurso;
+  }
+
   return apiGet(`${ENDPOINT}/detalhados`, finalParams);
 };
 
