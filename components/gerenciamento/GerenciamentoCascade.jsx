@@ -70,6 +70,7 @@ import {
   createProjetoComAlocacoes,
   updateProjeto,
   deleteProjeto,
+  planejamentoHoras,
 } from "../../services/projetos";
 import {
   getAlocacoes,
@@ -436,7 +437,7 @@ export default function GerenciamentoCascade() {
         setLoading(false);
       }
     },
-    [tab, fetchData],
+    [tab, fetchData]
   );
 
   const handleTabChange = (event) => {
@@ -447,9 +448,39 @@ export default function GerenciamentoCascade() {
     setNotification({ ...notification, open: false });
 
   // Handlers específicos para o modal de alocação na visão detalhada
-  const handleEditAlocacao = (alocacao) => {
-    setCurrentAlocacao(alocacao);
-    setAlocacaoModalOpen(true);
+  const handleEditAlocacao = async (alocacao) => {
+    setLoading(true);
+    try {
+      // Encontra o projeto ao qual a alocação pertence para obter a seção
+      const projetoDaAlocacao = projetos.find((p) =>
+        p.alocacoes.some((a) => a.id === alocacao.id)
+      );
+
+      if (projetoDaAlocacao && projetoDaAlocacao.secao) {
+        // Busca os recursos disponíveis para a seção do projeto
+        const recursosDaSecao = await getRecursos({
+          secao_id: projetoDaAlocacao.secao.id,
+          apenas_ativos: true, // Busca apenas recursos ativos
+          per_page: 500, // Garante que todos os recursos da seção sejam carregados
+        });
+        setRecursos(recursosDaSecao.items || []);
+      } else {
+        // Se não encontrar a seção, limpa a lista de recursos para evitar mostrar opções erradas
+        setRecursos([]);
+      }
+
+      // Define a alocação atual e abre o modal
+      setCurrentAlocacao(alocacao);
+      setAlocacaoModalOpen(true);
+    } catch (err) {
+      setNotification({
+        open: true,
+        message: `Erro ao carregar recursos para edição: ${err.message}`,
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCloseAlocacaoModal = () => {
@@ -460,44 +491,55 @@ export default function GerenciamentoCascade() {
 
   const handleSaveAlocacao = async (data) => {
     setLoading(true);
+    setModalError(""); // Limpa erros anteriores
     try {
       if (currentAlocacao && currentAlocacao.id) {
+        // A lógica de encontrar o projetoId foi removida, pois a API usa a rota /alocacoes/{id}
         await updateAlocacao(currentAlocacao.id, data);
+
         setNotification({
           open: true,
           message: "Alocação atualizada com sucesso!",
           severity: "success",
         });
+
+        await fetchData(); // Recarrega os dados para refletir a mudança
+        handleCloseAlocacaoModal();
       } else {
-        // A criação de alocação pela visão detalhada pode ser implementada aqui se necessário
+        setModalError("Nenhuma alocação selecionada para atualização.");
       }
-      await fetchData();
-      handleCloseAlocacaoModal();
     } catch (err) {
       const errMsg =
-        err.response?.data?.detail || err.message || "Ocorreu um erro.";
+        err.response?.data?.detail || "Ocorreu um erro ao atualizar a alocação.";
       setModalError(errMsg);
+      setNotification({
+        open: true,
+        message: errMsg,
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteAlocacao = async (alocacao) => {
-    if (!window.confirm(`Tem certeza que deseja excluir esta alocação?`))
+    if (!window.confirm(`Tem certeza que deseja excluir a alocação do recurso '${alocacao.recurso.nome}'?`))
       return;
 
     setLoading(true);
     try {
+      // A lógica de encontrar o projetoId foi removida, pois a API usa a rota /alocacoes/{id}
       await deleteAlocacao(alocacao.id);
+
       setNotification({
         open: true,
         message: "Alocação excluída com sucesso!",
         severity: "success",
       });
-      await fetchData();
+      await fetchData(); // Recarrega os dados para refletir a exclusão
     } catch (err) {
       const errorMsg =
-        err.response?.data?.detail || err.message || "Ocorreu um erro.";
+        err.response?.data?.detail || "Ocorreu um erro ao excluir a alocação.";
       setNotification({
         open: true,
         message: `Erro: ${errorMsg}`,
@@ -508,25 +550,51 @@ export default function GerenciamentoCascade() {
     }
   };
 
-  const handleSaveHoras = async (projetoId, alocacaoId, horas) => {
+  const handleSaveHoras = async (projetoId, alocacaoId, horasEditadas) => {
     setLoading(true);
     try {
-      const planejamentos = horas.map(({ id, ...rest }) => rest);
-      await planejamentoHoras(projetoId, alocacaoId, planejamentos);
+      // Encontrar a alocação para obter o ano de referência
+      const alocacao = projetos
+        .flatMap(p => p.alocacoes)
+        .find(a => a.id === alocacaoId);
+
+      // Determinar o ano. Usa o ano da primeira hora planejada existente ou o ano atual como fallback.
+      const ano = alocacao?.horas_planejadas[0]?.ano || new Date().getFullYear();
+
+      // O backend espera um ARRAY de objetos. A 'horasEditadas' vem do modal como { '1': '20', ... }
+      // Transformar para o formato esperado pela API.
+      const payload = Object.entries(horasEditadas)
+        .map(([mes, horas]) => {
+          // Converte a string de horas para um número, tratando vírgulas e valores vazios.
+          const valorHoras = Number(String(horas || '0').replace(',', '.'));
+          return {
+            ano: ano,
+            mes: Number(mes),
+            // Garante que o valor é um número antes de prosseguir.
+            horas_planejadas: isNaN(valorHoras) ? 0 : valorHoras,
+          };
+        })
+        // Filtra o array para enviar apenas os dados que o backend aceita.
+        .filter(planejamento => 
+          planejamento.mes >= 1 && 
+          planejamento.mes <= 12 && 
+          planejamento.horas_planejadas > 0
+        );
+
+      await planejamentoHoras(projetoId, alocacaoId, payload);
+      
       setNotification({
         open: true,
         message: "Horas planejadas salvas com sucesso!",
         severity: "success",
       });
-      await fetchData();
+      fetchData(); // Re-fetch data to show updates
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.detail ||
-        err.message ||
-        "Ocorreu um erro ao salvar as horas.";
+      // Usa a mensagem de erro detalhada do backend, se disponível
+      const errorMessage = err.response?.data?.detail || `Erro ao salvar horas: ${err.message}`;
       setNotification({
         open: true,
-        message: `Erro: ${errorMsg}`,
+        message: errorMessage,
         severity: "error",
       });
     } finally {
@@ -697,7 +765,11 @@ export default function GerenciamentoCascade() {
                     <EditIcon />
                   </IconButton>
                   <IconButton onClick={() => handleDeleteToggle(item)}>
-                    {item.ativo ? <DeleteIcon /> : <RestoreFromTrashIcon />}
+                    {item.ativo ? (
+                      <DeleteIcon color="error" />
+                    ) : (
+                      <RestoreFromTrashIcon />
+                    )}
                   </IconButton>
                 </TableCell>
               </TableRow>

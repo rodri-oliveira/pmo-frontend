@@ -78,7 +78,7 @@ export const deleteAlocacao = (projetoId, alocacaoId) => {
 };
 
 export const planejamentoHoras = (projetoId, alocacaoId, planejamentos) => {
-  return apiPost(`/projetos/${projetoId}/alocacoes/${alocacaoId}/planejamento-horas`, {
-    planejamentos
-  });
+  // O backend espera um array diretamente no corpo da requisição.
+  // O `{ planejamentos }` estava criando um objeto: { planejamentos: [...] }
+  return apiPost(`/projetos/${projetoId}/alocacoes/${alocacaoId}/planejamento-horas`, planejamentos);
 };

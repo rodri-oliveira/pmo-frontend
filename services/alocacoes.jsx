@@ -14,11 +14,14 @@ export const getAlocacoes = (params = {}) => {
 export const createAlocacao = (data) => 
   apiPost(`/alocacoes/`, data);
 
-export const updateAlocacao = (alocacaoId, data) => 
-  apiPut(`/alocacoes/${alocacaoId}`, data);
+export const updateAlocacao = (alocacaoId, data) => {
+  // O endpoint correto, conforme o Swagger, não é aninhado.
+  return apiPut(`/alocacoes/${alocacaoId}`, data);
+};
 
-export const deleteAlocacao = (alocacaoId) => 
-  apiDelete(`/alocacoes/${alocacaoId}`);
+export const deleteAlocacao = (alocacaoId) => {
+  return apiDelete(`/alocacoes/${alocacaoId}`);
+};
 
 export const getRecursos = (searchTerm = '') => {
   const queryParams = new URLSearchParams();

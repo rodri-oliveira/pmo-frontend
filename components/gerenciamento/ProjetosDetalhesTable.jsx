@@ -191,7 +191,7 @@ function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveH
                         <TableCell>{alocacao.recurso.nome}</TableCell>
                         <TableCell>{alocacao.data_inicio_alocacao}</TableCell>
                         <TableCell>{alocacao.data_fim_alocacao || 'Indeterminado'}</TableCell>
-                        <TableCell>{alocacao.status?.nome || 'N/A'}</TableCell>
+                        <TableCell>{alocacao.status_alocacao?.nome || 'N/A'}</TableCell>
                         <TableCell align="center">
                           <Button
                             variant="outlined"
@@ -206,7 +206,7 @@ function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveH
                             <EditIcon />
                           </IconButton>
                           <IconButton onClick={() => onDeleteAlocacao(alocacao)} size="small">
-                            <DeleteIcon />
+                            <DeleteIcon color="error" />
                           </IconButton>
                         </TableCell>
                       </TableRow>
