@@ -17,6 +17,7 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
   const [recursos, setRecursos] = useState([]);
+  const [equipes, setEquipes] = useState([]);
   const [alocacoes, setAlocacoes] = useState([]);
   const [activeStep, setActiveStep] = useState(0);
 
@@ -24,71 +25,67 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
 
   const isEditing = !!projeto;
 
-  // Função para buscar recursos com filtro de seção
-  const fetchRecursos = useCallback(async (secaoId) => {
-    try {
-      const params = secaoId ? { secao_id: secaoId } : undefined;
-      const data = await getRecursos(params);
-      setRecursos((data && data.items) || []);
-    } catch (error) {
-      console.error('Erro ao buscar recursos:', error);
+  // Busca equipes e recursos filtrados pelo backend ao avançar para o passo 1
+  const fetchFiltrosPopulados = useCallback(async (secaoId) => {
+    if (!secaoId) {
       setRecursos([]);
+      setEquipes([]);
+      return;
+    }
+    try {
+      const response = await fetch(`/backend/v1/filtros/filtros-populados?secao_id=${secaoId}`);
+      if (!response.ok) throw new Error('Erro ao buscar filtros populados');
+      const data = await response.json();
+      setRecursos(data.recursos || []);
+      setEquipes(data.equipes || []);
+    } catch (error) {
+      setRecursos([]);
+      setEquipes([]);
+      console.error('Erro ao buscar filtros populados:', error);
     }
   }, []);
 
-    // Recarrega recursos quando a seção selecionada mudar
   useEffect(() => {
     if (open) {
-      if (formData.secao_id) {
-        fetchRecursos(formData.secao_id);
+      setActiveStep(0); // Reset step when modal opens
+      setAlocacoes([]);
+      if (projeto) {
+        setFormData({
+          nome: projeto.nome || '',
+          descricao: projeto.descricao || '',
+          codigo_empresa: projeto.codigo_empresa || '',
+          secao_id: projeto.secao_id || '',
+          status_projeto_id: projeto.status_projeto_id || '',
+          data_inicio_prevista: projeto.data_inicio_prevista?.split('T')[0] || '',
+          data_fim_prevista: projeto.data_fim_prevista?.split('T')[0] || '',
+        });
+        setAlocacoes(projeto.alocacoes?.map(a => ({ ...a, horas_planejadas: a.horas_planejadas || [] })) || []);
       } else {
-        setRecursos([]);
-      }
-    }
-  }, [formData.secao_id, open, fetchRecursos]);
-
-  useEffect(() => {
-    if (open) {
-        setActiveStep(0); // Reset step when modal opens
+        setFormData({
+          nome: '',
+          descricao: '',
+          codigo_empresa: '',
+          secao_id: '',
+          status_projeto_id: '',
+          data_inicio_prevista: new Date().toISOString().split('T')[0],
+          data_fim_prevista: '',
+          ativo: true,
+        });
         setAlocacoes([]);
-        if (projeto) {
-            setFormData({
-                nome: projeto.nome || '',
-                descricao: projeto.descricao || '',
-                codigo_empresa: projeto.codigo_empresa || '',
-                secao_id: projeto.secao_id || '',
-                status_projeto_id: projeto.status_projeto_id || '',
-                data_inicio_prevista: projeto.data_inicio_prevista?.split('T')[0] || '',
-                data_fim_prevista: projeto.data_fim_prevista?.split('T')[0] || '',
-            });
-            setAlocacoes(projeto.alocacoes?.map(a => ({...a, horas_planejadas: a.horas_planejadas || []})) || []);
-        } else {
-            setFormData({
-                nome: '',
-                descricao: '',
-                codigo_empresa: '',
-                secao_id: '',
-                status_projeto_id: '',
-                data_inicio_prevista: new Date().toISOString().split('T')[0],
-                data_fim_prevista: '',
-                ativo: true,
-            });
-            setAlocacoes([]);
-        }
+      }
+      setRecursos([]);
+      setEquipes([]);
     }
   }, [projeto, open]);
 
-  useEffect(() => {
-    if (open) {
-      // Quando o modal abrir, buscar recursos com a seção atual (caso exista)
-      fetchRecursos(formData.secao_id);
-    }
-  }, [open, formData.secao_id, fetchRecursos]);
-
   // Avança do passo 0 para 1
-  const handleAvancar = () => {
-    if (validate()) setActiveStep(1);
+  const handleAvancar = async () => {
+    if (validate()) {
+      await fetchFiltrosPopulados(formData.secao_id);
+      setActiveStep(1);
+    }
   };
+
 
   const buildFinalData = () => {
     const dataToSave = {
@@ -258,6 +255,8 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
                         onUpdate={handleUpdateAlocacao}
                         onRemove={handleRemoveAlocacao}
                         recursos={recursos}
+                        equipes={equipes}
+                        secaoId={formData.secao_id}
                     />
                 ))}
 

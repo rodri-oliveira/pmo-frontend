@@ -8,37 +8,19 @@ import { buscarEquipesPorNome, buscarEquipesPorSecao, buscarTodasEquipes } from 
  *   onChange: função chamada com o objeto {id, nome} da equipe selecionada
  *   secaoId: ID da seção para filtrar equipes (opcional)
  */
-export default function AutocompleteEquipeCascade({ value, onChange, secaoId, placeholder = 'Digite o nome da equipe...' }) {
+export default function AutocompleteEquipeCascade({ value, onChange, options, placeholder = 'Digite o nome da equipe...' }) {
   const [inputValue, setInputValue] = useState(value && value.nome ? value.nome : '');
   const [sugestoes, setSugestoes] = useState([]);
   const [showSugestoes, setShowSugestoes] = useState(false);
-  const [todasEquipes, setTodasEquipes] = useState([]);
+  const [todasEquipes, setTodasEquipes] = useState(options || []);
   const [loading, setLoading] = useState(false);
   const timeoutRef = useRef();
 
-  // Carregar equipes ao montar e quando a seção mudar
+  // Sempre que options mudar, atualiza sugestões
   useEffect(() => {
-    const carregarEquipes = async () => {
-      setLoading(true);
-      try {
-        const equipes = secaoId
-          ? await buscarEquipesPorSecao(secaoId)
-          : await buscarTodasEquipes();
-        setTodasEquipes(equipes);
-        setSugestoes(equipes);
-      } catch (error) {
-        console.error('Erro ao carregar equipes:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    // Limpar seleção ao mudar a seção
-    if (value && onChange) {
-      onChange(null);
-      setInputValue('');
-    }
-    carregarEquipes();
-  }, [secaoId]);
+    setTodasEquipes(options || []);
+    setSugestoes(options || []);
+  }, [options]);
 
   // Atualizar o valor do input quando o value mudar externamente
   useEffect(() => {
@@ -60,32 +42,16 @@ export default function AutocompleteEquipeCascade({ value, onChange, secaoId, pl
       if (onChange) onChange(null);
       return;
     }
-    
-    if (val.length >= 2) {
-      timeoutRef.current = setTimeout(async () => {
-        const sugests = await buscarEquipesPorNome(val, secaoId);
-        setSugestoes(sugests);
-        setShowSugestoes(true);
-      }, 300);
-    } else {
-      setSugestoes([]);
-      setShowSugestoes(false);
-    }
+    // Filtro local por nome
+    const filtradas = todasEquipes.filter(eq => eq.nome && eq.nome.toLowerCase().includes(val.toLowerCase()));
+    setSugestoes(filtradas);
+    setShowSugestoes(true);
   }
 
   function handleFocus() {
     // Ao focar, sempre mostrar sugestões disponíveis
-    if (inputValue && secaoId) {
-      // Se já tem um valor, buscar por esse valor
-      buscarEquipesPorNome(inputValue, secaoId).then(equipes => {
-        setSugestoes(equipes.length > 0 ? equipes : todasEquipes);
-        setShowSugestoes(true);
-      });
-    } else if (todasEquipes.length > 0) {
-      // Se não tem valor mas tem equipes, mostrar todas as equipes
-      setSugestoes(todasEquipes);
-      setShowSugestoes(true);
-    }
+    setSugestoes(todasEquipes);
+    setShowSugestoes(true);
   }
 
   function handleSelect(sugestao) {

@@ -9,11 +9,13 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ptBR } from 'date-fns/locale';
 import { getProjetos } from '../../services/projetos';
 import { getRecursos } from '../../services/recursos';
+import AutocompleteEquipeCascade from '../relatorios/AutocompleteEquipeCascade';
 
 const initialFormState = {
   secao_id: null,
   recurso_id: null,
   projeto_id: null,
+  equipe_id: null,
   data_inicio_alocacao: null,
   data_fim_alocacao: null,
   status_alocacao_id: null,
@@ -36,6 +38,7 @@ const [projetoInput, setProjetoInput] = useState("");
         secao_id: item.secao_id || null,
         recurso_id: item.recurso_id || null,
         projeto_id: item.projeto_id || null,
+        equipe_id: item.equipe_id || null,
         data_inicio_alocacao: item.data_inicio_alocacao ? new Date(item.data_inicio_alocacao + 'T00:00:00') : null,
         data_fim_alocacao: item.data_fim_alocacao ? new Date(item.data_fim_alocacao + 'T00:00:00') : null,
         status_alocacao_id: item.status_alocacao_id || null,
@@ -70,6 +73,8 @@ const [projetoInput, setProjetoInput] = useState("");
       }
     };
     fetchRecursos();
+    // Limpa equipe ao trocar de seção
+    setFormData(prev => ({ ...prev, equipe_id: null }));
   }, [formData.secao_id]);
 
   // Busca projetos conforme digita
@@ -98,6 +103,7 @@ const [projetoInput, setProjetoInput] = useState("");
     const newErrors = {};
     if (!formData.recurso_id) newErrors.recurso_id = 'Recurso é obrigatório';
     if (!formData.projeto_id) newErrors.projeto_id = 'Projeto é obrigatório';
+    if (!formData.equipe_id) newErrors.equipe_id = 'Equipe é obrigatória';
     if (!formData.data_inicio_alocacao) newErrors.data_inicio_alocacao = 'Data de início é obrigatória';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -197,13 +203,30 @@ const [projetoInput, setProjetoInput] = useState("");
                 options={recursosList}
                 getOptionLabel={(option) => option.nome || ''}
                 value={findById(recursosList, formData.recurso_id)}
-                onChange={(e, value) => handleAutocompleteChange('recurso_id', value)}
+                onChange={(e, value) => {
+                  handleAutocompleteChange('recurso_id', value);
+                  // Ao selecionar recurso, sugerir equipe principal se disponível
+                  if (value && value.equipe_principal_id) {
+                    setFormData(prev => ({ ...prev, equipe_id: value.equipe_principal_id }));
+                  }
+                }}
                 disabled={!formData.secao_id || loading}
                 renderInput={(params) => (
                   <TextField {...params} label="Recurso" error={!!errors.recurso_id} helperText={errors.recurso_id} />
                 )}
                 isOptionEqualToValue={(option, value) => option.id === value.id}
               />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <AutocompleteEquipeCascade
+                value={formData.equipe_id ? { id: formData.equipe_id, nome: '' } : null}
+                onChange={equipeObj => setFormData(prev => ({ ...prev, equipe_id: equipeObj ? equipeObj.id : null }))}
+                secaoId={formData.secao_id}
+                placeholder="Selecione a equipe..."
+              />
+              {errors.equipe_id && (
+                <div style={{ color: '#d32f2f', fontSize: 13, marginTop: 4 }}>{errors.equipe_id}</div>
+              )}
             </Grid>
             <Grid item xs={12} sm={6}>
               <DatePicker

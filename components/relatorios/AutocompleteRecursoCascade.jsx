@@ -18,33 +18,27 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
 
   // Carregar recursos ao montar e quando a equipe mudar
   useEffect(() => {
-    const carregarRecursos = async () => {
-      setLoading(true);
-      try {
-        const recursos = equipeId
-          ? await buscarRecursosPorEquipe(equipeId)
-          : await buscarTodosRecursos();
-        setTodosRecursos(recursos);
-        setSugestoes(recursos);
-      } catch (error) {
-        console.error('Erro ao carregar recursos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (options) {
       setTodosRecursos(options);
       setSugestoes(options);
     } else {
-      // Limpar seleção ao mudar a equipe
-      if (value && onChange) {
-        onChange(null);
-        setInputValue('');
-      }
+      const carregarRecursos = async () => {
+        setLoading(true);
+        try {
+          const recursos = equipeId
+            ? await buscarRecursosPorEquipe(equipeId)
+            : await buscarTodosRecursos();
+          setTodosRecursos(recursos);
+          setSugestoes(recursos);
+        } catch (error) {
+          console.error('Erro ao carregar recursos:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
       carregarRecursos();
     }
-  }, [equipeId, options, onChange, value]);
+  }, [equipeId, options]);
 
   // Atualizar o valor do input quando o value mudar externamente
   useEffect(() => {
@@ -61,25 +55,22 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
     clearTimeout(timeoutRef.current);
     
     if (!val) {
-      // Se o campo estiver vazio, mostrar todos os recursos da equipe
       setSugestoes(todosRecursos);
       setShowSugestoes(true);
       if (onChange) onChange(null);
       return;
     }
     
-    if (val.length >= 2) {
-      if (options) {
-        const sugests = todosRecursos.filter(r => r.nome.toLowerCase().includes(val.toLowerCase()));
+    if (options) {
+      const sugests = todosRecursos.filter(r => r.nome && r.nome.toLowerCase().includes(val.toLowerCase()));
+      setSugestoes(sugests);
+      setShowSugestoes(true);
+    } else if (val.length >= 2) {
+      timeoutRef.current = setTimeout(async () => {
+        const sugests = await buscarRecursosPorNome(val, equipeId);
         setSugestoes(sugests);
         setShowSugestoes(true);
-      } else {
-        timeoutRef.current = setTimeout(async () => {
-          const sugests = await buscarRecursosPorNome(val, equipeId);
-          setSugestoes(sugests);
-          setShowSugestoes(true);
-        }, 300);
-      }
+      }, 300);
     } else {
       setSugestoes([]);
       setShowSugestoes(false);
@@ -88,17 +79,8 @@ export default function AutocompleteRecursoCascade({ value, onChange, equipeId, 
 
   function handleFocus() {
     // Ao focar, sempre mostrar sugestões disponíveis
-    if (inputValue && equipeId) {
-      // Se já tem um valor, buscar por esse valor
-      buscarRecursosPorNome(inputValue, equipeId).then(recursos => {
-        setSugestoes(recursos.length > 0 ? recursos : todosRecursos);
-        setShowSugestoes(true);
-      });
-    } else if (todosRecursos.length > 0) {
-      // Se não tem valor mas tem recursos, mostrar todos os recursos
-      setSugestoes(todosRecursos);
-      setShowSugestoes(true);
-    }
+    setSugestoes(todosRecursos);
+    setShowSugestoes(true);
   }
 
   function handleSelect(sugestao) {

@@ -3,10 +3,11 @@ import {
   Box, TextField, Button, IconButton, Grid, Typography
 } from '@mui/material';
 import AutocompleteRecursoCascade from '../relatorios/AutocompleteRecursoCascade';
+import AutocompleteEquipeCascade from '../relatorios/AutocompleteEquipeCascade';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 
-const AlocacaoForm = ({ alocacao, index, onUpdate, onRemove, recursos }) => {
+const AlocacaoForm = ({ alocacao, index, onUpdate, onRemove, recursos, equipes = [], secaoId, errors = {} }) => {
   const planejamento = alocacao.horas_planejadas || [];
 
   useEffect(() => {
@@ -48,7 +49,26 @@ const AlocacaoForm = ({ alocacao, index, onUpdate, onRemove, recursos }) => {
   }, [alocacao.data_inicio_alocacao, alocacao.data_fim_alocacao]);
 
   const handleResourceChange = (recurso) => {
-    onUpdate(index, { ...alocacao, recurso_id: recurso ? recurso.id : '' });
+    let equipeId = alocacao.equipe_id;
+    // Sugere equipe principal do recurso, se houver
+    if (recurso && recurso.equipe_principal_id) {
+      equipeId = recurso.equipe_principal_id;
+    }
+    onUpdate(index, { ...alocacao, recurso_id: recurso ? recurso.id : '', equipe_id: equipeId });
+  };
+
+  const handleEquipeChange = (equipeObj) => {
+    // Se a equipe mudar e o recurso atual não pertence à nova equipe, limpa o recurso
+    let novoRecursoId = alocacao.recurso_id;
+    if (equipeObj && alocacao.recurso_id) {
+      const recursoAtual = Array.isArray(recursos) && recursos.find(r => r.id === alocacao.recurso_id);
+      if (!recursoAtual || String(recursoAtual.equipe_id) !== String(equipeObj.id)) {
+        novoRecursoId = '';
+      }
+    } else if (!equipeObj) {
+      novoRecursoId = '';
+    }
+    onUpdate(index, { ...alocacao, equipe_id: equipeObj ? equipeObj.id : '', recurso_id: novoRecursoId });
   };
 
   const handleDateChange = (e) => {
@@ -84,12 +104,26 @@ const AlocacaoForm = ({ alocacao, index, onUpdate, onRemove, recursos }) => {
         <DeleteIcon />
       </IconButton>
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid item xs={12} sm={6}>
+            <AutocompleteEquipeCascade
+                value={alocacao.equipe_id ? { id: alocacao.equipe_id, nome: '' } : null}
+                onChange={handleEquipeChange}
+                options={equipes || []}
+                placeholder="Selecione a equipe..."
+            />
+            {errors.equipe_id && (
+              <div style={{ color: '#d32f2f', fontSize: 13, marginTop: 4 }}>{errors.equipe_id}</div>
+            )}
+        </Grid>
+        <Grid item xs={12} sm={6}>
             <AutocompleteRecursoCascade
                 placeholder="Selecione o recurso"
                 value={selectedRecurso}
                 onChange={handleResourceChange}
-                options={recursos || []}
+                options={Array.isArray(recursos) && alocacao.equipe_id
+                  ? recursos.filter(r => String(r.equipe_id) === String(alocacao.equipe_id))
+                  : []}
+                disabled={!alocacao.equipe_id}
             />
         </Grid>
         <Grid item xs={12} sm={6}>

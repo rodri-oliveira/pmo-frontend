@@ -471,11 +471,7 @@ export default function GerenciamentoCascade() {
       // Prepara o item para edição, incluindo a secao_id original.
       // O modal buscará as listas de projetos/recursos com base na seção.
       const alocacaoParaEdicao = {
-        id: alocacao.id,
-        data_inicio_alocacao: alocacao.data_inicio_alocacao,
-        data_fim_alocacao: alocacao.data_fim_alocacao,
-        observacao: alocacao.observacao,
-        status_alocacao_id: alocacao.status_alocacao_id,
+        ...alocacao,
         secao_id: projetoDaAlocacao.secao.id,
         projeto_id: null, // Limpo para nova seleção
         recurso_id: null, // Limpo para nova seleção
