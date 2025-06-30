@@ -65,8 +65,8 @@ import {
   deleteStatusProjeto,
 } from "../../services/statusProjetos";
 import {
-  getProjetos,
-  getProjetosDetalhados,
+  getProjetosEPlanejamento,
+  getProjetosEPlanejamentoDetalhados,
   createProjetoComAlocacoes,
   updateProjeto,
   deleteProjeto,
@@ -98,7 +98,7 @@ const ProjetosDetalhesTable = dynamic(() => import("./ProjetosDetalhesTable"), {
 const wegBlue = "#00579d";
 
 const managementTypes = [
-  { value: "projetos", label: "Projetos" },
+  { value: "projetos", label: "Projetos e Planejamento" },
   { value: "statusProjetos", label: "Status de Projeto" },
   { value: "secoes", label: "Seções" },
   { value: "equipes", label: "Equipes" },
@@ -114,14 +114,14 @@ export default function GerenciamentoCascade() {
   const tab = searchParams.get("tab") || "projetos";
 
   // Estados para os dados
-  const [projetos, setProjetos] = useState([]);
+  const [projetos, setProjetosEPlanejamento] = useState([]);
   const [secoes, setSecoes] = useState([]);
   const [equipes, setEquipes] = useState([]);
   const [recursos, setRecursos] = useState([]);
   const [statusProjetos, setStatusProjetos] = useState([]);
   const [alocacoes, setAlocacoes] = useState([]);
   // Lista completa de projetos da seção para o modal de alocação
-  const [projetosDaSecao, setProjetosDaSecao] = useState([]);
+  const [projetosDaSecao, setProjetosEPlanejamentoDaSecao] = useState([]);
 
   // Estados de UI
   const [loading, setLoading] = useState(false);
@@ -178,7 +178,7 @@ export default function GerenciamentoCascade() {
         switch (tab) {
           case "projetos": {
             if (detailedView) {
-              const data = await getProjetosDetalhados({
+              const data = await getProjetosEPlanejamentoDetalhados({
                 page: page + 1,
                 per_page: rowsPerPage,
                 search: deferredFiltro,
@@ -191,16 +191,16 @@ export default function GerenciamentoCascade() {
               const totalCount = Array.isArray(data)
                 ? data.length
                 : data.total || (data.items ? data.items.length : 0);
-              setProjetos(items || []);
+              setProjetosEPlanejamento(items || []);
               setTotal(totalCount || 0);
             } else {
-              const projData = await getProjetos(params);
+              const projData = await getProjetosEPlanejamento(params);
               const items = Array.isArray(projData) ? projData : projData.items;
               const totalCount = Array.isArray(projData)
                 ? projData.length
                 : projData.total ||
                   (projData.items ? projData.items.length : 0);
-              setProjetos(items || []);
+              setProjetosEPlanejamento(items || []);
               setTotal(totalCount || 0);
             }
             const [secData, statData] = await Promise.all([
@@ -265,7 +265,7 @@ export default function GerenciamentoCascade() {
             const [alocData, projData, recData, statAlocData] =
               await Promise.all([
                 getAlocacoes(params),
-                getProjetos({ limit: 1000 }),
+                getProjetosEPlanejamento({ limit: 1000 }),
                 getRecursos({ limit: 1000 }),
                 getStatusProjetos({ limit: 1000 }),
               ]);
@@ -275,7 +275,7 @@ export default function GerenciamentoCascade() {
               : alocData.total || (alocData.items ? alocData.items.length : 0);
             setAlocacoes(items || []);
             setTotal(totalCount || 0);
-            setProjetos(
+            setProjetosEPlanejamento(
               Array.isArray(projData) ? projData : projData.items || [],
             );
             setRecursos(Array.isArray(recData) ? recData : recData.items || []);
@@ -833,28 +833,35 @@ export default function GerenciamentoCascade() {
           {/* Filtros extras só em detailedView */}
           {tab === "projetos" && detailedView && (
             <>
-              <FormControl sx={{ m: 1, minWidth: 160 }} variant="outlined">
-                <InputLabel id="secao-filter-label">Seção</InputLabel>
-                <Select
-                  labelId="secao-filter-label"
-                  value={filtroSecao}
-                  onChange={(e) => {
-                    console.log("secao:", e.target.value);
-                    setFiltroSecao(e.target.value);
-                    setPage(0);
-                  }}
-                  label="Seção"
-                >
-                  <MenuItem value="">
-                    <em>Todas</em>
+
+          </>
+        )}
+
+        {/* Filtros extras só em detailedView */}
+        {tab === "projetos" && detailedView && (
+          <>
+            <FormControl sx={{ m: 1, minWidth: 160 }} variant="outlined">
+              <InputLabel id="secao-filter-label">Seção</InputLabel>
+              <Select
+                labelId="secao-filter-label"
+                value={filtroSecao}
+                onChange={(e) => {
+                  console.log("secao:", e.target.value);
+                  setFiltroSecao(e.target.value);
+                  setPage(0);
+                }}
+                label="Seção"
+              >
+                <MenuItem value="">
+                  <em>Todas</em>
+                </MenuItem>
+                {secoes.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>
+                    {s.nome}
                   </MenuItem>
-                  {secoes.map((s) => (
-                    <MenuItem key={s.id} value={s.id}>
-                      {s.nome}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                ))}
+              </Select>
+            </FormControl>
               <Autocomplete
                 freeSolo
                 options={recursosOptions}
