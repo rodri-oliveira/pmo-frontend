@@ -744,17 +744,7 @@ export default function GerenciamentoCascade() {
                   {col.label}
                 </TableCell>
               ))}
-              <TableCell
-                align="center"
-                sx={{
-                  backgroundColor: wegBlue,
-                  color: "white",
-                  fontWeight: "bold",
-                  width: "120px",
-                }}
-              >
-                Ações
-              </TableCell>
+
             </TableRow>
           </TableHead>
           <TableBody>
@@ -768,18 +758,6 @@ export default function GerenciamentoCascade() {
                     {col.format ? col.format(item[col.id]) : item[col.id]}
                   </TableCell>
                 ))}
-                <TableCell>
-                  <IconButton onClick={() => handleOpenModal(item)}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton onClick={() => handleDeleteToggle(item)}>
-                    {item.ativo ? (
-                      <DeleteIcon color="error" />
-                    ) : (
-                      <RestoreFromTrashIcon />
-                    )}
-                  </IconButton>
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
