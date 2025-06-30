@@ -64,8 +64,12 @@ function HorasPlanejadasModal({ open, onClose, onSave, alocacao, projetoId }) {
 
   const handleChange = (index, field, value) => {
     const newHoras = [...horas];
-    const numericValue = parseInt(value, 10) || 0;
-    newHoras[index][field] = numericValue;
+    // Permite string vazia para digitação manual
+    if (field === 'horas') {
+      newHoras[index][field] = value === '' ? '' : value.replace(/^0+(?=\d)/, '');
+    } else {
+      newHoras[index][field] = value;
+    }
     setHoras(newHoras);
     setIsDirty(true);
   };
@@ -87,9 +91,22 @@ function HorasPlanejadasModal({ open, onClose, onSave, alocacao, projetoId }) {
   };
 
   const handleSaveClick = () => {
-    onSave(projetoId, alocacao.id, horas);
+    // Remove entradas inválidas (sem ano, mês ou horas <= 0)
+    const horasFiltradas = horas.filter(h =>
+      h.ano && h.mes && h.horas !== '' && h.horas !== null && h.horas !== undefined && Number(h.horas) > 0
+    );
+    // Converte horas para número
+    const horasConvertidas = horasFiltradas.map(h => ({
+      ...h,
+      horas: parseInt(h.horas, 10) || 0
+    }));
+    console.log('Horas convertidas para salvar:', horasConvertidas); // DEBUG
+    if (horasConvertidas.length > 0) {
+      onSave(projetoId, alocacao.id, horasConvertidas);
+    }
     onClose();
   };
+
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -107,7 +124,7 @@ function HorasPlanejadasModal({ open, onClose, onSave, alocacao, projetoId }) {
                 />
               </Grid>
               <Grid item xs={3}><TextField label="Ano" type="number" value={h.ano} onChange={(e) => handleChange(index, 'ano', e.target.value)} fullWidth /></Grid>
-              <Grid item xs={4}><TextField label="Horas" type="number" value={h.horas} onChange={(e) => handleChange(index, 'horas', e.target.value)} fullWidth /></Grid>
+              <Grid item xs={4}><TextField label="Horas" type="number" value={h.horas ?? ''} onChange={(e) => handleChange(index, 'horas', e.target.value)} fullWidth inputProps={{ min: 0 }}/></Grid>
               <Grid item xs={2}>
                 <IconButton onClick={() => handleRemove(index)} sx={{ color: 'error.main' }}>
                   <DeleteIcon />

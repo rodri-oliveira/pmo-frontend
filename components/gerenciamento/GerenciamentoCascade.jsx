@@ -65,8 +65,8 @@ import {
   deleteStatusProjeto,
 } from "../../services/statusProjetos";
 import {
-  getProjetosEPlanejamento,
-  getProjetosEPlanejamentoDetalhados,
+  getProjetos,
+  getProjetosDetalhados,
   createProjetoComAlocacoes,
   updateProjeto,
   deleteProjeto,
@@ -178,7 +178,7 @@ export default function GerenciamentoCascade() {
         switch (tab) {
           case "projetos": {
             if (detailedView) {
-              const data = await getProjetosEPlanejamentoDetalhados({
+              const data = await getProjetosDetalhados({
                 page: page + 1,
                 per_page: rowsPerPage,
                 search: deferredFiltro,
@@ -194,7 +194,7 @@ export default function GerenciamentoCascade() {
               setProjetosEPlanejamento(items || []);
               setTotal(totalCount || 0);
             } else {
-              const projData = await getProjetosEPlanejamento(params);
+              const projData = await getProjetos(params);
               const items = Array.isArray(projData) ? projData : projData.items;
               const totalCount = Array.isArray(projData)
                 ? projData.length
@@ -265,7 +265,7 @@ export default function GerenciamentoCascade() {
             const [alocData, projData, recData, statAlocData] =
               await Promise.all([
                 getAlocacoes(params),
-                getProjetosEPlanejamento({ limit: 1000 }),
+                getProjetos({ limit: 1000 }),
                 getRecursos({ limit: 1000 }),
                 getStatusProjetos({ limit: 1000 }),
               ]);
@@ -569,26 +569,16 @@ export default function GerenciamentoCascade() {
       // Determinar o ano. Usa o ano da primeira hora planejada existente ou o ano atual como fallback.
       const ano = alocacao?.horas_planejadas[0]?.ano || new Date().getFullYear();
 
-      // O backend espera um ARRAY de objetos. A 'horasEditadas' vem do modal como { '1': '20', ... }
-      // Transformar para o formato esperado pela API.
-      const payload = Object.entries(horasEditadas)
-        .map(([mes, horas]) => {
-          // Converte a string de horas para um número, tratando vírgulas e valores vazios.
-          const valorHoras = Number(String(horas || '0').replace(',', '.'));
-          return {
-            ano: ano,
-            mes: Number(mes),
-            // Garante que o valor é um número antes de prosseguir.
-            horas_planejadas: isNaN(valorHoras) ? 0 : valorHoras,
-          };
-        })
-        // Filtra o array para enviar apenas os dados que o backend aceita.
-        .filter(planejamento => 
-          planejamento.mes >= 1 && 
-          planejamento.mes <= 12 && 
-          planejamento.horas_planejadas > 0
-        );
+      // O backend espera um ARRAY de objetos no formato {ano, mes, horas_planejadas}
+      const payload = (horasEditadas || [])
+        .filter(h => h.ano && h.mes && Number(h.horas) > 0)
+        .map(h => ({
+          ano: h.ano,
+          mes: h.mes,
+          horas_planejadas: Number(h.horas)
+        }));
 
+      console.log('Payload enviado para planejamentoHoras:', payload); // DEBUG
       await planejamentoHoras(projetoId, alocacaoId, payload);
       
       setNotification({
