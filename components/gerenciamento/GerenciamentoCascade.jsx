@@ -120,6 +120,8 @@ export default function GerenciamentoCascade() {
   const [recursos, setRecursos] = useState([]);
   const [statusProjetos, setStatusProjetos] = useState([]);
   const [alocacoes, setAlocacoes] = useState([]);
+  // Lista completa de projetos da seção para o modal de alocação
+  const [projetosDaSecao, setProjetosDaSecao] = useState([]);
 
   // Estados de UI
   const [loading, setLoading] = useState(false);
@@ -451,27 +453,41 @@ export default function GerenciamentoCascade() {
   const handleEditAlocacao = async (alocacao) => {
     setLoading(true);
     try {
-      // Encontra o projeto ao qual a alocação pertence para obter a seção
+      // Encontra o projeto ao qual a alocacao pertence para obter a seção
       const projetoDaAlocacao = projetos.find((p) =>
         p.alocacoes.some((a) => a.id === alocacao.id)
       );
 
+      // Define a alocação atual para o modal de edição
+      setCurrentAlocacao(alocacao);
+
+      // Busca todos os projetos da seção da alocação (sem filtro externo)
       if (projetoDaAlocacao && projetoDaAlocacao.secao) {
-        // Busca os recursos disponíveis para a seção do projeto
+        try {
+          const projetosDaSecaoResp = await getProjetos({
+            secao_id: projetoDaAlocacao.secao.id,
+            per_page: 999,
+            apenas_ativos: true,
+          });
+          setProjetosDaSecao(projetosDaSecaoResp.items || []);
+        } catch (e) {
+          setProjetosDaSecao([]);
+        }
+        // Busca todos os recursos da seção
         const recursosDaSecao = await getRecursos({
           secao_id: projetoDaAlocacao.secao.id,
-          apenas_ativos: true, // Busca apenas recursos ativos
-          per_page: 500, // Garante que todos os recursos da seção sejam carregados
+          apenas_ativos: true,
+          per_page: 999,
         });
         setRecursos(recursosDaSecao.items || []);
       } else {
-        // Se não encontrar a seção, limpa a lista de recursos para evitar mostrar opções erradas
+        setProjetosDaSecao([]);
         setRecursos([]);
       }
 
-      // Define a alocação atual e abre o modal
-      setCurrentAlocacao(alocacao);
+      // Garante que o modal será aberto após carregar as listas
       setAlocacaoModalOpen(true);
+
     } catch (err) {
       setNotification({
         open: true,
@@ -959,7 +975,7 @@ export default function GerenciamentoCascade() {
               onClose={handleCloseModal}
               onSave={handleSave}
               alocacao={currentItem}
-              projetos={projetos}
+              projetos={projetosDaSecao.length > 0 ? projetosDaSecao : projetos}
               recursos={recursos}
               statusOptions={statusProjetos}
               error={modalError}
@@ -1007,8 +1023,8 @@ export default function GerenciamentoCascade() {
           open={alocacaoModalOpen}
           onClose={handleCloseAlocacaoModal}
           onSave={handleSaveAlocacao}
-          alocacao={currentAlocacao}
-          projetos={projetos}
+          item={currentAlocacao}
+          projetos={projetosDaSecao.length > 0 ? projetosDaSecao : projetos}
           recursos={recursos}
           statusOptions={statusProjetos}
           error={modalError}
