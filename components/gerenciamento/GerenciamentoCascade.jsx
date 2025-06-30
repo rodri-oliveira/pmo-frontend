@@ -458,40 +458,36 @@ export default function GerenciamentoCascade() {
         p.alocacoes.some((a) => a.id === alocacao.id)
       );
 
-      // Define a alocação atual para o modal de edição
-      setCurrentAlocacao(alocacao);
-
-      // Busca todos os projetos da seção da alocação (sem filtro externo)
-      if (projetoDaAlocacao && projetoDaAlocacao.secao) {
-        try {
-          const projetosDaSecaoResp = await getProjetos({
-            secao_id: projetoDaAlocacao.secao.id,
-            per_page: 999,
-            apenas_ativos: true,
-          });
-          setProjetosDaSecao(projetosDaSecaoResp.items || []);
-        } catch (e) {
-          setProjetosDaSecao([]);
-        }
-        // Busca todos os recursos da seção
-        const recursosDaSecao = await getRecursos({
-          secao_id: projetoDaAlocacao.secao.id,
-          apenas_ativos: true,
-          per_page: 999,
+      if (!projetoDaAlocacao || !projetoDaAlocacao.secao) {
+        setNotification({
+          open: true,
+          message: "Não foi possível encontrar a seção da alocação para edição.",
+          severity: "error",
         });
-        setRecursos(recursosDaSecao.items || []);
-      } else {
-        setProjetosDaSecao([]);
-        setRecursos([]);
+        setLoading(false);
+        return;
       }
 
-      // Garante que o modal será aberto após carregar as listas
+      // Prepara o item para edição, incluindo a secao_id original.
+      // O modal buscará as listas de projetos/recursos com base na seção.
+      const alocacaoParaEdicao = {
+        id: alocacao.id,
+        data_inicio_alocacao: alocacao.data_inicio_alocacao,
+        data_fim_alocacao: alocacao.data_fim_alocacao,
+        observacao: alocacao.observacao,
+        status_alocacao_id: alocacao.status_alocacao_id,
+        secao_id: projetoDaAlocacao.secao.id,
+        projeto_id: null, // Limpo para nova seleção
+        recurso_id: null, // Limpo para nova seleção
+      };
+      
+      setCurrentAlocacao(alocacaoParaEdicao);
       setAlocacaoModalOpen(true);
 
     } catch (err) {
       setNotification({
         open: true,
-        message: `Erro ao carregar recursos para edição: ${err.message}`,
+        message: `Erro ao preparar dados para edição: ${err.message}`,
         severity: "error",
       });
     } finally {
@@ -974,12 +970,9 @@ export default function GerenciamentoCascade() {
               open={modalOpen}
               onClose={handleCloseModal}
               onSave={handleSave}
-              alocacao={currentItem}
-              projetos={projetosDaSecao.length > 0 ? projetosDaSecao : projetos}
-              recursos={recursos}
+              item={currentItem}
+              secoes={secoes}
               statusOptions={statusProjetos}
-              error={modalError}
-              loading={loading}
             />
           )) ||
           (tab === "secoes" && (
@@ -1024,11 +1017,8 @@ export default function GerenciamentoCascade() {
           onClose={handleCloseAlocacaoModal}
           onSave={handleSaveAlocacao}
           item={currentAlocacao}
-          projetos={projetosDaSecao.length > 0 ? projetosDaSecao : projetos}
-          recursos={recursos}
+          secoes={secoes}
           statusOptions={statusProjetos}
-          error={modalError}
-          loading={loading}
         />
       )}
 
