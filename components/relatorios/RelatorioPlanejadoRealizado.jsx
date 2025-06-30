@@ -16,9 +16,9 @@ import {
   CircularProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import AutocompleteSecaoCascade from './AutocompleteSecaoCascade';
-import AutocompleteEquipeCascade from './AutocompleteEquipeCascade';
-import AutocompleteRecursoCascade from './AutocompleteRecursoCascade';
+import AutocompleteSecaoFiltro from './AutocompleteSecaoFiltro';
+import AutocompleteEquipeFiltro from './AutocompleteEquipeFiltro';
+import AutocompleteRecursoFiltro from './AutocompleteRecursoFiltro';
 import { getRelatorioPlanejadoRealizadoV2 } from '../../lib/api';
 
 const wegBlue = '#00579d';
@@ -107,15 +107,15 @@ export default function RelatorioPlanejadoRealizado() {
       </Typography>
 
       {/* Filtros */}
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3, p: 2, border: '1px solid #ddd', borderRadius: '4px', alignItems: 'center' }}>
-        <AutocompleteSecaoCascade value={secao} onChange={(newValue) => { setSecao(newValue); setEquipe(null); setRecurso(null); }} />
-        <AutocompleteEquipeCascade value={equipe} secaoId={secao?.id} onChange={(newValue) => { setEquipe(newValue); setRecurso(null); }} disabled={!secao} />
-        <AutocompleteRecursoCascade value={recurso} equipeId={equipe?.id} onChange={setRecurso} disabled={!equipe} />
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3, p: 2, border: '1px solid #ddd', borderRadius: '4px', alignItems: 'center', position: 'relative' }}>
+        <AutocompleteSecaoFiltro value={secao} onChange={v => { setSecao(v); setEquipe(null); setRecurso(null); }} />
+        <AutocompleteEquipeFiltro value={equipe} onChange={v => { setEquipe(v); setRecurso(null); }} secaoId={secao?.id} />
+        <AutocompleteRecursoFiltro value={recurso} onChange={setRecurso} equipeId={equipe?.id} />
         <Button
           variant="contained"
           color="primary"
           onClick={handleGerarRelatorio}
-          disabled={loading || !recurso} // Matriz só reflete o recurso selecionado
+          disabled={loading || !recurso}
           sx={{ height: '56px' }}
         >
           {loading ? <CircularProgress size={24} /> : 'Gerar Relatório'}
