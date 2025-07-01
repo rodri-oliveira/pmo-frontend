@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import {
-  Box, TextField, Button, IconButton, Grid, Typography
+  Box, TextField, Button, IconButton, Grid, Typography, Autocomplete
 } from '@mui/material';
 import AutocompleteRecursoCascade from '../relatorios/AutocompleteRecursoCascade';
 import AutocompleteEquipeCascade from '../relatorios/AutocompleteEquipeCascade';
@@ -116,16 +116,18 @@ const AlocacaoForm = ({ alocacao, index, onUpdate, onRemove, recursos, equipes =
             )}
         </Grid>
         <Grid item xs={12} sm={6}>
-            <AutocompleteRecursoCascade
-                placeholder="Selecione o recurso"
-                value={selectedRecurso}
-                onChange={handleResourceChange}
-                options={Array.isArray(recursos) && alocacao.equipe_id
-                  ? recursos.filter(r => String(r.equipe_id) === String(alocacao.equipe_id))
-                  : []}
-                disabled={!alocacao.equipe_id}
-            />
-        </Grid>
+  <Autocomplete
+    options={Array.isArray(recursos) && alocacao.equipe_id ? recursos.filter(r => String(r.equipe_id) === String(alocacao.equipe_id)) : []}
+    getOptionLabel={option => option.nome || ''}
+    value={selectedRecurso}
+    onChange={(e, value) => handleResourceChange(value)}
+    renderInput={params => (
+      <TextField {...params} placeholder="Selecione o recurso" label="Recurso" variant="outlined" fullWidth />
+    )}
+    isOptionEqualToValue={(option, value) => option.id === value.id}
+    disabled={!alocacao.equipe_id}
+  />
+</Grid>
         <Grid item xs={12} sm={6}>
           <TextField
             name="data_inicio_alocacao"
