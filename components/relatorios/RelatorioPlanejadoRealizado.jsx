@@ -150,6 +150,8 @@ export default function RelatorioPlanejadoRealizado() {
               // top para cada linha sticky
               const stickyTop = `${36 * (index + 1)}px`;
               const stickyZ = 11;
+              // Apenas a última linha sticky recebe border-bottom
+              const borderBottom = index === 2 ? '1px solid #e0e0e0' : undefined;
               return (
                 <TableRow key={linha.label} sx={{ backgroundColor: index === 2 ? '#e3f2fd' : 'inherit' }}>
                   {/* Primeira coluna sticky na horizontal e vertical */}
@@ -162,21 +164,22 @@ export default function RelatorioPlanejadoRealizado() {
                       top: stickyTop,
                       zIndex: stickyZ + 1,
                       background: index === 2 ? '#e3f2fd' : '#fff',
+                      borderBottom,
                     }}
                   >
                     {linha.label}
                   </TableCell>
                   {/* Demais colunas sticky só na vertical */}
-                  <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff' }}></TableCell>
-                  <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff' }}></TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff' }}>{linha.esforcoPlanejado?.toFixed(2)}</TableCell>
+                  <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>
+                  <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}>{linha.esforcoPlanejado?.toFixed(2)}</TableCell>
                   {colunasMeses.map(mes => (
                     <React.Fragment key={mes}>
-                      <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff' }}>{linha.meses[mes]?.planejado?.toFixed(2)}</TableCell>
-                      <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, backgroundColor: '#f5f5f5' }}></TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}>{linha.meses[mes]?.planejado?.toFixed(2)}</TableCell>
+                      <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, backgroundColor: '#f5f5f5', borderBottom }}></TableCell>
                     </React.Fragment>
                   ))}
-                  <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff' }}></TableCell>
+                  <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>
                 </TableRow>
               );
             })}
