@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, Typography, Paper, Button, Table, TableBody, TableCell, 
-  TableContainer, TableHead, TableRow, IconButton, CircularProgress
+  TableContainer, TableHead, TableRow, IconButton, CircularProgress, 
+  FormControlLabel, Switch
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -14,9 +15,9 @@ const wegBlue = '#00579d';
 
 // Mock data - será substituído pela chamada da API
 const mockSecoes = [
-  { id: 1, nome: 'Desenvolvimento de Produto', descricao: 'Responsável pelo desenvolvimento de novos produtos.' },
-  { id: 2, nome: 'Engenharia de Aplicação', descricao: 'Equipe que customiza soluções para clientes.' },
-  { id: 3, nome: 'Qualidade e Testes', descricao: 'Garante a qualidade dos entregáveis.' },
+  { id: 1, nome: 'Desenvolvimento de Produto', descricao: 'Responsável pelo desenvolvimento de novos produtos.', ativo: true },
+  { id: 2, nome: 'Engenharia de Aplicação', descricao: 'Equipe que customiza soluções para clientes.', ativo: true },
+  { id: 3, nome: 'Qualidade e Testes', descricao: 'Garante a qualidade dos entregáveis.', ativo: false },
 ];
 
 export default function SecoesPage() {
@@ -24,6 +25,7 @@ export default function SecoesPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [secaoEdit, setSecaoEdit] = useState(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   useEffect(() => {
     // Simula o carregamento de dados da API
@@ -75,6 +77,19 @@ export default function SecoesPage() {
         </Button>
       </Box>
 
+      {/* Toggle "Mostrar Inativos" */}
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showInactive}
+              onChange={() => setShowInactive((prev) => !prev)}
+              color="primary"
+            />
+          }
+          label="Mostrar Inativos"
+        />
+      </Box>
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 5 }}>
           <CircularProgress />
@@ -90,22 +105,30 @@ export default function SecoesPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {secoes.map((secao) => (
-                <TableRow key={secao.id}>
-                  <TableCell component="th" scope="row">
-                    {secao.nome}
-                  </TableCell>
-                  <TableCell>{secao.descricao}</TableCell>
-                  <TableCell align="right">
-                    <IconButton onClick={() => handleOpenModal(secao)} size="small" color="primary">
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(secao.id)} size="small" sx={{ color: 'red' }}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {secoes
+                .filter((secao) =>
+                  showInactive ? true : secao.ativo !== false
+                )
+                .map((secao) => (
+                  <TableRow key={secao.id}>
+                    <TableCell component="th" scope="row">
+                      {secao.nome}
+                    </TableCell>
+                    <TableCell>{secao.descricao}</TableCell>
+                    <TableCell align="right">
+                      <IconButton onClick={() => handleOpenModal(secao)} size="small" color="primary">
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton onClick={() => {
+                        if (window.confirm('Deseja realmente excluir esta seção?')) {
+                          handleDelete(secao.id);
+                        }
+                      }} size="small" sx={{ color: 'red' }}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </TableContainer>

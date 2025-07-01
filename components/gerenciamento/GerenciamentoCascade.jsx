@@ -33,7 +33,10 @@ import {
   TextField,
   TablePagination,
   Autocomplete,
+  Tooltip
 } from "@mui/material";
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -214,7 +217,7 @@ export default function GerenciamentoCascade() {
             break;
           }
           case "secoes": {
-            const data = await getSecoes(params);
+            const data = await getSecoes({ ...params, apenas_ativos: !showInactive });
             const items = Array.isArray(data) ? data : data.items;
             const totalCount = Array.isArray(data)
               ? data.length
@@ -672,6 +675,7 @@ export default function GerenciamentoCascade() {
       secoes: [
         { id: "nome", label: "Nome" },
         { id: "descricao", label: "Descrição" },
+        { id: "acoes", label: "Ações", isAction: true, align: "right" },
       ],
       equipes: [
         { id: "nome", label: "Nome" },
@@ -720,7 +724,7 @@ export default function GerenciamentoCascade() {
 
     return (
       <>
-        {tab === "statusProjetos" && (
+        {(tab === "statusProjetos" || tab === "secoes") && (
           <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
             <FormControlLabel
               control={
@@ -756,13 +760,13 @@ export default function GerenciamentoCascade() {
           </TableHead>
           <TableBody>
             {currentData
-              .filter((item) =>
-                tab !== "statusProjetos"
-                  ? true
-                  : showInactive
-                  ? true
-                  : item.ativo !== false // mostra só ativos se não marcado
-              )
+              .filter((item) => {
+                // Para 'secoes', não filtra mais no frontend, pois a API já retorna o correto
+                if (tab === "statusProjetos") {
+                  return showInactive ? true : item.ativo !== false;
+                }
+                return true;
+              })
               .map((item, index) => (
                 <TableRow
                   key={item.id || index}
@@ -786,20 +790,38 @@ export default function GerenciamentoCascade() {
                             size="small"
                             sx={{ color: "red" }}
                             onClick={async () => {
-                              if (window.confirm("Deseja realmente excluir este status de projeto?")) {
+                              if (tab === "secoes") {
+                                try {
+                                  await deleteSecao(item.id);
+                                  setNotification({
+                                    open: true,
+                                    message: "Seção excluída com sucesso!",
+                                    severity: "success",
+                                  });
+                                  await fetchData();
+                                } catch (err) {
+                                  setNotification({
+                                    open: true,
+                                    message: err.message || "Erro ao excluir seção.",
+                                    severity: "error",
+                                  });
+                                }
+                                return;
+                              }
+                              if (window.confirm("Deseja realmente excluir esta seção?")) {
                                 setLoading(true);
                                 try {
-                                  await deleteStatusProjeto(item.id);
+                                  await deleteSecao(item.id);
                                   await fetchData();
                                   setNotification({
                                     open: true,
-                                    message: "Status de projeto excluído com sucesso!",
+                                    message: "Seção excluída com sucesso!",
                                     severity: "success",
                                   });
                                 } catch (err) {
                                   setNotification({
                                     open: true,
-                                    message: err?.message || "Erro ao excluir status.",
+                                    message: err.message || "Erro ao excluir seção.",
                                     severity: "error",
                                   });
                                 } finally {
@@ -810,6 +832,58 @@ export default function GerenciamentoCascade() {
                           >
                             <DeleteIcon />
                           </IconButton>
+                        </TableCell>
+                      );
+                    }
+                    if (col.id === "ativo") {
+                      return (
+                        <TableCell key={col.id} sx={{ textAlign: "center" }}>
+                          {tab === "secoes" ? (
+                            item.ativo === false || item.ativo === 0 ? (
+                              <>
+                                <Tooltip title="Seção inativa">
+                                  <span role="img" aria-label="inativo" style={{ color: '#888' }}>
+                                    <VisibilityOffIcon />
+                                  </span>
+                                </Tooltip>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  sx={{ ml: 1 }}
+                                  onClick={async () => {
+                                    try {
+                                      await updateSecao(item.id, { ...item, ativo: true });
+                                      setNotification({
+                                        open: true,
+                                        message: "Seção ativada com sucesso!",
+                                        severity: "success",
+                                      });
+                                      await fetchData();
+                                    } catch (err) {
+                                      setNotification({
+                                        open: true,
+                                        message: err.message || "Erro ao ativar seção.",
+                                        severity: "error",
+                                      });
+                                    }
+                                  }}
+                                  title="Ativar seção"
+                                >
+                                  <VisibilityIcon />
+                                </IconButton>
+                              </>
+                            ) : (
+                              <Tooltip title="Seção ativa">
+                                <span role="img" aria-label="ativo" style={{ color: '#00579d' }}>
+                                  <VisibilityIcon />
+                                </span>
+                              </Tooltip>
+                            )
+                          ) : (
+                            <Tooltip title={item.ativo ? "Ativo" : "Inativo"}>
+                              {item.ativo ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                            </Tooltip>
+                          )}
                         </TableCell>
                       );
                     }
