@@ -8,7 +8,7 @@ import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ptBR } from 'date-fns/locale';
 import { getProjetos } from '../../services/projetos';
-import { getRecursos } from '../../services/recursos';
+import { getFiltrosPopulados } from '../../services/filtros';
 import AutocompleteEquipeCascade from '../relatorios/AutocompleteEquipeCascade';
 
 const initialFormState = {
@@ -27,12 +27,30 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
   const [projetosList, setProjetosList] = useState([]);
 const [projetosLoading, setProjetosLoading] = useState(false);
 const [projetoInput, setProjetoInput] = useState("");
-  const [recursosList, setRecursosList] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
+const [equipes, setEquipes] = useState([]);
+const [recursosList, setRecursosList] = useState([]);
+const [loading, setLoading] = useState(false);
+const [errors, setErrors] = useState({});
 
   // Popula o formulário quando o modal abre ou o item muda
   useEffect(() => {
+    const fetchFiltros = async (data) => {
+      setLoading(true);
+      try {
+        const filtros = await getFiltrosPopulados({
+          secao_id: data.secao_id,
+          equipe_id: data.equipe_id,
+          recurso_id: data.recurso_id,
+        });
+        setEquipes(filtros.equipes || []);
+        setRecursosList(filtros.recursos || []);
+      } catch (error) {
+        setEquipes([]);
+        setRecursosList([]);
+      } finally {
+        setLoading(false);
+      }
+    };
     if (open) {
       const initialData = item ? {
         secao_id: item.secao_id || null,
@@ -46,36 +64,36 @@ const [projetoInput, setProjetoInput] = useState("");
       } : initialFormState;
       setFormData(initialData);
       setErrors({});
+      fetchFiltros(initialData);
     } else {
-      // Limpa tudo quando o modal fecha
       setFormData(initialFormState);
       setProjetosList([]);
       setRecursosList([]);
     }
   }, [item, open]);
 
-  // Busca recursos quando a seção muda
+  // Atualiza filtros em cascata ao alterar secao, equipe ou recurso
   useEffect(() => {
-    const fetchRecursos = async () => {
-      if (formData.secao_id) {
-        setLoading(true);
-        try {
-          const recursosResp = await getRecursos({ secao_id: formData.secao_id, per_page: 999, apenas_ativos: true });
-          setRecursosList(recursosResp.items || []);
-        } catch (error) {
-          console.error("Erro ao buscar recursos da seção:", error);
-          setRecursosList([]);
-        } finally {
-          setLoading(false);
-        }
-      } else {
+    if (!open) return;
+    const fetchFiltros = async () => {
+      setLoading(true);
+      try {
+        const filtros = await getFiltrosPopulados({
+          secao_id: formData.secao_id,
+          equipe_id: formData.equipe_id,
+          recurso_id: formData.recurso_id,
+        });
+        setEquipes(filtros.equipes || []);
+        setRecursosList(filtros.recursos || []);
+      } catch (error) {
+        setEquipes([]);
         setRecursosList([]);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchRecursos();
-    // Limpa equipe ao trocar de seção
-    setFormData(prev => ({ ...prev, equipe_id: null }));
-  }, [formData.secao_id]);
+    fetchFiltros();
+  }, [formData.secao_id, formData.equipe_id, formData.recurso_id, open]);
 
   // Busca projetos conforme digita
   const fetchProjetosAsync = useCallback(async (inputValue) => {
@@ -162,9 +180,10 @@ const [projetoInput, setProjetoInput] = useState("");
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" component="label" sx={{ mb: 0.5, display: 'block', fontWeight: 'medium' }}>Equipe</Typography>
                 <AutocompleteEquipeCascade
-                  value={formData.equipe_id ? { id: formData.equipe_id, nome: '' } : null}
+                  value={formData.equipe_id ? equipes.find(eq => eq.id === formData.equipe_id) || { id: formData.equipe_id, nome: '' } : null}
                   onChange={equipeObj => setFormData(prev => ({ ...prev, equipe_id: equipeObj ? equipeObj.id : null }))}
                   secaoId={formData.secao_id}
+                  options={equipes}
                   placeholder="Selecione a equipe..."
                 />
                 {errors.equipe_id && (
