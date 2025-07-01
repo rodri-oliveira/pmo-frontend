@@ -122,15 +122,15 @@ export default function RelatorioPlanejadoRealizado() {
         </Button>
       </Box>
 
-      <Box sx={{ overflow: 'auto', maxHeight: '70vh' }}>
-        <TableContainer component={Paper} variant="outlined">
+      <Box>
+        <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '70vh', overflow: 'auto' }}>
         <Table stickyHeader sx={{ tableLayout: 'fixed' }} size="small">
-          <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
+          <TableHead>
             <TableRow>
-              <TableCell sx={{ width: 390, fontWeight: 'bold', pl: 1, whiteSpace: 'nowrap' }}>Projeto/Melhorias</TableCell>
-              <TableCell sx={{ width: 100, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Status</TableCell>
-              <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esf. Est.</TableCell>
-              <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap' }}>Esf. Plan.</TableCell>
+              <TableCell sx={{ width: 390, fontWeight: 'bold', pl: 1, whiteSpace: 'nowrap', position: 'sticky', left: 0, top: 0, zIndex: 12, background: '#f5f5f5' }}>Projeto/Melhorias</TableCell>
+              <TableCell sx={{ width: 100, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Status</TableCell>
+              <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Esf. Est.</TableCell>
+              <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Esf. Plan.</TableCell>
               {colunasMeses.map(mes => (
                 <React.Fragment key={mes}>
                   <TableCell sx={{ width: 65, fontWeight: 'bold', textAlign: 'center', p: 0.25 }}>{formatMesLabel(mes)}</TableCell>
@@ -146,21 +146,40 @@ export default function RelatorioPlanejadoRealizado() {
           </TableHead>
           <TableBody>
             {/* Linhas de Resumo */}
-            {reportData.linhasResumo.map((linha, index) => (
-              <TableRow key={linha.label} sx={{ backgroundColor: index === 2 ? '#e3f2fd' : 'inherit' }}>
-                <TableCell sx={{ fontWeight: 'bold', paddingLeft: '16px' }}>{linha.label}</TableCell>
-                <TableCell></TableCell>
-                <TableCell></TableCell>
-                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>{linha.esforcoPlanejado?.toFixed(2)}</TableCell>
-                {colunasMeses.map(mes => (
-                  <React.Fragment key={mes}>
-                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>{linha.meses[mes]?.planejado?.toFixed(2)}</TableCell>
-                    <TableCell sx={{ backgroundColor: '#f5f5f5' }}></TableCell>
-                  </React.Fragment>
-                ))}
-                <TableCell></TableCell>
-              </TableRow>
-            ))}
+            {reportData.linhasResumo.map((linha, index) => {
+              // top para cada linha sticky
+              const stickyTop = `${36 * (index + 1)}px`;
+              const stickyZ = 11;
+              return (
+                <TableRow key={linha.label} sx={{ backgroundColor: index === 2 ? '#e3f2fd' : 'inherit' }}>
+                  {/* Primeira coluna sticky na horizontal e vertical */}
+                  <TableCell
+                    sx={{
+                      fontWeight: 'bold',
+                      paddingLeft: '16px',
+                      position: 'sticky',
+                      left: 0,
+                      top: stickyTop,
+                      zIndex: stickyZ + 1,
+                      background: index === 2 ? '#e3f2fd' : '#fff',
+                    }}
+                  >
+                    {linha.label}
+                  </TableCell>
+                  {/* Demais colunas sticky só na vertical */}
+                  <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff' }}></TableCell>
+                  <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff' }}></TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff' }}>{linha.esforcoPlanejado?.toFixed(2)}</TableCell>
+                  {colunasMeses.map(mes => (
+                    <React.Fragment key={mes}>
+                      <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff' }}>{linha.meses[mes]?.planejado?.toFixed(2)}</TableCell>
+                      <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, backgroundColor: '#f5f5f5' }}></TableCell>
+                    </React.Fragment>
+                  ))}
+                  <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff' }}></TableCell>
+                </TableRow>
+              );
+            })}
 
             {/* Linhas de Projetos */}
             {reportData.projetos.map(projeto => (
