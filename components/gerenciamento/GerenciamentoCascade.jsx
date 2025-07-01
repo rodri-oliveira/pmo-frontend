@@ -837,53 +837,10 @@ export default function GerenciamentoCascade() {
                     }
                     if (col.id === "ativo") {
                       return (
-                        <TableCell key={col.id} sx={{ textAlign: "center" }}>
-                          {tab === "secoes" ? (
-                            item.ativo === false || item.ativo === 0 ? (
-                              <>
-                                <Tooltip title="Seção inativa">
-                                  <span role="img" aria-label="inativo" style={{ color: '#888' }}>
-                                    <VisibilityOffIcon />
-                                  </span>
-                                </Tooltip>
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  sx={{ ml: 1 }}
-                                  onClick={async () => {
-                                    try {
-                                      await updateSecao(item.id, { ...item, ativo: true });
-                                      setNotification({
-                                        open: true,
-                                        message: "Seção ativada com sucesso!",
-                                        severity: "success",
-                                      });
-                                      await fetchData();
-                                    } catch (err) {
-                                      setNotification({
-                                        open: true,
-                                        message: err.message || "Erro ao ativar seção.",
-                                        severity: "error",
-                                      });
-                                    }
-                                  }}
-                                  title="Ativar seção"
-                                >
-                                  <VisibilityIcon />
-                                </IconButton>
-                              </>
-                            ) : (
-                              <Tooltip title="Seção ativa">
-                                <span role="img" aria-label="ativo" style={{ color: '#00579d' }}>
-                                  <VisibilityIcon />
-                                </span>
-                              </Tooltip>
-                            )
-                          ) : (
-                            <Tooltip title={item.ativo ? "Ativo" : "Inativo"}>
-                              {item.ativo ? <VisibilityIcon /> : <VisibilityOffIcon />}
-                            </Tooltip>
-                          )}
+                        <TableCell key={col.id} align="center">
+                          <Tooltip title={item.ativo ? "Ativo" : "Inativo"}>
+                            {item.ativo ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                          </Tooltip>
                         </TableCell>
                       );
                     }

@@ -3,25 +3,29 @@
 import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Box
+  Button, TextField, Box, FormControlLabel, Switch
 } from '@mui/material';
 
 const wegBlue = '#00579d';
 
 export default function SecaoModal({ open, onClose, onSave, secao }) {
-  const [formData, setFormData] = useState({ nome: '', descricao: '' });
+  const [formData, setFormData] = useState({ nome: '', descricao: '', ativo: true });
 
   useEffect(() => {
     if (secao) {
-      setFormData({ nome: secao.nome || '', descricao: secao.descricao || '' });
+      setFormData({
+        nome: secao.nome || '',
+        descricao: secao.descricao || '',
+        ativo: secao.ativo !== undefined ? secao.ativo : true
+      });
     } else {
-      setFormData({ nome: '', descricao: '' });
+      setFormData({ nome: '', descricao: '', ativo: true });
     }
   }, [secao, open]);
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = event.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSave = () => {
@@ -62,6 +66,20 @@ export default function SecaoModal({ open, onClose, onSave, secao }) {
             value={formData.descricao}
             onChange={handleChange}
           />
+          {isEditing && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.ativo}
+                  onChange={handleChange}
+                  name="ativo"
+                  color="primary"
+                />
+              }
+              label="Ativo"
+              sx={{ mt: 2, display: 'block' }}
+            />
+          )}
         </Box>
       </DialogContent>
       <DialogActions sx={{ p: '16px 24px' }}>
