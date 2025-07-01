@@ -96,13 +96,7 @@ const AlocacaoForm = ({ alocacao, index, onUpdate, onRemove, recursos, equipes =
 
   return (
     <Box sx={{ border: '1px solid #ddd', p: 2, mb: 2, borderRadius: '4px', position: 'relative' }}>
-      <IconButton
-        aria-label="delete"
-        onClick={() => onRemove(index)}
-        sx={{ position: 'absolute', top: 8, right: 8 }}
-      >
-        <DeleteIcon />
-      </IconButton>
+
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6}>
             <AutocompleteEquipeCascade
