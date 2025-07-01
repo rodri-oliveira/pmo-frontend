@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
-  TextField, Grid, Autocomplete, CircularProgress, Box
+  TextField, Grid, Autocomplete, CircularProgress, Box, Typography
 } from '@mui/material';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -145,128 +145,142 @@ const [projetoInput, setProjetoInput] = useState("");
             {loading && <CircularProgress />}
           </Box>
           <Grid container spacing={2} sx={{ mt: 1, opacity: loading ? 0.5 : 1 }}>
-            <Grid item xs={12} sm={6}>
-              <Autocomplete
-                options={secoes || []}
-                getOptionLabel={(option) => option.nome || ''}
-                value={findById(secoes, formData.secao_id)}
-                onChange={(e, value) => handleAutocompleteChange('secao_id', value)}
-                renderInput={(params) => (
-                  <TextField {...params} label="Seção" error={!!errors.secao_id} helperText={errors.secao_id} />
+              {/* Linha 1: Seção | Equipe */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" component="label" sx={{ mb: 0.5, display: 'block', fontWeight: 'medium' }}>Seção</Typography>
+                <Autocomplete
+                  options={secoes || []}
+                  getOptionLabel={(option) => option.nome || ''}
+                  value={findById(secoes, formData.secao_id)}
+                  onChange={(e, value) => handleAutocompleteChange('secao_id', value)}
+                  renderInput={(params) => (
+                    <TextField {...params} placeholder="Selecione a seção" error={!!errors.secao_id} helperText={errors.secao_id} />
+                  )}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" component="label" sx={{ mb: 0.5, display: 'block', fontWeight: 'medium' }}>Equipe</Typography>
+                <AutocompleteEquipeCascade
+                  value={formData.equipe_id ? { id: formData.equipe_id, nome: '' } : null}
+                  onChange={equipeObj => setFormData(prev => ({ ...prev, equipe_id: equipeObj ? equipeObj.id : null }))}
+                  secaoId={formData.secao_id}
+                  placeholder="Selecione a equipe..."
+                />
+                {errors.equipe_id && (
+                  <div style={{ color: '#d32f2f', fontSize: 13, marginTop: 4 }}>{errors.equipe_id}</div>
                 )}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-              />
+              </Grid>
+
+              {/* Linha 2: Recurso | Projeto */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" component="label" sx={{ mb: 0.5, display: 'block', fontWeight: 'medium' }}>Recurso</Typography>
+                <Autocomplete
+                  options={recursosList}
+                  getOptionLabel={(option) => option.nome || ''}
+                  value={findById(recursosList, formData.recurso_id)}
+                  onChange={(e, value) => {
+                    handleAutocompleteChange('recurso_id', value);
+                    if (value && value.equipe_principal_id) {
+                      setFormData(prev => ({ ...prev, equipe_id: value.equipe_principal_id }));
+                    }
+                  }}
+                  disabled={!formData.secao_id || loading}
+                  renderInput={(params) => (
+                    <TextField {...params} placeholder="Selecione o recurso" error={!!errors.recurso_id} helperText={errors.recurso_id} />
+                  )}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" component="label" sx={{ mb: 0.5, display: 'block', fontWeight: 'medium' }}>Projeto</Typography>
+                <Autocomplete
+                  options={projetosList}
+                  getOptionLabel={(option) => option.nome || ''}
+                  value={findById(projetosList, formData.projeto_id)}
+                  onChange={(e, value) => handleAutocompleteChange('projeto_id', value)}
+                  inputValue={projetoInput}
+                  onInputChange={(e, value, reason) => {
+                    setProjetoInput(value);
+                    if (reason === 'input' && value.length >= 2) {
+                      fetchProjetosAsync(value);
+                    } else if (reason === 'clear') {
+                      setProjetosList([]);
+                    }
+                  }}
+                  filterOptions={(x) => x}
+                  loading={projetosLoading}
+                  disabled={!formData.secao_id || loading}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder="Selecione o projeto"
+                      error={!!errors.projeto_id}
+                      helperText={errors.projeto_id}
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {projetosLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  renderOption={(props, option) => (
+                    <li {...props} key={option.id}>{option.nome}</li>
+                  )}
+                />
+              </Grid>
+
+              {/* Linha 3: Datas */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" component="label" sx={{ mb: 0.5, display: 'block', fontWeight: 'medium' }}>Data de Início da Alocação</Typography>
+                <DatePicker
+                  value={formData.data_inicio_alocacao}
+                  onChange={(newValue) => setFormData(prev => ({ ...prev, data_inicio_alocacao: newValue }))}
+                  slotProps={{ textField: { fullWidth: true, error: !!errors.data_inicio_alocacao, helperText: errors.data_inicio_alocacao } }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" component="label" sx={{ mb: 0.5, display: 'block', fontWeight: 'medium' }}>Data de Fim da Alocação</Typography>
+                <DatePicker
+                  value={formData.data_fim_alocacao}
+                  onChange={(newValue) => setFormData(prev => ({ ...prev, data_fim_alocacao: newValue }))}
+                  slotProps={{ textField: { fullWidth: true } }}
+                />
+              </Grid>
+
+              {/* Linha 4: Status da Alocação */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" component="label" sx={{ mb: 0.5, display: 'block', fontWeight: 'medium' }}>Status da Alocação</Typography>
+                <Autocomplete
+                  options={statusOptions || []}
+                  getOptionLabel={(option) => option.nome || ''}
+                  value={findById(statusOptions, formData.status_alocacao_id)}
+                  onChange={(e, value) => handleAutocompleteChange('status_alocacao_id', value)}
+                  renderInput={(params) => (
+                    <TextField {...params} placeholder="Selecione o status" />
+                  )}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                />
+              </Grid>
+
+              {/* Linha 5: Observação */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" component="label" sx={{ mb: 0.5, display: 'block', fontWeight: 'medium' }}>Observação</Typography>
+                <TextField
+                  multiline
+                  rows={3}
+                  fullWidth
+                  value={formData.observacao}
+                  onChange={(e) => setFormData(prev => ({ ...prev, observacao: e.target.value }))}
+                  placeholder="Adicione qualquer observação aqui..."
+                />
+              </Grid>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <Autocomplete
-                options={projetosList}
-                getOptionLabel={(option) => option.nome || ''}
-                value={findById(projetosList, formData.projeto_id)}
-                onChange={(e, value) => handleAutocompleteChange('projeto_id', value)}
-                inputValue={projetoInput}
-                onInputChange={(e, value, reason) => {
-                  setProjetoInput(value);
-                  if (reason === 'input' && value.length >= 2) {
-                    fetchProjetosAsync(value);
-                  } else if (reason === 'clear') {
-                    setProjetosList([]);
-                  }
-                }}
-                filterOptions={(x) => x} // Não filtra client-side
-                loading={projetosLoading}
-                disabled={!formData.secao_id || loading}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Projeto"
-                    error={!!errors.projeto_id}
-                    helperText={errors.projeto_id}
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {projetosLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                renderOption={(props, option) => (
-                  <li {...props} key={option.id}>{option.nome}</li>
-                )}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Autocomplete
-                options={recursosList}
-                getOptionLabel={(option) => option.nome || ''}
-                value={findById(recursosList, formData.recurso_id)}
-                onChange={(e, value) => {
-                  handleAutocompleteChange('recurso_id', value);
-                  // Ao selecionar recurso, sugerir equipe principal se disponível
-                  if (value && value.equipe_principal_id) {
-                    setFormData(prev => ({ ...prev, equipe_id: value.equipe_principal_id }));
-                  }
-                }}
-                disabled={!formData.secao_id || loading}
-                renderInput={(params) => (
-                  <TextField {...params} label="Recurso" error={!!errors.recurso_id} helperText={errors.recurso_id} />
-                )}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <AutocompleteEquipeCascade
-                value={formData.equipe_id ? { id: formData.equipe_id, nome: '' } : null}
-                onChange={equipeObj => setFormData(prev => ({ ...prev, equipe_id: equipeObj ? equipeObj.id : null }))}
-                secaoId={formData.secao_id}
-                placeholder="Selecione a equipe..."
-              />
-              {errors.equipe_id && (
-                <div style={{ color: '#d32f2f', fontSize: 13, marginTop: 4 }}>{errors.equipe_id}</div>
-              )}
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <DatePicker
-                label="Data de Início da Alocação"
-                value={formData.data_inicio_alocacao}
-                onChange={(newValue) => setFormData(prev => ({ ...prev, data_inicio_alocacao: newValue }))}
-                slotProps={{ textField: { fullWidth: true, error: !!errors.data_inicio_alocacao, helperText: errors.data_inicio_alocacao } }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <DatePicker
-                label="Data de Fim da Alocação"
-                value={formData.data_fim_alocacao}
-                onChange={(newValue) => setFormData(prev => ({ ...prev, data_fim_alocacao: newValue }))}
-                slotProps={{ textField: { fullWidth: true } }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-               <Autocomplete
-                options={statusOptions || []}
-                getOptionLabel={(option) => option.nome || ''}
-                value={findById(statusOptions, formData.status_alocacao_id)}
-                onChange={(e, value) => handleAutocompleteChange('status_alocacao_id', value)}
-                renderInput={(params) => (
-                  <TextField {...params} label="Status da Alocação" />
-                )}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Observação"
-                multiline
-                rows={3}
-                fullWidth
-                value={formData.observacao}
-                onChange={(e) => setFormData(prev => ({ ...prev, observacao: e.target.value }))}
-              />
-            </Grid>
-          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancelar</Button>

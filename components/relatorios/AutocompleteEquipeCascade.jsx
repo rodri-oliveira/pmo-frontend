@@ -62,23 +62,22 @@ export default function AutocompleteEquipeCascade({ value, onChange, options, pl
   }
 
   return (
-    <div style={{ position: 'relative', width: 240 }}>
-      <label style={{ display: 'block', marginBottom: 4, fontWeight: 600, fontSize: 14, color: '#00579D' }}>
-        Equipe
-      </label>
+    <div style={{ position: 'relative', width: '100%' }}>
       <input
         type="text"
         value={inputValue}
         onChange={handleInputChange}
         onFocus={handleFocus}
         placeholder={placeholder}
-        style={{ 
-          width: '100%', 
-          padding: '8px 12px', 
-          borderRadius: 6, 
-          border: '1.5px solid #E0E3E7', 
-          fontSize: 15,
-          background: loading ? '#f5f5f5' : '#fff'
+        style={{
+          width: '100%',
+          padding: '16.5px 14px',
+          borderRadius: 4,
+          border: '1px solid #C4C4C4',
+          fontSize: '1rem',
+          fontFamily: 'inherit',
+          boxSizing: 'border-box',
+          background: loading ? '#f5f5f5' : '#fff',
         }}
         onBlur={() => setTimeout(() => setShowSugestoes(false), 150)}
         disabled={loading}
@@ -94,7 +93,8 @@ export default function AutocompleteEquipeCascade({ value, onChange, options, pl
           style={{
             position: 'absolute',
             right: 12,
-            top: 36,
+            top: '50%',
+            transform: 'translateY(-50%)',
             cursor: 'pointer',
             fontSize: 16,
             color: '#999'
