@@ -791,41 +791,46 @@ export default function GerenciamentoCascade() {
                             sx={{ color: "red" }}
                             onClick={async () => {
                               if (tab === "secoes") {
-                                try {
-                                  await deleteSecao(item.id);
-                                  setNotification({
-                                    open: true,
-                                    message: "Seção excluída com sucesso!",
-                                    severity: "success",
-                                  });
-                                  await fetchData();
-                                } catch (err) {
-                                  setNotification({
-                                    open: true,
-                                    message: err.message || "Erro ao excluir seção.",
-                                    severity: "error",
-                                  });
+                                if (window.confirm("Deseja realmente excluir esta seção?")) {
+                                  setLoading(true);
+                                  try {
+                                    await deleteSecao(item.id);
+                                    await fetchData();
+                                    setNotification({
+                                      open: true,
+                                      message: "Seção excluída com sucesso!",
+                                      severity: "success",
+                                    });
+                                  } catch (err) {
+                                    setNotification({
+                                      open: true,
+                                      message: err?.message || "Erro ao excluir seção.",
+                                      severity: "error",
+                                    });
+                                  } finally {
+                                    setLoading(false);
+                                  }
                                 }
-                                return;
-                              }
-                              if (window.confirm("Deseja realmente excluir esta seção?")) {
-                                setLoading(true);
-                                try {
-                                  await deleteSecao(item.id);
-                                  await fetchData();
-                                  setNotification({
-                                    open: true,
-                                    message: "Seção excluída com sucesso!",
-                                    severity: "success",
-                                  });
-                                } catch (err) {
-                                  setNotification({
-                                    open: true,
-                                    message: err.message || "Erro ao excluir seção.",
-                                    severity: "error",
-                                  });
-                                } finally {
-                                  setLoading(false);
+                              } else if (tab === "statusProjetos") {
+                                if (window.confirm("Deseja realmente excluir este status de projeto?")) {
+                                  setLoading(true);
+                                  try {
+                                    await deleteStatusProjeto(item.id);
+                                    await fetchData();
+                                    setNotification({
+                                      open: true,
+                                      message: "Status de projeto excluído com sucesso!",
+                                      severity: "success",
+                                    });
+                                  } catch (err) {
+                                    setNotification({
+                                      open: true,
+                                      message: err?.message || "Erro ao excluir status.",
+                                      severity: "error",
+                                    });
+                                  } finally {
+                                    setLoading(false);
+                                  }
                                 }
                               }
                             }}
