@@ -693,6 +693,7 @@ export default function GerenciamentoCascade() {
       statusProjetos: [
         { id: "nome", label: "Nome" },
         { id: "descricao", label: "Descrição" },
+        { id: "acoes", label: "Ações", isAction: true, align: "right" },
       ],
       alocacoes: [
         { id: "projeto_nome", label: "Projeto" },
@@ -718,13 +719,30 @@ export default function GerenciamentoCascade() {
     const currentColumns = columns[tab];
 
     return (
-      <TableContainer sx={{ maxHeight: "70vh" }}>
-        <Table stickyHeader>
+      <>
+        {tab === "statusProjetos" && (
+          <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showInactive}
+                  onChange={() => setShowInactive((prev) => !prev)}
+                  color="primary"
+                />
+              }
+              label="Mostrar Inativos"
+            />
+          </Box>
+        )}
+
+        <TableContainer sx={{ maxHeight: "70vh" }}>
+          <Table stickyHeader>
           <TableHead>
             <TableRow>
               {currentColumns.map((col) => (
                 <TableCell
                   key={col.id}
+                  align={col.align || "left"}
                   sx={{
                     backgroundColor: wegBlue,
                     color: "white",
@@ -734,25 +752,79 @@ export default function GerenciamentoCascade() {
                   {col.label}
                 </TableCell>
               ))}
-
             </TableRow>
           </TableHead>
           <TableBody>
-            {currentData.map((item, index) => (
-              <TableRow
-                key={item.id || index}
-                sx={{ "&:hover": { backgroundColor: "#f5f5f5" } }}
-              >
-                {currentColumns.map((col) => (
-                  <TableCell key={col.id}>
-                    {col.format ? col.format(item[col.id]) : item[col.id]}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+            {currentData
+              .filter((item) =>
+                tab !== "statusProjetos"
+                  ? true
+                  : showInactive
+                  ? true
+                  : item.ativo !== false // mostra só ativos se não marcado
+              )
+              .map((item, index) => (
+                <TableRow
+                  key={item.id || index}
+                  sx={{ "&:hover": { backgroundColor: "#f5f5f5" } }}
+                >
+                  {currentColumns.map((col) => {
+                    if (col.isAction) {
+                      return (
+                        <TableCell key={col.id} align="right">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => {
+                              setCurrentItem(item);
+                              setModalOpen(true);
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            sx={{ color: "red" }}
+                            onClick={async () => {
+                              if (window.confirm("Deseja realmente excluir este status de projeto?")) {
+                                setLoading(true);
+                                try {
+                                  await deleteStatusProjeto(item.id);
+                                  await fetchData();
+                                  setNotification({
+                                    open: true,
+                                    message: "Status de projeto excluído com sucesso!",
+                                    severity: "success",
+                                  });
+                                } catch (err) {
+                                  setNotification({
+                                    open: true,
+                                    message: err?.message || "Erro ao excluir status.",
+                                    severity: "error",
+                                  });
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      );
+                    }
+                    return (
+                      <TableCell key={col.id}>
+                        {col.format ? col.format(item[col.id]) : item[col.id]}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </TableContainer>
+      </>
     );
   };
 
