@@ -756,14 +756,6 @@ export default function GerenciamentoCascade() {
                   {col.label}
                 </TableCell>
               ))}
-              {(tab === "secoes" || tab === "statusProjetos") && (
-                <TableCell sx={{ width: 40, textAlign: "center" }}>
-                  Ativo
-                </TableCell>
-              )}
-              <TableCell align="right" sx={{ width: 120 }}>
-                Ações
-              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
