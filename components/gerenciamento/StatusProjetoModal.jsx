@@ -11,6 +11,7 @@ export default function StatusProjetoModal({ open, onClose, onSave, statusProjet
     nome: '',
     descricao: '',
     is_final: false,
+    ativo: true,
   });
 
   const isEditing = !!statusProjeto;
@@ -21,6 +22,7 @@ export default function StatusProjetoModal({ open, onClose, onSave, statusProjet
         nome: statusProjeto?.nome || '',
         descricao: statusProjeto?.descricao || '',
         is_final: statusProjeto?.is_final || false,
+        ativo: statusProjeto?.ativo !== undefined ? statusProjeto.ativo : true,
       });
     }
   }, [statusProjeto, open]);
@@ -78,8 +80,22 @@ export default function StatusProjetoModal({ open, onClose, onSave, statusProjet
             />
           }
           label="É um status final? (Ex: Concluído, Cancelado)"
-          sx={{ mt: 1 }}
+          sx={{ mt: 1, display: 'block' }}
         />
+        {isEditing && (
+          <FormControlLabel
+            control={
+              <Switch
+                checked={formData.ativo}
+                onChange={handleChange}
+                name="ativo"
+                color="primary"
+              />
+            }
+            label="Ativo"
+            sx={{ mt: 1, display: 'block' }}
+          />
+        )}
       </DialogContent>
       <DialogActions sx={{ p: '16px 24px' }}>
         <Button onClick={onClose}>Cancelar</Button>

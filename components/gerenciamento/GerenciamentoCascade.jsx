@@ -1049,7 +1049,7 @@ export default function GerenciamentoCascade() {
               statusOptions={statusProjetos}
             />
           )) ||
-          (tab === "secoes" && (
+          ((tab === "secoes" || tab === "statusProjetos") && (
             <SecaoModal
               open={modalOpen}
               onClose={handleCloseModal}
