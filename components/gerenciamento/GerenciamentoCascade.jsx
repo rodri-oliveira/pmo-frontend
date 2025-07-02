@@ -73,7 +73,7 @@ import {
   createProjetoComAlocacoes,
   updateProjeto,
   deleteProjeto,
-  planejamentoHoras,
+  
 } from "../../services/projetos";
 import {
   getAlocacoes,
@@ -81,7 +81,7 @@ import {
   updateAlocacao,
   deleteAlocacao,
 } from "../../services/alocacoes";
-import PlanejamentoHoras from "./PlanejamentoHoras";
+
 
 // Importações dos Modais (lazy loaded para melhorar performance)
 import dynamic from "next/dynamic";
@@ -107,7 +107,6 @@ const managementTypes = [
   { value: "equipes", label: "Equipes" },
   { value: "recursos", label: "Recursos" },
   { value: "alocacoes", label: "Alocações" },
-  { value: "planejamento_horas", label: "Planejamento de Horas" },
 ];
 
 export default function GerenciamentoCascade() {
@@ -289,11 +288,6 @@ export default function GerenciamentoCascade() {
             );
             break;
           }
-          case "planejamento_horas":
-            // O componente PlanejamentoHoras busca seus próprios dados.
-            // Apenas garantimos que o estado de total seja zerado.
-            setTotal(0);
-            break;
           default:
             break;
         }
