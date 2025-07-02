@@ -1,4 +1,6 @@
-import React from 'react';
+"use client";
+
+import React, { useState, useEffect } from 'react';
 
 // --- Variáveis de Estilo (para manter a cor principal em um só lugar) ---
 const styles = {
@@ -21,32 +23,39 @@ const DashboardCard = ({ title, value, unit, type = 'default' }) => {
     padding: '20px',
     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05)',
     textAlign: 'center',
-    transition: 'transform 0.2s ease-in-out',
-    // Adicionando display flex e justify-content para centralizar conteúdo verticalmente em alguns casos, ou apenas para controle
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
+    transition: 'transform 0.2s ease-in-out',
   };
 
   const cardTitleStyle = {
-    fontSize: '0.9rem',
-    color: '#777',
-    marginBottom: '10px',
+    fontSize: '1.2rem', // Aumentado para melhor legibilidade
+    color: styles.wegBluePrimary, // Cor azul WEG, conforme solicitado
+    fontWeight: 'bold', // Negrito, conforme solicitado
+    marginBottom: '15px', // Aumentando o espaçamento para melhor UX
     textTransform: 'uppercase',
     letterSpacing: '0.05rem',
   };
 
+  // Wrapper para alinhar valor e unidade de forma mais precisa
+  const valueWrapperStyle = {
+    display: 'flex',
+    alignItems: 'baseline', // Alinha a base do número com o texto da unidade
+    justifyContent: 'center',
+  };
+
   const cardValueStyle = {
-    fontSize: '2.5rem',
+    fontSize: '2.8rem', // Aumentado para maior impacto visual
     fontWeight: '700',
-    color: styles.wegBluePrimary, // Cor primária para valores chave
+    color: styles.wegBluePrimary,
   };
 
   const cardUnitStyle = {
     fontSize: '1rem',
     fontWeight: '500',
-    marginLeft: '5px',
+    marginLeft: '8px', // Espaçamento ajustado
     color: '#555',
   };
 
@@ -55,15 +64,12 @@ const DashboardCard = ({ title, value, unit, type = 'default' }) => {
     cardValueStyle.color = styles.textColorDark; // Default para status, pode ser ajustado
   }
 
-  // Nota: Não é possível aplicar :hover diretamente com estilos inline
-  // Se precisar de hover, você teria que usar JS para mudar o estado e aplicar estilos.
-  // Para este exemplo, o hover transition foi removido ou ignorado.
-
   return (
     <div style={baseCardStyle}>
       <div style={cardTitleStyle}>{title}</div>
-      <div style={cardValueStyle}>
-        {value}
+      {/* O valor e a unidade agora estão dentro de um flex container para alinhamento perfeito */}
+      <div style={valueWrapperStyle}>
+        <span style={cardValueStyle}>{value}</span>
         {unit && <span style={cardUnitStyle}>{unit}</span>}
       </div>
     </div>
@@ -237,14 +243,28 @@ const HoursComparisonChart = ({ planned, reported }) => {
     </div>
   );
 };
-
-// --- Componente Principal do Dashboard ---
-
 const PMODashboard = () => {
   // --- Dados Mock (Substitua pela busca de dados real de suas APIs/estado) ---
-  const sgiData = { open: 5, pending: 2 };
-  const tinData = { critical: 1, alerts: 3 };
-  const segData = { incidents: 0, complianceRate: '98%' };
+  const [secaoData, setSecaoData] = useState({ SGI: 0, TIN: 0, SEG: 0 });
+
+  useEffect(() => {
+    const fetchProjetosAtivosPorSecao = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/backend/v1/dashboard/projetos-ativos-por-secao');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setSecaoData(data);
+      } catch (error) {
+        console.error("Falha ao buscar dados de projetos por seção:", error);
+        // Manter os dados zerados ou mostrar uma mensagem de erro
+        setSecaoData({ SGI: 'Erro', TIN: 'Erro', SEG: 'Erro' });
+      }
+    };
+
+    fetchProjetosAtivosPorSecao();
+  }, []); // O array vazio garante que o efeito rode apenas uma vez, no mount do componente
 
   const projectSummary = {
     total: 45,
@@ -280,7 +300,6 @@ const PMODashboard = () => {
     { status: 'Em Risco', count: 2 },
     { status: 'Planejado', count: 8 },
   ];
-  // --- Fim dos Dados Mock ---
 
   const dashboardContainerStyle = {
     fontFamily: 'Roboto, sans-serif', // Ou sua fonte preferida
@@ -323,9 +342,9 @@ const PMODashboard = () => {
       <main style={dashboardContentStyle}>
         {/* Seção 1: Cartões de Visão Geral (SGI, TIN, SEG, Totais) */}
         <section style={overviewGridStyle}>
-          <DashboardCard title="SGI" value={sgiData.open} unit="itens" type="metric" />
-          <DashboardCard title="TIN" value={tinData.critical} unit="alertas" type="metric" />
-          <DashboardCard title="SEG" value={segData.complianceRate} type="metric" />
+          <DashboardCard title="SGI" value={secaoData.SGI} unit="projetos" type="metric" />
+          <DashboardCard title="TIN" value={secaoData.TIN} unit="projetos" type="metric" />
+          <DashboardCard title="SEG" value={secaoData.SEG} unit="projetos" type="metric" />
 
           <DashboardCard title="Total Projetos" value={projectSummary.total} unit="" type="metric" />
           <DashboardCard title="Total Equipes" value={teamSummary.totalTeams} unit="" type="metric" />
