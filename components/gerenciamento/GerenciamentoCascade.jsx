@@ -720,7 +720,9 @@ export default function GerenciamentoCascade() {
                   return showInactive ? true : item.ativo !== false;
                 }
                 if (tab === "equipes") {
-                  return showInactive ? true : item.ativo !== false;
+                  // Filtro por nome (case insensitive)
+                  const matchNome = filtroNome.trim() === "" || (item.nome ?? "").toLowerCase().includes(filtroNome.trim().toLowerCase());
+                  return (showInactive ? true : item.ativo !== false) && matchNome;
                 }
                 // Para 'secoes', não filtra mais no frontend, pois a API já retorna o correto
                 return true;
