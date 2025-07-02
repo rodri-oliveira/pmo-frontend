@@ -23,8 +23,7 @@ export default function AdminLayout({ children }) {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - 240px)` }, // 240px é o drawerWidth definido no Sidebar e Header
+          // As propriedades 'p' e 'width' foram removidas para permitir que o conteúdo filho controle seu próprio espaçamento e ocupe todo o espaço.
         }}
       >
         <Toolbar /> {/* Para garantir que o conteúdo não fique sob o Header */}

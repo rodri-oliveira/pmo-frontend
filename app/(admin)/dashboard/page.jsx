@@ -302,14 +302,17 @@ const PMODashboard = () => {
   ];
 
   const dashboardContainerStyle = {
-    fontFamily: 'Roboto, sans-serif', // Ou sua fonte preferida
-    padding: '20px',
+    width: '100%',
+    minHeight: '100vh',
     backgroundColor: styles.dashboardBg,
+    display: 'flex',
+    flexDirection: 'column',
   };
 
   const dashboardContentStyle = {
-    maxWidth: '1400px', // Ajuste conforme necessário
-    margin: '0 auto',
+    flex: 1, // Garante que esta área cresça para preencher o espaço
+    width: '100%',
+    padding: '20px', // Mantém o espaçamento interno para o conteúdo não colar nas bordas
   };
 
   const overviewGridStyle = {
