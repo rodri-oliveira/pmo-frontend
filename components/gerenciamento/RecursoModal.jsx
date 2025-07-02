@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   TextField, FormControl, InputLabel, Select, MenuItem,
+  FormControlLabel, Switch,
 } from '@mui/material';
 
 const wegBlue = '#00579d';
@@ -15,6 +16,7 @@ export default function RecursoModal({ open, onClose, onSave, recurso, equipes }
     jira_user_id: '',
     data_admissao: '',
     equipe_principal_id: '',
+    ativo: true,
   });
 
   const isEditing = !!recurso;
@@ -26,15 +28,19 @@ export default function RecursoModal({ open, onClose, onSave, recurso, equipes }
         email: recurso?.email || '',
         matricula: recurso?.matricula || '',
         cargo: recurso?.cargo || '',
-
         data_admissao: recurso?.data_admissao ? new Date(recurso.data_admissao).toISOString().split('T')[0] : '',
         equipe_principal_id: recurso?.equipe_principal_id || '',
+        ativo: recurso?.ativo !== undefined ? recurso.ativo : true,
       });
     }
   }, [recurso, open]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleToggleAtivo = (e) => {
+    setFormData({ ...formData, ativo: e.target.checked });
   };
 
   const handleSave = () => {
@@ -52,6 +58,17 @@ export default function RecursoModal({ open, onClose, onSave, recurso, equipes }
         {isEditing ? 'Editar Recurso' : 'Novo Recurso'}
       </DialogTitle>
       <DialogContent>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={!!formData.ativo}
+              onChange={handleToggleAtivo}
+              color="primary"
+            />
+          }
+          label={formData.ativo ? 'Recurso Ativo' : 'Recurso Inativo'}
+          sx={{ mb: 1, mt: 1 }}
+        />
         <TextField
           autoFocus
           margin="dense"

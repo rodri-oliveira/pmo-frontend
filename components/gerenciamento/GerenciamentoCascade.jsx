@@ -648,6 +648,7 @@ export default function GerenciamentoCascade() {
           label: "Equipe",
           format: (val) => equipes.find((e) => e.id === val)?.nome || "N/A",
         },
+        { id: "acoes", label: "Ações", isAction: true, align: "right" },
       ],
       statusProjetos: [
         { id: "nome", label: "Nome" },
@@ -679,7 +680,7 @@ export default function GerenciamentoCascade() {
 
     return (
       <>
-        {(tab === "statusProjetos" || tab === "secoes" || tab === "equipes") && (
+        {(tab === "statusProjetos" || tab === "secoes" || tab === "equipes" || tab === "recursos") && (
           <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
             <FormControlLabel
               control={
@@ -724,6 +725,11 @@ export default function GerenciamentoCascade() {
                   const matchNome = filtroNome.trim() === "" || (item.nome ?? "").toLowerCase().includes(filtroNome.trim().toLowerCase());
                   return (showInactive ? true : item.ativo !== false) && matchNome;
                 }
+                if (tab === "recursos") {
+                  // Filtro por nome (case insensitive)
+                  const matchNome = filtroNome.trim() === "" || (item.nome ?? "").toLowerCase().includes(filtroNome.trim().toLowerCase());
+                  return (showInactive ? true : item.ativo !== false) && matchNome;
+                }
                 // Para 'secoes', não filtra mais no frontend, pois a API já retorna o correto
                 return true;
               })
@@ -736,6 +742,7 @@ export default function GerenciamentoCascade() {
                     if (col.isAction) {
                       return (
                         <TableCell key={col.id} align="right">
+                          
                           <IconButton
                             size="small"
                             color="primary"
@@ -756,17 +763,9 @@ export default function GerenciamentoCascade() {
                                   try {
                                     await deleteSecao(item.id);
                                     await fetchData();
-                                    setNotification({
-                                      open: true,
-                                      message: "Seção excluída com sucesso!",
-                                      severity: "success",
-                                    });
+                                    setNotification({ open: true, message: "Seção excluída com sucesso!", severity: "success" });
                                   } catch (err) {
-                                    setNotification({
-                                      open: true,
-                                      message: err?.message || "Erro ao excluir seção.",
-                                      severity: "error",
-                                    });
+                                    setNotification({ open: true, message: err?.message || "Erro ao excluir seção.", severity: "error" });
                                   } finally {
                                     setLoading(false);
                                   }
@@ -777,17 +776,9 @@ export default function GerenciamentoCascade() {
                                   try {
                                     await deleteStatusProjeto(item.id);
                                     await fetchData();
-                                    setNotification({
-                                      open: true,
-                                      message: "Status de projeto excluído com sucesso!",
-                                      severity: "success",
-                                    });
+                                    setNotification({ open: true, message: "Status de projeto excluído com sucesso!", severity: "success" });
                                   } catch (err) {
-                                    setNotification({
-                                      open: true,
-                                      message: err?.message || "Erro ao excluir status.",
-                                      severity: "error",
-                                    });
+                                    setNotification({ open: true, message: err?.message || "Erro ao excluir status.", severity: "error" });
                                   } finally {
                                     setLoading(false);
                                   }
@@ -798,17 +789,22 @@ export default function GerenciamentoCascade() {
                                   try {
                                     await deleteEquipe(item.id);
                                     await fetchData();
-                                    setNotification({
-                                      open: true,
-                                      message: "Equipe excluída com sucesso!",
-                                      severity: "success",
-                                    });
+                                    setNotification({ open: true, message: "Equipe excluída com sucesso!", severity: "success" });
                                   } catch (err) {
-                                    setNotification({
-                                      open: true,
-                                      message: err?.message || "Erro ao excluir equipe.",
-                                      severity: "error",
-                                    });
+                                    setNotification({ open: true, message: err?.message || "Erro ao excluir equipe.", severity: "error" });
+                                  } finally {
+                                    setLoading(false);
+                                  }
+                                }
+                              } else if (tab === "recursos") {
+                                if (window.confirm("Deseja realmente excluir este recurso?")) {
+                                  setLoading(true);
+                                  try {
+                                    await deleteRecurso(item.id);
+                                    await fetchData();
+                                    setNotification({ open: true, message: "Recurso excluído com sucesso!", severity: "success" });
+                                  } catch (err) {
+                                    setNotification({ open: true, message: err?.message || "Erro ao excluir recurso.", severity: "error" });
                                   } finally {
                                     setLoading(false);
                                   }
