@@ -397,53 +397,7 @@ export default function GerenciamentoCascade() {
     }
   };
 
-  // Manipula a exclusão ou restauração de itens com memoização correta
-  const handleDeleteToggle = useCallback(
-    async (item) => {
-      const action = item.ativo ? "inativar" : "reativar";
-      if (!window.confirm(`Tem certeza que deseja ${action} este item?`))
-        return;
-
-      setLoading(true);
-      try {
-        const apiMap = {
-          projetos: { del: deleteProjeto, update: updateProjeto },
-          secoes: { del: deleteSecao, update: updateSecao },
-          equipes: { del: deleteEquipe, update: updateEquipe },
-          recursos: { del: deleteRecurso, update: updateRecurso },
-          statusProjetos: {
-            del: deleteStatusProjeto,
-            update: updateStatusProjeto,
-          },
-          alocacoes: { del: deleteAlocacao, update: updateAlocacao },
-        };
-        const { del, update } = apiMap[tab];
-
-        if (item.ativo) {
-          await del(item.id);
-        } else {
-          await update(item.id, { ativo: true });
-        }
-        setNotification({
-          open: true,
-          message: `Item ${action} com sucesso!`,
-          severity: "success",
-        });
-        await fetchData();
-      } catch (err) {
-        const errorMsg =
-          err.response?.data?.detail || err.message || "Ocorreu um erro.";
-        setNotification({
-          open: true,
-          message: `Erro: ${errorMsg}`,
-          severity: "error",
-        });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [tab, fetchData]
-  );
+  
 
   const handleTabChange = (event) => {
     router.push(`${pathname}?tab=${event.target.value}`);
@@ -685,6 +639,7 @@ export default function GerenciamentoCascade() {
           label: "Seção",
           format: (val) => secoes.find((s) => s.id === val)?.nome || "N/A",
         },
+        { id: "acoes", label: "Ações", isAction: true, align: "right" },
       ],
       recursos: [
         { id: "nome", label: "Nome" },
@@ -724,7 +679,7 @@ export default function GerenciamentoCascade() {
 
     return (
       <>
-        {(tab === "statusProjetos" || tab === "secoes") && (
+        {(tab === "statusProjetos" || tab === "secoes" || tab === "equipes") && (
           <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
             <FormControlLabel
               control={
@@ -761,10 +716,13 @@ export default function GerenciamentoCascade() {
           <TableBody>
             {currentData
               .filter((item) => {
-                // Para 'secoes', não filtra mais no frontend, pois a API já retorna o correto
                 if (tab === "statusProjetos") {
                   return showInactive ? true : item.ativo !== false;
                 }
+                if (tab === "equipes") {
+                  return showInactive ? true : item.ativo !== false;
+                }
+                // Para 'secoes', não filtra mais no frontend, pois a API já retorna o correto
                 return true;
               })
               .map((item, index) => (
@@ -826,6 +784,27 @@ export default function GerenciamentoCascade() {
                                     setNotification({
                                       open: true,
                                       message: err?.message || "Erro ao excluir status.",
+                                      severity: "error",
+                                    });
+                                  } finally {
+                                    setLoading(false);
+                                  }
+                                }
+                              } else if (tab === "equipes") {
+                                if (window.confirm("Deseja realmente excluir esta equipe?")) {
+                                  setLoading(true);
+                                  try {
+                                    await deleteEquipe(item.id);
+                                    await fetchData();
+                                    setNotification({
+                                      open: true,
+                                      message: "Equipe excluída com sucesso!",
+                                      severity: "success",
+                                    });
+                                  } catch (err) {
+                                    setNotification({
+                                      open: true,
+                                      message: err?.message || "Erro ao excluir equipe.",
                                       severity: "error",
                                     });
                                   } finally {

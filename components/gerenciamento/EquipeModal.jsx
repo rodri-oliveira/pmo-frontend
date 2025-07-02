@@ -3,23 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, 
-  Select, MenuItem, FormControl, InputLabel
+  Select, MenuItem, FormControl, InputLabel, FormControlLabel, Switch
 } from '@mui/material';
 
 const wegBlue = '#00579d';
 
 export default function EquipeModal({ open, onClose, onSave, equipe, secoes = [] }) {
-  const [formData, setFormData] = useState({ nome: '', descricao: '', secao_id: '' });
+  const [formData, setFormData] = useState({ nome: '', descricao: '', secao_id: '', ativo: true });
 
   useEffect(() => {
     if (equipe) {
       setFormData({ 
         nome: equipe.nome || '', 
         descricao: equipe.descricao || '', 
-        secao_id: equipe.secao_id || '' 
+        secao_id: equipe.secao_id || '',
+        ativo: equipe.ativo !== undefined ? equipe.ativo : true
       });
     } else {
-      setFormData({ nome: '', descricao: '', secao_id: '' });
+      setFormData({ nome: '', descricao: '', secao_id: '', ativo: true });
     }
   }, [equipe, open]);
 
@@ -29,7 +30,7 @@ export default function EquipeModal({ open, onClose, onSave, equipe, secoes = []
 
   const handleSave = () => {
     // Garante que secao_id seja um número
-    onSave({ ...formData, secao_id: Number(formData.secao_id) });
+    onSave({ ...formData, secao_id: Number(formData.secao_id), ativo: formData.ativo });
   };
 
   const isEditing = !!equipe;
@@ -76,18 +77,29 @@ export default function EquipeModal({ open, onClose, onSave, equipe, secoes = []
             )}
           </Select>
         </FormControl>
-        <TextField 
-          margin="dense" 
-          name="descricao" 
-          label="Descrição" 
-          type="text" 
-          fullWidth 
-          multiline 
-          rows={3} 
-          variant="outlined" 
-          value={formData.descricao} 
-          onChange={handleChange} 
-        />
+        <FormControlLabel
+  control={
+    <Switch
+      checked={formData.ativo}
+      onChange={(_, checked) => setFormData({ ...formData, ativo: checked })}
+      color="primary"
+    />
+  }
+  label={formData.ativo ? "Equipe Ativa" : "Equipe Inativa"}
+  sx={{ mt: 1, mb: 1 }}
+/>
+<TextField 
+  margin="dense" 
+  name="descricao" 
+  label="Descrição" 
+  type="text" 
+  fullWidth 
+  multiline 
+  rows={3} 
+  variant="outlined" 
+  value={formData.descricao} 
+  onChange={handleChange} 
+/>
       </DialogContent>
       <DialogActions sx={{ p: '16px 24px' }}>
         <Button onClick={onClose}>Cancelar</Button>
