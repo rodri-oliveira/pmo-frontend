@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 import { useSession, signOut } from "next-auth/react";
 import LogoutIcon from '@mui/icons-material/Logout';
 import Avatar from '@mui/material/Avatar';
@@ -22,18 +23,19 @@ import { usePathname } from 'next/navigation';
 
 const drawerWidth = 240;
 
-export default function Header({ handleDrawerToggle }) {
+export default function Header({ handleDrawerToggle, onGestorViewClick }) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [anchorElUser, setAnchorElUser] = useState(null);
   
   // Determinar qual tab está ativa com base no pathname
   const getActiveTab = () => {
+    if (pathname === '/dashboard') return false; // Não seleciona nenhuma aba para o dashboard
     if (pathname?.includes('/planejamento')) return 0;
     if (pathname?.includes('/apontamentos')) return 1;
     if (pathname?.includes('/gerenciamento')) return 2;
     if (pathname?.includes('/administracao')) return 3;
-    return 0; // CORREÇÃO: Retornando 0 (primeira tab) em vez de -1
+    return false; // Padrão para não selecionar nenhuma aba
   };
   
   const handleOpenUserMenu = (event) => {
@@ -49,6 +51,37 @@ export default function Header({ handleDrawerToggle }) {
     await signOut({ callbackUrl: "/login" });
   };
 
+  // Se estivermos no dashboard, renderiza o header personalizado (barra azul simples)
+  if (pathname === '/dashboard') {
+    return (
+      <AppBar position="fixed" sx={{ backgroundColor: '#00579d', zIndex: 2000, width: '100vw', left: 0, top: 0 }}>
+        <Toolbar disableGutters sx={{ display: 'flex', justifyContent: 'space-between', px: { xs: 2, sm: 3 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ p: 0.5, backgroundColor: '#fff', border: '1px solid #fff', borderRadius: 1, display: 'flex', alignItems: 'center' }}>
+              <Box component="img" src="/images/weg-logo.png" alt="Logo WEG" sx={{ height: 28, width: 'auto' }} />
+            </Box>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+              WEG PMO - Gestão de Projetos
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <Typography component={Link} href="/dashboard" sx={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>
+              Dashboard
+            </Typography>
+            <Button
+              variant="contained"
+              sx={{ backgroundColor: '#fff', color: '#00579d', fontWeight: 600, '&:hover': { backgroundColor: '#f5f5f5' } }}
+              onClick={onGestorViewClick}
+            >
+              Visão do Gestor
+            </Button>
+          </Box>
+        </Toolbar>
+      </AppBar>
+    );
+  }
+
+  // Header padrão para demais páginas
   return (
     <AppBar
       position="fixed"

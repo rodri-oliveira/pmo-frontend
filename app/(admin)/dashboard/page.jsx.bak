@@ -1,0 +1,289 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from 'react';
+import Chart from 'chart.js/auto';
+import AppsIcon from '@mui/icons-material/Apps';
+
+// --- Helper: Chart Management ---
+const manageChart = (chartRef, chartInstanceRef, config) => {
+    if (chartRef.current) {
+        if (chartInstanceRef.current) chartInstanceRef.current.destroy();
+        const chartInstance = new Chart(chartRef.current, config);
+        if (chartInstanceRef) {
+            chartInstanceRef.current = chartInstance;
+        }
+    }
+};
+
+// --- UI Components ---
+const DashboardCard = ({ title, children, isLoading }) => (
+    <div className="bg-white p-4 rounded-lg shadow-md">
+        <h3 className="font-semibold text-gray-700 mb-2">{title}</h3>
+        {isLoading ? <p>Carregando...</p> : children}
+    </div>
+);
+
+const GestorModal = ({ isOpen, onClose, chartData }) => {
+    const refs = {
+        projetosPorMes: useRef(null),
+        recursosPorProjeto: useRef(null),
+        horasPorProjeto: useRef(null),
+        statusProjeto: useRef(null),
+    };
+    const instances = useRef({ a: null, b: null, c: null, d: null });
+
+    useEffect(() => {
+        if (isOpen && chartData) {
+            const configs = {
+                projetosPorMes: { type: 'bar', data: chartData.projetosPorMes, options: { responsive: true, indexAxis: 'y' } },
+                recursosPorProjeto: { type: 'doughnut', data: chartData.recursosPorProjeto, options: { responsive: true } },
+                horasPorProjeto: { type: 'pie', data: chartData.horasPorProjeto, options: { responsive: true } },
+                statusProjeto: { type: 'bar', data: chartData.statusProjeto, options: { responsive: true } },
+            };
+            manageChart(refs.projetosPorMes, instances.current.a, configs.projetosPorMes);
+            manageChart(refs.recursosPorProjeto, instances.current.b, configs.recursosPorProjeto);
+            manageChart(refs.horasPorProjeto, instances.current.c, configs.horasPorProjeto);
+            manageChart(refs.statusProjeto, instances.current.d, configs.statusProjeto);
+        }
+
+        return () => {
+            Object.values(instances.current).forEach(inst => {
+                if (inst && typeof inst.destroy === 'function') {
+                    inst.destroy();
+                }
+            });
+            instances.current = { a: null, b: null, c: null, d: null };
+        };
+    }, [isOpen, chartData]); // Removed refs from dependencies as they are stable
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+            <div className="bg-gray-50 p-6 rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 className="text-2xl font-bold text-gray-800">Visão do Gestor</h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <DashboardCard title="Projetos por Mês"><div className="h-64"><canvas ref={refs.projetosPorMes}></canvas></div></DashboardCard>
+                    <DashboardCard title="Recursos por Projeto"><div className="h-64"><canvas ref={refs.recursosPorProjeto}></canvas></div></DashboardCard>
+                    <DashboardCard title="Horas por Projeto"><div className="h-64"><canvas ref={refs.horasPorProjeto}></canvas></div></DashboardCard>
+                    <DashboardCard title="Status dos Projetos"><div className="h-64"><canvas ref={refs.statusProjeto}></canvas></div></DashboardCard>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Mock Data (simplified) ---
+const mockData = {
+    projetos: [
+        { id: 'p1', nome: 'Proj A', secao_id: 's1', status_id: 'st1', created_at: '2025-01-15' },
+        { id: 'p2', nome: 'Proj B', secao_id: 's2', status_id: 'st2', created_at: '2025-02-10' },
+        { id: 'p3', nome: 'Proj C', secao_id: 's1', status_id: 'st1', created_at: '2025-02-20' },
+    ],
+    apontamentos: [{ proj_id: 'p1', horas: 120 }, { proj_id: 'p2', horas: 80 }],
+    alocacoes: [{ proj_id: 'p1', rec_id: 'r1' }, { proj_id: 'p2', rec_id: 'r2' }],
+    secoes: [{ id: 's1', nome: 'Eng. Produto' }, { id: 's2', nome: 'Eng. Processos' }],
+    status: [{ id: 'st1', nome: 'Andamento' }, { id: 'st2', nome: 'Concluído' }],
+    recursos: [{ id: 'r1', ativo: true }, { id: 'r2', ativo: true }, { id: 'r3', ativo: false }],
+};
+
+// --- Dashboard Header ---
+const DashboardHeader = ({ onOpenGestorModal }) => (
+    <header className="bg-[#00579D] text-white p-4 flex justify-between items-center rounded-t-lg -mx-4 -mt-4 mb-6 shadow-lg">
+        <div className="flex items-center">
+            <AppsIcon sx={{ color: 'white', fontSize: 32, mr: 1.5 }} />
+            <h1 className="text-xl font-bold">WEG PMO - Gestão de Projetos</h1>
+        </div>
+        <div>
+            <span className="mr-6 text-sm font-medium opacity-90">Dashboard</span>
+            <button onClick={onOpenGestorModal} className="bg-white text-[#00579D] font-bold py-2 px-4 rounded-lg shadow-md hover:bg-gray-100 transition-colors">
+                Visão do Gestor
+            </button>
+        </div>
+    </header>
+);
+
+// --- Main Page Component ---
+const DashboardPage = () => {
+    const [isGestorModalOpen, setGestorModalOpen] = useState(false);
+    const [summary, setSummary] = useState({ secoes: [], status: [], recursos: 0, total: 0 });
+    const [gestorData, setGestorData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const statusChartRef = useRef(null);
+    const statusChartInstance = useRef(null);
+
+    useEffect(() => {
+        const { projetos, secoes, status, recursos } = mockData;
+        const totalProjetos = projetos.length;
+        setSummary({
+            secoes: secoes.map(s => ({ name: s.nome, value: projetos.filter(p => p.secao_id === s.id).length })),
+            status: status.map(st => ({ name: st.nome, value: totalProjetos > 0 ? (projetos.filter(p => p.status_id === st.id).length / totalProjetos * 100).toFixed(1) : 0 })),
+            recursos: recursos.filter(r => r.ativo).length,
+            total: totalProjetos,
+        });
+
+        const meses = ['Jan', 'Fev', 'Mar', 'Apr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const projPorMes = Array(12).fill(0);
+        projetos.forEach(p => projPorMes[new Date(p.created_at).getMonth()]++);
+
+        const chartColors = ['#00579D', '#4CAF50', '#FFC107', '#F44336', '#9C27B0'];
+        setGestorData({
+            projetosPorMes: { labels: meses, datasets: [{ label: 'Projetos', data: projPorMes, backgroundColor: '#00579D' }] },
+            recursosPorProjeto: { labels: mockData.projetos.map(p => p.nome), datasets: [{ data: mockData.projetos.map(p => mockData.alocacoes.filter(a => a.proj_id === p.id).length), backgroundColor: chartColors }] },
+            horasPorProjeto: { labels: mockData.projetos.map(p => p.nome), datasets: [{ data: mockData.projetos.map(p => mockData.apontamentos.filter(a => a.proj_id === p.id).reduce((sum, item) => sum + item.horas, 0)), backgroundColor: chartColors }] },
+            statusProjeto: { labels: mockData.status.map(s => s.nome), datasets: [{ label: 'Contagem', data: mockData.status.map(s => mockData.projetos.filter(p => p.status_id === s.id).length), backgroundColor: '#4CAF50' }] },
+        });
+
+        setIsLoading(false);
+    }, []);
+
+    useEffect(() => {
+        if (!isLoading && summary.status.length) {
+            manageChart(statusChartRef, statusChartInstance, {
+                type: 'pie',
+                data: {
+                    labels: summary.status.map(s => `${s.name} (${s.value}%)`),
+                    datasets: [{ data: summary.status.map(s => s.value), backgroundColor: ['#00579D', '#4CAF50', '#FFC107', '#F44336', '#9C27B0'] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+            });
+        }
+    }, [isLoading, summary.status]);
+
+    return (
+        <>
+            <DashboardHeader onOpenGestorModal={() => setGestorModalOpen(true)} />
+            <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <DashboardCard title="Total de Projetos" isLoading={isLoading}>
+                    <p className="text-3xl font-bold text-blue-600">{summary.total}</p>
+                </DashboardCard>
+                <DashboardCard title="Recursos Ativos" isLoading={isLoading}>
+                    <p className="text-3xl font-bold text-green-600">{summary.recursos}</p>
+                </DashboardCard>
+                <DashboardCard title="Projetos por Seção" isLoading={isLoading}>
+                    {summary.secoes.map(s => <p key={s.name} className="text-sm">{s.name}: {s.value} projetos</p>)} 
+                </DashboardCard>
+                <DashboardCard title="Status dos Projetos (%)" isLoading={isLoading}>
+                    <div className="h-48"><canvas ref={statusChartRef}></canvas></div>
+                </DashboardCard>
+            </main>
+            <GestorModal isOpen={isGestorModalOpen} onClose={() => setGestorModalOpen(false)} chartData={gestorData} />
+        </>
+    );
+};
+
+export default DashboardPage;
+        const projetosPorEquipeTotal = Object.fromEntries(equipes.map(e => [e.nome, 0]));
+        projetos.forEach(p => {
+            const equipe = equipes.find(e => e.secao_id === p.secao_id);
+            if (equipe) projetosPorEquipeTotal[equipe.nome]++;
+        });
+
+        setDashboardData({ projetosPorSecao, horasPorSecaoComparativo, statusProjetoChart, projetosPorEquipeTotal, recursosAtivos: recursos.filter(r => r.ativo).length });
+    };
+
+    const processGestorChartsData = (projetos, apontamentos, horasPlanejadas, recursos, alocacoes, statusProjetos) => {
+        const monthlyData = {};
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(new Date().setMonth(new Date().getMonth() - i));
+            monthlyData[`${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`] = { apontadas: 0, planejadas: 0 };
+        }
+        apontamentos.forEach(a => {
+            const d = a.data_apontamento?.seconds ? new Date(a.data_apontamento.seconds * 1000) : new Date();
+            const key = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+            if (monthlyData[key]) monthlyData[key].apontadas += (a.horas_apontadas || 0);
+        });
+        horasPlanejadas.forEach(hp => {
+            const key = `${hp.ano}-${hp.mes.toString().padStart(2, '0')}`;
+            if (monthlyData[key]) monthlyData[key].planejadas += (hp.horas_planejadas || 0);
+        });
+        const horasApontadasPlanejadas = { labels: Object.keys(monthlyData), apontadasData: Object.values(monthlyData).map(d => d.apontadas), planejadasData: Object.values(monthlyData).map(d => d.planejadas) };
+
+        const resourceUtilization = Object.fromEntries(recursos.map(r => [r.nome, { apontadas: 0, alocadas: 0 }]));
+        apontamentos.forEach(a => {
+            const recurso = recursos.find(r => r.id === a.recurso_id);
+            if (recurso) resourceUtilization[recurso.nome].apontadas += (a.horas_apontadas || 0);
+        });
+        alocacoes.forEach(aloc => {
+            const recurso = recursos.find(r => r.id === aloc.recurso_id);
+            if (recurso) {
+                resourceUtilization[recurso.nome].alocadas += horasPlanejadas.filter(hp => hp.alocacao_id === aloc.id).reduce((sum, hp) => sum + (hp.horas_planejadas || 0), 0);
+            }
+        });
+        const utilizacaoRecursos = { labels: Object.keys(resourceUtilization), data: Object.values(resourceUtilization).map(r => r.alocadas > 0 ? (r.apontadas / r.alocadas * 100).toFixed(2) : 0) };
+
+        const statusHistory = {};
+        Object.keys(monthlyData).forEach(month => {
+            statusHistory[month] = Object.fromEntries(statusProjetos.map(s => [s.nome, 0]));
+        });
+        projetos.forEach(p => {
+            const d = p.created_at?.seconds ? new Date(p.created_at.seconds * 1000) : new Date();
+            const key = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+            const status = statusProjetos.find(s => s.id === p.status_projeto_id);
+            if (statusHistory[key] && status) statusHistory[key][status.nome]++;
+        });
+        const projetosStatusHistorico = {
+            labels: Object.keys(monthlyData),
+            datasets: statusProjetos.map((status, i) => ({
+                label: status.nome,
+                data: Object.values(statusHistory).map(h => h[status.nome] || 0),
+                borderColor: ['#00579d', '#4CAF50', '#FFC107', '#F44336', '#9C27B0', '#03A9F4'][i % 6],
+                fill: false,
+                tension: 0.1
+            }))
+        };
+
+        setGestorChartsData({ horasApontadasPlanejadas, utilizacaoRecursos, projetosStatusHistorico });
+    };
+
+    useEffect(() => {
+        Object.values(chartInstances.current).forEach(destroyChart);
+        chartInstances.current = {};
+
+        if (dashboardData.statusProjetoChart.labels.length > 0 && statusProjetoChartRef.current) {
+            chartInstances.current.status = renderPieChart(statusProjetoChartRef.current, {
+                labels: dashboardData.statusProjetoChart.labels,
+                datasets: [{ data: dashboardData.statusProjetoChart.data, backgroundColor: dashboardData.statusProjetoChart.colors, hoverOffset: 4 }]
+            }, { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { generateLabels: c => c.data.labels.map((l, i) => ({ text: `${l}: ${c.data.datasets[0].data[i]}%`, fillStyle: c.data.datasets[0].backgroundColor[i] })) } }, tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed}%` } } } });
+        }
+        if (dashboardData.horasPorSecaoComparativo.labels.length > 0 && horasPorSecaoComparativoChartRef.current) {
+            chartInstances.current.horas = renderBarChart(horasPorSecaoComparativoChartRef.current, {
+                labels: dashboardData.horasPorSecaoComparativo.labels,
+                datasets: [
+                    { label: 'Horas Apontadas', data: dashboardData.horasPorSecaoComparativo.apontadas, backgroundColor: '#00579d' },
+                    { label: 'Horas Planejadas', data: dashboardData.horasPorSecaoComparativo.planejadas, backgroundColor: '#FFA000' }
+                ]
+            }, { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'Horas' } }, x: { title: { display: true, text: 'Seção' } } }, plugins: { legend: { position: 'top' } } });
+        }
+    }, [dashboardData, horasPorSecaoComparativoChartRef, statusProjetoChartRef]);
+
+    return (
+        <div className="flex flex-col min-h-screen bg-gray-50">
+            <Header onGestorViewClick={() => setShowGestorModal(true)} />
+            <main className="flex-grow container mx-auto p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <DashboardCard title="Resumo de Projetos por Seção">
+                        </div>
+                    </DashboardCard>
+                </main>
+                <GestorModal show={showGestorModal} onClose={() => setShowGestorModal(false)} chartsData={gestorChartsData} />
+                <footer className="bg-gray-800 text-white p-4 text-center mt-8">
+                    <p>&copy; 2025 WEG S.A. - Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </>
+                    </div>
+                </DashboardCard>
+            </main>
+            <GestorModal show={showGestorModal} onClose={() => setShowGestorModal(false)} chartsData={gestorChartsData} />
+            <footer className="bg-gray-800 text-white p-4 text-center mt-8">
+                <p>&copy; 2025 WEG S.A. - Todos os direitos reservados.</p>
+            </footer>
+        </div>
+    );
+};
+
+export default DashboardPage;

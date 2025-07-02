@@ -42,8 +42,6 @@ const menuItems = [
       { text: 'Planejado vs. Realizado', href: '/relatorios/planejado-vs-realizado', icon: <SyncAltIcon sx={{ color: wegBlue }} /> },
     ]
   },
-
-
   { text: 'Gerenciamento', href: '/gerenciamento', icon: <FolderIcon sx={{ color: wegBlue }} /> },
   {
     text: 'Administração',
