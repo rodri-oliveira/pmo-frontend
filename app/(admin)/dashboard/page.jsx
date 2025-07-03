@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
 
 // --- Variáveis de Estilo ---
@@ -189,6 +190,23 @@ const ProjectStatusChart = ({ data }) => {
 };
 
 // --- Componente de Gráfico (Horas Planejadas vs Apontadas) ---
+const CustomHoursLegend = () => (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3, pt: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ width: 14, height: 14, bgcolor: styles.wegBlue, mr: 1 }} />
+            <Typography variant="body2">Horas Planejadas</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ width: 14, height: 14, bgcolor: styles.wegGreen, mr: 1 }} />
+            <Typography variant="body2">Apontadas (no Orçamento)</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ width: 14, height: 14, bgcolor: styles.wegRed, mr: 1 }} />
+            <Typography variant="body2">Apontadas (acima do Orçamento)</Typography>
+        </Box>
+    </Box>
+);
+
 const HoursComparisonChart = ({ data }) => {
     const currentYear = new Date().getFullYear();
 
@@ -255,11 +273,11 @@ const HoursComparisonChart = ({ data }) => {
                     <XAxis type="number" unit="h" tickFormatter={(value) => new Intl.NumberFormat('pt-BR').format(value)} />
                     <YAxis type="category" dataKey="name" width={60} />
                     <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(0, 0, 0, 0.05)'}}/>
-                    <Legend wrapperStyle={{ paddingTop: '20px' }}/>
-                    <Bar dataKey="planejado" name="Horas Planejadas" fill={styles.wegBlue}>
+                    <Legend content={<CustomHoursLegend />} verticalAlign="bottom" />
+                    <Bar dataKey="planejado" fill={styles.wegBlue}>
                         <LabelList dataKey="planejado" position="insideRight" offset={10} formatter={(value) => `${Math.round(value).toLocaleString('pt-BR')}h`} style={{ fill: 'white', fontWeight: 'bold' }} />
                     </Bar>
-                    <Bar dataKey="apontado" name="Horas Apontadas">
+                    <Bar dataKey="apontado">
                         {chartData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.apontado > entry.planejado ? styles.wegRed : styles.wegGreen} />
                         ))}
