@@ -146,6 +146,7 @@ const HoursComparisonChart = ({ planned, reported }) => {
 // --- Componente Principal do Dashboard ---
 const PMODashboard = () => {
   const [secaoData, setSecaoData] = useState({ SGI: '...', TIN: '...', SEG: '...' });
+  const [equipesData, setEquipesData] = useState({ SGI: '...', TIN: '...', SEG: '...' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -153,19 +154,32 @@ const PMODashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:8000/backend/v1/dashboard/projetos-ativos-por-secao');
-        if (!response.ok) {
+        const [projetosResponse, equipesResponse] = await Promise.all([
+          fetch('http://localhost:8000/backend/v1/dashboard/projetos-ativos-por-secao'),
+          fetch('http://localhost:8000/backend/v1/dashboard/equipes-ativas-por-secao'),
+        ]);
+
+        if (!projetosResponse.ok || !equipesResponse.ok) {
           throw new Error('A resposta da rede não foi ok');
         }
-        const data = await response.json();
+        const projetosData = await projetosResponse.json();
+        const equipesData = await equipesResponse.json();
+
         setSecaoData({
-          SGI: data.SGI || 0,
-          TIN: data.TIN || 0,
-          SEG: data.SEG || 0,
+          SGI: projetosData.SGI || 0,
+          TIN: projetosData.TIN || 0,
+          SEG: projetosData.SEG || 0,
+        });
+
+        setEquipesData({
+          SGI: equipesData.SGI || 0,
+          TIN: equipesData.TIN || 0,
+          SEG: equipesData.SEG || 0,
         });
       } catch (err) {
         setError(err.message);
         setSecaoData({ SGI: 'Erro', TIN: 'Erro', SEG: 'Erro' });
+        setEquipesData({ SGI: 'Erro', TIN: 'Erro', SEG: 'Erro' });
       } finally {
         setLoading(false);
       }
@@ -175,9 +189,7 @@ const PMODashboard = () => {
   }, []);
 
   // Dados mockados para outros componentes
-  const projectSummary = { total: 125, delayed: 5, completed: 10 };
-  const teamSummary = { totalTeams: 8 };
-  const resourceSummary = { allocated: 60 };
+  const projectSummary = { delayed: 5, completed: 10 };
   const allocationSummary = { overAllocated: 3 };
   const hoursData = { planned: 5000, reported: 4200 };
   const projectStatusData = [
@@ -217,9 +229,9 @@ const PMODashboard = () => {
           <DashboardCard title="SGI" value={loading ? '...' : secaoData.SGI} unit="projetos" />
           <DashboardCard title="TIN" value={loading ? '...' : secaoData.TIN} unit="projetos" />
           <DashboardCard title="SEG" value={loading ? '...' : secaoData.SEG} unit="projetos" />
-          <DashboardCard title="Total Projetos" value={projectSummary.total} unit="" />
-          <DashboardCard title="Total Equipes" value={teamSummary.totalTeams} unit="" />
-          <DashboardCard title="Recursos Alocados" value={resourceSummary.allocated} unit="" />
+          <DashboardCard title="Total Equipes SGI" value={loading ? '...' : equipesData.SGI} unit="equipes" />
+          <DashboardCard title="Total Equipes TIN" value={loading ? '...' : equipesData.TIN} unit="equipes" />
+          <DashboardCard title="Total Equipes SEG" value={loading ? '...' : equipesData.SEG} unit="equipes" />
         </Box>
 
         {/* Seção 2: Gráficos Principais */}
