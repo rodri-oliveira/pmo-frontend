@@ -305,9 +305,7 @@ const PMODashboard = () => {
     fetchData();
   }, []);
 
-  // Dados mockados para outros componentes
-  const projectSummary = { delayed: 5, completed: 10 };
-  const allocationSummary = { overAllocated: 3 };
+
 
 
 
@@ -361,19 +359,7 @@ const PMODashboard = () => {
           <HoursComparisonChart data={horasData} />
         </Box>
 
-        {/* Seção 3: Outros Resumos */}
-        <Box
-          component="section"
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: 3,
-          }}
-        >
-          <DashboardCard title="Projetos Atrasados" value={projectSummary.delayed} unit="" type="status" />
-          <DashboardCard title="Projetos Concluídos" value={projectSummary.completed} unit="" type="status" />
-          <DashboardCard title="Alocações Acima do Limite" value={allocationSummary.overAllocated} unit="" type="status" />
-        </Box>
+
       </Box>
     </Box>
   );
