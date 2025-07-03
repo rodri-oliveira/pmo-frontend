@@ -175,7 +175,7 @@ const ProjectStatusChart = ({ data }) => {
                 >
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                     <XAxis type="number" unit="%" domain={[0, 100]} tickFormatter={(tick) => Math.round(tick)} />
-                    <YAxis type="category" dataKey="name" width={60} />
+                    <YAxis type="category" dataKey="name" width={60} tick={{ fill: styles.darkGrey, fontWeight: 'bold', fontSize: 16 }} />
                     <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(0, 0, 0, 0.05)'}}/>
                     <Legend wrapperStyle={{ paddingTop: '20px' }}/>
                     {allStatusNames.map(statusName => (
@@ -271,7 +271,7 @@ const HoursComparisonChart = ({ data }) => {
                 >
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                     <XAxis type="number" unit="h" tickFormatter={(value) => new Intl.NumberFormat('pt-BR').format(value)} />
-                    <YAxis type="category" dataKey="name" width={60} />
+                    <YAxis type="category" dataKey="name" width={60} tick={{ fill: styles.darkGrey, fontWeight: 'bold', fontSize: 16 }} />
                     <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(0, 0, 0, 0.05)'}}/>
                     <Legend content={<CustomHoursLegend />} verticalAlign="bottom" />
                     <Bar dataKey="planejado" fill={styles.wegBlue}>
