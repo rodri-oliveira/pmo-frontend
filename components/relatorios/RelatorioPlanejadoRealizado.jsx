@@ -122,7 +122,7 @@ export default function RelatorioPlanejadoRealizado() {
         </Button>
       </Box>
 
-      <Box>
+      <Box sx={{ display: 'grid' }}>
         <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '70vh', overflow: 'auto' }}>
         <Table stickyHeader sx={{ tableLayout: 'fixed' }} size="small">
           <TableHead>
