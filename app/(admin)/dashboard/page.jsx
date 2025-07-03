@@ -1,21 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Box from '@mui/material/Box';
 
-// --- Variáveis de Estilo (para manter a cor principal em um só lugar) ---
+// --- Variáveis de Estilo ---
 const styles = {
   wegBluePrimary: '#00579d',
-  wegBlueDark: '#003f6f', // Um pouco mais escuro para detalhes
+  wegBlueDark: '#003f6f',
   textColorDark: '#333',
-  textColorLight: '#f9f9f9',
   cardBg: '#ffffff',
   borderColor: '#e0e0e0',
-  dashboardBg: '#f4f7f6', // Fundo claro para o dashboard
+  dashboardBg: '#f4f7f6',
 };
 
-// --- Componentes Placeholder (Você os substituirá por seus componentes reais de busca de dados e mais complexos) ---
-
-// Um componente de cartão simples e reutilizável com estilos inline
+// --- Componente de Cartão ---
 const DashboardCard = ({ title, value, unit, type = 'default' }) => {
   const baseCardStyle = {
     backgroundColor: styles.cardBg,
@@ -28,26 +26,26 @@ const DashboardCard = ({ title, value, unit, type = 'default' }) => {
     justifyContent: 'center',
     alignItems: 'center',
     transition: 'transform 0.2s ease-in-out',
+    height: '100%', // Garante que todos os cartões tenham a mesma altura
   };
 
   const cardTitleStyle = {
-    fontSize: '1.2rem', // Aumentado para melhor legibilidade
-    color: styles.wegBluePrimary, // Cor azul WEG, conforme solicitado
-    fontWeight: 'bold', // Negrito, conforme solicitado
-    marginBottom: '15px', // Aumentando o espaçamento para melhor UX
+    fontSize: '1.2rem',
+    color: styles.wegBluePrimary,
+    fontWeight: 'bold',
+    marginBottom: '15px',
     textTransform: 'uppercase',
     letterSpacing: '0.05rem',
   };
 
-  // Wrapper para alinhar valor e unidade de forma mais precisa
   const valueWrapperStyle = {
     display: 'flex',
-    alignItems: 'baseline', // Alinha a base do número com o texto da unidade
+    alignItems: 'baseline',
     justifyContent: 'center',
   };
 
   const cardValueStyle = {
-    fontSize: '2.8rem', // Aumentado para maior impacto visual
+    fontSize: '2.8rem',
     fontWeight: '700',
     color: styles.wegBluePrimary,
   };
@@ -55,19 +53,17 @@ const DashboardCard = ({ title, value, unit, type = 'default' }) => {
   const cardUnitStyle = {
     fontSize: '1rem',
     fontWeight: '500',
-    marginLeft: '8px', // Espaçamento ajustado
+    marginLeft: '8px',
     color: '#555',
   };
 
-  // Ajustes para tipos específicos de cartão
   if (type === 'status') {
-    cardValueStyle.color = styles.textColorDark; // Default para status, pode ser ajustado
+    cardValueStyle.color = styles.textColorDark;
   }
 
   return (
     <div style={baseCardStyle}>
       <div style={cardTitleStyle}>{title}</div>
-      {/* O valor e a unidade agora estão dentro de um flex container para alinhamento perfeito */}
       <div style={valueWrapperStyle}>
         <span style={cardValueStyle}>{value}</span>
         {unit && <span style={cardUnitStyle}>{unit}</span>}
@@ -76,7 +72,7 @@ const DashboardCard = ({ title, value, unit, type = 'default' }) => {
   );
 };
 
-// Placeholder para um componente de gráfico mais complexo com estilos inline
+// --- Componente de Gráfico (Placeholder) ---
 const ProjectStatusChart = ({ data }) => {
   const chartPanelStyle = {
     backgroundColor: styles.cardBg,
@@ -94,27 +90,6 @@ const ProjectStatusChart = ({ data }) => {
     paddingBottom: '10px',
   };
 
-  const statusItemStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '8px 0',
-    borderBottom: '1px dashed #eee',
-  };
-
-  const statusItemLastChildStyle = {
-    borderBottom: 'none',
-  };
-
-  const statusLabelStyle = {
-    fontWeight: '500',
-    color: styles.textColorDark,
-  };
-
-  const statusValueStyle = {
-    fontWeight: '600',
-    color: styles.wegBlueDark,
-  };
-
   const chartPlaceholderStyle = {
     textAlign: 'center',
     color: '#bbb',
@@ -127,23 +102,12 @@ const ProjectStatusChart = ({ data }) => {
   return (
     <div style={chartPanelStyle}>
       <h3 style={chartTitleStyle}>Status dos Projetos</h3>
-      {data.map((item, index) => (
-        <div
-          key={index}
-          style={{
-            ...statusItemStyle,
-            ...(index === data.length - 1 ? statusItemLastChildStyle : {}),
-          }}
-        >
-          <span style={statusLabelStyle}>{item.status}:</span>
-          <span style={statusValueStyle}>{item.count}</span>
-        </div>
-      ))}
       <p style={chartPlaceholderStyle}>(Gráfico de Status dos Projetos aqui)</p>
     </div>
   );
 };
 
+// --- Componente de Gráfico (Placeholder) ---
 const HoursComparisonChart = ({ planned, reported }) => {
   const chartPanelStyle = {
     backgroundColor: styles.cardBg,
@@ -161,53 +125,7 @@ const HoursComparisonChart = ({ planned, reported }) => {
     paddingBottom: '10px',
   };
 
-  const hoursSummaryStyle = {
-    display: 'flex',
-    justifyContent: 'space-around',
-    marginBottom: '20px',
-  };
-
-  const hoursSummaryItemStyle = {
-    textAlign: 'center',
-    fontSize: '1.1rem',
-    color: styles.textColorDark,
-  };
-
-  const hoursSummaryItemSpanStyle = {
-    display: 'block',
-    fontSize: '0.9rem',
-    color: '#777',
-  };
-
-  const hoursSummaryItemStrongStyle = {
-    fontSize: '1.5rem',
-    color: styles.wegBluePrimary,
-  };
-
-  const hoursProgressBarContainerStyle = {
-    display: 'flex',
-    height: '25px',
-    borderRadius: '5px',
-    overflow: 'hidden',
-    backgroundColor: '#e0e0e0',
-    marginTop: '20px',
-  };
-
-  const total = planned + reported;
-  const plannedPercentage = total > 0 ? (planned / total) * 100 : 0;
-  const reportedPercentage = total > 0 ? (reported / total) * 100 : 0;
-
-  const plannedBarStyle = {
-    backgroundColor: styles.wegBluePrimary,
-    width: `${plannedPercentage}%`,
-  };
-
-  const reportedBarStyle = {
-    backgroundColor: '#5cb85c', // Uma cor distinta para horas apontadas
-    width: `${reportedPercentage}%`,
-  };
-
-  const chartPlaceholderStyle = {
+   const chartPlaceholderStyle = {
     textAlign: 'center',
     color: '#bbb',
     fontStyle: 'italic',
@@ -218,163 +136,121 @@ const HoursComparisonChart = ({ planned, reported }) => {
 
   return (
     <div style={chartPanelStyle}>
-      <h3 style={chartTitleStyle}>Horas Planejadas vs. Apontadas (Jira)</h3>
-      <div style={hoursSummaryStyle}>
-        <div style={hoursSummaryItemStyle}>
-          <span style={hoursSummaryItemSpanStyle}>Planejadas:</span>{' '}
-          <strong style={hoursSummaryItemStrongStyle}>{planned}h</strong>
-        </div>
-        <div style={hoursSummaryItemStyle}>
-          <span style={hoursSummaryItemSpanStyle}>Apontadas:</span>{' '}
-          <strong style={hoursSummaryItemStrongStyle}>{reported}h</strong>
-        </div>
-      </div>
-      <div style={hoursProgressBarContainerStyle}>
-        <div
-          style={plannedBarStyle}
-          title={`Planejadas: ${planned}h`}
-        ></div>
-        <div
-          style={reportedBarStyle}
-          title={`Apontadas: ${reported}h`}
-        ></div>
-      </div>
-      <p style={chartPlaceholderStyle}>(Gráfico de Comparação de Horas aqui)</p>
+      <h3 style={chartTitleStyle}>Horas Planejadas vs. Apontadas</h3>
+       <p style={chartPlaceholderStyle}>(Gráfico de Comparação de Horas aqui)</p>
     </div>
   );
 };
+
+
+// --- Componente Principal do Dashboard ---
 const PMODashboard = () => {
-  // --- Dados Mock (Substitua pela busca de dados real de suas APIs/estado) ---
-  const [secaoData, setSecaoData] = useState({ SGI: 0, TIN: 0, SEG: 0 });
+  const [secaoData, setSecaoData] = useState({ SGI: '...', TIN: '...', SEG: '...' });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchProjetosAtivosPorSecao = async () => {
+    const fetchData = async () => {
       try {
+        setLoading(true);
         const response = await fetch('http://localhost:8000/backend/v1/dashboard/projetos-ativos-por-secao');
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error('A resposta da rede não foi ok');
         }
         const data = await response.json();
-        setSecaoData(data);
-      } catch (error) {
-        console.error("Falha ao buscar dados de projetos por seção:", error);
-        // Manter os dados zerados ou mostrar uma mensagem de erro
+        setSecaoData({
+          SGI: data.SGI || 0,
+          TIN: data.TIN || 0,
+          SEG: data.SEG || 0,
+        });
+      } catch (err) {
+        setError(err.message);
         setSecaoData({ SGI: 'Erro', TIN: 'Erro', SEG: 'Erro' });
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchProjetosAtivosPorSecao();
-  }, []); // O array vazio garante que o efeito rode apenas uma vez, no mount do componente
+    fetchData();
+  }, []);
 
-  const projectSummary = {
-    total: 45,
-    inProgress: 30,
-    delayed: 5,
-    completed: 10,
-  };
-
-  const teamSummary = {
-    totalTeams: 8,
-    activeMembers: 75,
-  };
-
-  const resourceSummary = {
-    allocated: 60,
-    available: 15,
-  };
-
-  const allocationSummary = {
-    totalAllocations: 120,
-    overAllocated: 3,
-  };
-
-  const hoursData = {
-    planned: 5000, // Total de horas planejadas
-    reported: 4200, // Total de horas apontadas do Jira
-  };
-
+  // Dados mockados para outros componentes
+  const projectSummary = { total: 125, delayed: 5, completed: 10 };
+  const teamSummary = { totalTeams: 8 };
+  const resourceSummary = { allocated: 60 };
+  const allocationSummary = { overAllocated: 3 };
+  const hoursData = { planned: 5000, reported: 4200 };
   const projectStatusData = [
     { status: 'Em Andamento', count: 30 },
     { status: 'Atrasado', count: 5 },
     { status: 'Concluído', count: 10 },
-    { status: 'Em Risco', count: 2 },
-    { status: 'Planejado', count: 8 },
   ];
 
-  const dashboardContainerStyle = {
-    width: '100%',
-    minHeight: '100vh',
-    backgroundColor: styles.dashboardBg,
-    display: 'flex',
-    flexDirection: 'column',
-  };
-
-  const dashboardContentStyle = {
-    flex: 1, // Garante que esta área cresça para preencher o espaço
-    width: '100%',
-    padding: '20px', // Mantém o espaçamento interno para o conteúdo não colar nas bordas
-  };
-
-  const overviewGridStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '20px',
-    marginBottom: '30px',
-  };
-
-  const mainChartsGridStyle = {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr', // Duas colunas para gráficos
-    gap: '20px',
-    marginBottom: '30px',
-    // Adicionando um media query básico em JS (mais complexo para full responsiveness)
-    // Para um responsivo completo, recomenda-se bibliotecas CSS-in-JS como Styled Components
-    '@media (max-width: 992px)': {
-      gridTemplateColumns: '1fr', // Empilha gráficos em telas menores
-    },
-  };
-
-  const bottomSummariesStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: '20px',
-  };
-
   return (
-    <div style={dashboardContainerStyle}>
-      <main style={dashboardContentStyle}>
-        {/* Seção 1: Cartões de Visão Geral (SGI, TIN, SEG, Totais) */}
-        <section style={overviewGridStyle}>
-          <DashboardCard title="SGI" value={secaoData.SGI} unit="projetos" type="metric" />
-          <DashboardCard title="TIN" value={secaoData.TIN} unit="projetos" type="metric" />
-          <DashboardCard title="SEG" value={secaoData.SEG} unit="projetos" type="metric" />
+    <Box
+      sx={{
+        width: '100%',
+        minHeight: '100vh',
+        backgroundColor: styles.dashboardBg,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: '100%',
+          p: 3, // padding de 24px (theme.spacing(3))
+        }}
+      >
+        {/* Seção 1: Cartões de Visão Geral */}
+        <Box
+          component="section"
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 3,
+            mb: 3,
+          }}
+        >
+          <DashboardCard title="SGI" value={loading ? '...' : secaoData.SGI} unit="projetos" />
+          <DashboardCard title="TIN" value={loading ? '...' : secaoData.TIN} unit="projetos" />
+          <DashboardCard title="SEG" value={loading ? '...' : secaoData.SEG} unit="projetos" />
+          <DashboardCard title="Total Projetos" value={projectSummary.total} unit="" />
+          <DashboardCard title="Total Equipes" value={teamSummary.totalTeams} unit="" />
+          <DashboardCard title="Recursos Alocados" value={resourceSummary.allocated} unit="" />
+        </Box>
 
-          <DashboardCard title="Total Projetos" value={projectSummary.total} unit="" type="metric" />
-          <DashboardCard title="Total Equipes" value={teamSummary.totalTeams} unit="" type="metric" />
-          <DashboardCard title="Recursos Alocados" value={resourceSummary.allocated} unit="" type="metric" />
-        </section>
+        {/* Seção 2: Gráficos Principais */}
+        <Box
+          component="section"
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+            gap: 3,
+            mb: 3,
+          }}
+        >
+          <ProjectStatusChart data={projectStatusData} />
+          <HoursComparisonChart planned={hoursData.planned} reported={hoursData.reported} />
+        </Box>
 
-        {/* Seção 2: Conteúdo Principal - Gráficos e Resumos Chave */}
-        {/* Nota: Media queries em estilos inline são limitados. Para responsividade completa, use um framework CSS-in-JS ou JavaScript para mudar estilos dinamicamente. */}
-        <section style={mainChartsGridStyle}>
-          <div style={{ /* Estilo opcional para o painel do gráfico */ }}>
-            <ProjectStatusChart data={projectStatusData} />
-          </div>
-
-          <div style={{ /* Estilo opcional para o painel do gráfico */ }}>
-            <HoursComparisonChart planned={hoursData.planned} reported={hoursData.reported} />
-          </div>
-        </section>
-
-        {/* Seção 3: Resumos Adicionais (ex: Detalhes de Status de Projeto, Alocações) */}
-        <section style={bottomSummariesStyle}>
+        {/* Seção 3: Outros Resumos */}
+        <Box
+          component="section"
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: 3,
+          }}
+        >
           <DashboardCard title="Projetos Atrasados" value={projectSummary.delayed} unit="" type="status" />
           <DashboardCard title="Projetos Concluídos" value={projectSummary.completed} unit="" type="status" />
           <DashboardCard title="Alocações Acima do Limite" value={allocationSummary.overAllocated} unit="" type="status" />
-          {/* Adicione mais cartões para outras informações gerais importantes conforme necessário */}
-        </section>
-      </main>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 
