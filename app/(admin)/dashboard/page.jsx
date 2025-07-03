@@ -2,256 +2,272 @@
 
 import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 // --- Variáveis de Estilo ---
 const styles = {
-  wegBluePrimary: '#00579d',
-  wegBlueDark: '#003f6f',
-  textColorDark: '#333',
-  cardBg: '#ffffff',
-  borderColor: '#e0e0e0',
-  dashboardBg: '#f4f7f6',
+    wegBlue: '#00579d',      // Azul principal da WEG
+    wegGreen: '#00612E',     // Verde para status 'Concluído'
+    wegRed: '#d73a3c',       // Vermelho para 'Atrasado' ou 'Acima do Planejado'
+    mediumGrey: '#BBBBBB',   // Cinza para 'Backlog'
+    darkGrey: '#333333',     // Cinza escuro para textos
+    wegYellow: '#ffc107',    // Amarelo para 'Não Iniciado'
+    lightGrey: '#f5f5f5',
+    white: '#ffffff',
+    cardBg: '#ffffff',
+    borderColor: '#e0e0e0',
 };
 
 // --- Componente de Cartão ---
 const DashboardCard = ({ title, value, unit, type = 'default' }) => {
-  const baseCardStyle = {
-    backgroundColor: styles.cardBg,
-    borderRadius: '8px',
-    padding: '20px',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05)',
-    textAlign: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    transition: 'transform 0.2s ease-in-out',
-    height: '100%', // Garante que todos os cartões tenham a mesma altura
-  };
+    const [isHovered, setIsHovered] = useState(false);
 
-  const cardTitleStyle = {
-    fontSize: '1.2rem',
-    color: styles.wegBluePrimary,
-    fontWeight: 'bold',
-    marginBottom: '15px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05rem',
-  };
+    const baseCardStyle = {
+        backgroundColor: styles.cardBg,
+        borderRadius: '12px',
+        padding: '25px',
+        boxShadow: '0 6px 12px rgba(0, 0, 0, 0.08)',
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+        height: '100%',
+        cursor: 'pointer',
+    };
 
-  const valueWrapperStyle = {
-    display: 'flex',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-  };
+    const cardTitleStyle = {
+        fontSize: '1.25rem',
+        color: styles.wegBlue,
+        fontWeight: 'bold',
+        marginBottom: '15px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05rem',
+    };
 
-  const cardValueStyle = {
-    fontSize: '2.8rem',
-    fontWeight: '700',
-    color: styles.wegBluePrimary,
-  };
+    const valueWrapperStyle = {
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'center',
+    };
 
-  const cardUnitStyle = {
-    fontSize: '1rem',
-    fontWeight: '500',
-    marginLeft: '8px',
-    color: '#555',
-  };
+    const cardValueStyle = {
+        fontSize: '3rem',
+        fontWeight: '800',
+        color: styles.wegBlue,
+    };
 
-  if (type === 'status') {
-    cardValueStyle.color = styles.textColorDark;
-  }
+    const cardUnitStyle = {
+        fontSize: '1.1rem',
+        fontWeight: '500',
+        marginLeft: '10px',
+        color: styles.darkGrey,
+    };
 
-  return (
-    <div style={baseCardStyle}>
-      <div style={cardTitleStyle}>{title}</div>
-      <div style={valueWrapperStyle}>
-        <span style={cardValueStyle}>{value}</span>
-        {unit && <span style={cardUnitStyle}>{unit}</span>}
-      </div>
-    </div>
-  );
+    if (type === 'status') {
+        cardValueStyle.color = styles.darkGrey;
+    }
+
+    const hoverStyle = {
+        transform: 'translateY(-5px)',
+        boxShadow: '0 10px 20px rgba(0, 0, 0, 0.12)',
+    };
+
+    return (
+        <div
+            style={{ ...baseCardStyle, ...(isHovered ? hoverStyle : {}) }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <div style={cardTitleStyle}>{title}</div>
+            <div style={valueWrapperStyle}>
+                <span style={cardValueStyle}>{value}</span>
+                {unit && <span style={cardUnitStyle}>{unit}</span>}
+            </div>
+        </div>
+    );
 };
+
+// --- Componente de Legenda Reutilizável ---
+const LegendItem = ({ color, label }) => (
+    <div style={{ display: 'flex', alignItems: 'center', marginRight: '20px', marginBottom: '10px' }}>
+        <span style={{ width: '15px', height: '15px', backgroundColor: color, borderRadius: '3px', marginRight: '8px' }}></span>
+        <span style={{ fontSize: '0.9rem', color: styles.darkGrey }}>{label}</span>
+    </div>
+);
 
 // --- Componente de Gráfico (Status de Projeto por Seção) ---
 const ProjectStatusChart = ({ data }) => {
-  const chartPanelStyle = {
-    backgroundColor: styles.cardBg,
-    borderRadius: '8px',
-    padding: '20px',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05)',
-    height: '100%',
-  };
+    const chartPanelStyle = {
+        backgroundColor: styles.cardBg,
+        borderRadius: '12px',
+        padding: '25px',
+        boxShadow: '0 6px 12px rgba(0, 0, 0, 0.08)',
+        height: '450px', // Altura fixa para o gráfico
+        display: 'flex',
+        flexDirection: 'column',
+    };
 
-  const chartTitleStyle = {
-    color: styles.textColorDark,
-    marginTop: '0',
-    marginBottom: '20px',
-    fontSize: '1.3rem',
-    borderBottom: `1px solid ${styles.borderColor}`,
-    paddingBottom: '10px',
-  };
+    const chartTitleStyle = {
+        color: styles.darkGrey,
+        marginTop: '0',
+        marginBottom: '25px',
+        fontSize: '1.4rem',
+        fontWeight: 'bold',
+    };
 
-  const sectionStyle = {
-    marginBottom: '15px',
-    paddingBottom: '15px',
-    borderBottom: `1px solid ${styles.borderColor}`,
-  };
+    const statusColors = {
+        'Em andamento': styles.wegBlue,
+        'Concluído': styles.wegGreen,
+        'Backlog': styles.mediumGrey,
+        'Não Iniciado': styles.wegYellow,
+        'Atrasado/Em Risco': styles.wegRed,
+    };
 
-  const lastSectionStyle = {
-    ...sectionStyle,
-    marginBottom: '0',
-    paddingBottom: '0',
-    borderBottom: 'none',
-  };
+    // Extrai todos os status possíveis para garantir que a legenda e as barras sejam consistentes
+    const allStatusNames = Object.values(data).reduce((acc, secao) => {
+        Object.keys(secao.status).forEach(statusName => {
+            if (!acc.includes(statusName)) {
+                acc.push(statusName);
+            }
+        });
+        return acc;
+    }, []);
 
-  const sectionTitleStyle = {
-    fontWeight: 'bold',
-    color: styles.wegBluePrimary,
-    fontSize: '1.1rem',
-    marginBottom: '10px',
-  };
+    // Transforma os dados para o formato que o Recharts espera
+    const chartData = Object.keys(data).map(secao => {
+        const secaoData = { name: secao };
+        allStatusNames.forEach(statusName => {
+            secaoData[statusName] = data[secao].status[statusName]?.percentual || 0;
+        });
+        return secaoData;
+    });
 
-  const statusLineStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '0.95rem',
-    color: styles.textColorDark,
-    marginBottom: '5px',
-  };
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div style={{ backgroundColor: 'white', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
+                    <p style={{ fontWeight: 'bold', margin: 0 }}>{label}</p>
+                    {payload.map(p => (
+                        <p key={p.name} style={{ color: p.color, margin: '4px 0' }}>
+                            {`${p.name}: ${p.value.toFixed(2)}%`}
+                        </p>
+                    ))}
+                </div>
+            );
+        }
+        return null;
+    };
 
-  const statusNameStyle = {
-    flex: '1 1 50%',
-  };
-
-  const statusValueStyle = {
-    flex: '1 1 50%',
-    textAlign: 'right',
-  };
-
-  const keys = Object.keys(data);
-
-  return (
-    <div style={chartPanelStyle}>
-      <h3 style={chartTitleStyle}>Status de Projeto por Seção</h3>
-      {keys.length > 0 ? (
-        keys.map((secao, index) => (
-          <div key={secao} style={index === keys.length - 1 ? lastSectionStyle : sectionStyle}>
-            <div style={sectionTitleStyle}>
-              {secao} (Total: {data[secao].total_projetos})
-            </div>
-            {Object.keys(data[secao].status).map(statusName => (
-              <div key={statusName} style={statusLineStyle}>
-                <span style={statusNameStyle}>{statusName}</span>
-                <span style={statusValueStyle}>
-                  {data[secao].status[statusName].quantidade} ({data[secao].status[statusName].percentual.toFixed(2)}%)
-                </span>
-              </div>
-            ))}
-          </div>
-        ))
-      ) : (
-        <p style={{ textAlign: 'center', color: '#bbb', fontStyle: 'italic', paddingTop: '50px' }}>
-          (Carregando dados de status...)
-        </p>
-      )}
-    </div>
-  );
+    return (
+        <div style={chartPanelStyle}>
+            <h3 style={chartTitleStyle}>Status de Projeto por Seção</h3>
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                    layout="vertical"
+                    data={chartData}
+                    margin={{ top: 5, right: 20, left: 20, bottom: 20 }}
+                >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" unit="%" domain={[0, 100]} />
+                    <YAxis type="category" dataKey="name" width={60} />
+                    <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(0, 0, 0, 0.05)'}}/>
+                    <Legend wrapperStyle={{ paddingTop: '20px' }}/>
+                    {allStatusNames.map(statusName => (
+                        <Bar key={statusName} dataKey={statusName} stackId="a" fill={statusColors[statusName] || styles.mediumGrey} name={statusName} />
+                    ))}
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
 };
 
-// --- Componente de Gráfico (Horas por Seção) ---
+// --- Componente de Gráfico (Horas Planejadas vs Apontadas) ---
 const HoursComparisonChart = ({ data }) => {
-  const currentYear = new Date().getFullYear();
+    const currentYear = new Date().getFullYear();
 
-  const chartPanelStyle = {
-    backgroundColor: styles.cardBg,
-    borderRadius: '8px',
-    padding: '20px',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.05)',
-    height: '100%',
-  };
+    const parseHours = (hourString) => {
+        if (!hourString) return 0;
+        return parseFloat(String(hourString).replace(/[^0-9.]/g, '')) || 0;
+    };
 
-  const chartTitleStyle = {
-    color: styles.textColorDark,
-    marginTop: '0',
-    marginBottom: '20px',
-    fontSize: '1.3rem',
-    borderBottom: `1px solid ${styles.borderColor}`,
-    paddingBottom: '10px',
-  };
+    const chartPanelStyle = {
+        backgroundColor: styles.cardBg,
+        borderRadius: '12px',
+        padding: '25px',
+        boxShadow: '0 6px 12px rgba(0, 0, 0, 0.08)',
+        height: '450px', // Altura fixa para o gráfico
+        display: 'flex',
+        flexDirection: 'column',
+    };
 
-  const sectionStyle = {
-    marginBottom: '15px',
-    paddingBottom: '15px',
-    borderBottom: `1px solid ${styles.borderColor}`,
-  };
+    const chartTitleStyle = {
+        color: styles.darkGrey,
+        marginTop: '0',
+        marginBottom: '25px',
+        fontSize: '1.4rem',
+        fontWeight: 'bold',
+    };
 
-  const lastSectionStyle = {
-    ...sectionStyle,
-    marginBottom: '0',
-    paddingBottom: '0',
-    borderBottom: 'none',
-  };
+    const chartData = Object.keys(data).map(secao => ({
+        name: secao,
+        planejado: parseHours(data[secao].planejado),
+        apontado: parseHours(data[secao].apontado),
+    }));
 
-  const sectionTitleStyle = {
-    fontWeight: 'bold',
-    color: styles.wegBluePrimary,
-    fontSize: '1.1rem',
-    marginBottom: '8px',
-  };
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            const planejado = payload.find(p => p.dataKey === 'planejado')?.value || 0;
+            const apontado = payload.find(p => p.dataKey === 'apontado')?.value || 0;
+            const isOver = apontado > planejado;
 
-  const hoursStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '1rem',
-    color: styles.textColorDark,
-    marginBottom: '5px',
-  };
+            return (
+                <div style={{ backgroundColor: 'white', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
+                    <p style={{ fontWeight: 'bold', margin: 0 }}>{label}</p>
+                    <p style={{ color: styles.wegBlue, margin: '4px 0' }}>
+                        Planejado: {Math.round(planejado).toLocaleString('pt-BR')}h
+                    </p>
+                    <p style={{ color: isOver ? styles.wegRed : styles.wegGreen, margin: '4px 0' }}>
+                        Apontado: {Math.round(apontado).toLocaleString('pt-BR')}h
+                    </p>
+                </div>
+            );
+        }
+        return null;
+    };
 
-  const keys = Object.keys(data);
-
-  return (
-    <div style={chartPanelStyle}>
-      <h3 style={chartTitleStyle}>
-        Horas Planejadas vs Horas Apontadas por Seção - {currentYear}
-      </h3>
-      {keys.length > 0 ? (
-        keys.map((secao, index) => {
-          const isOverBudget = data[secao].apontado > data[secao].planejado;
-          const apontadoValueStyle = {
-            fontWeight: isOverBudget ? 'bold' : 'normal',
-            color: isOverBudget ? '#d32f2f' : styles.textColorDark,
-          };
-
-          return (
-            <div key={secao} style={index === keys.length - 1 ? lastSectionStyle : sectionStyle}>
-              <div style={sectionTitleStyle}>{secao}</div>
-              <div style={hoursStyle}>
-                <span>Planejado:</span>
-                <span>{Math.round(data[secao].planejado).toLocaleString('pt-BR')}h</span>
-              </div>
-              <div style={hoursStyle}>
-                <span>Apontado:</span>
-                <span style={apontadoValueStyle}>
-                  {Math.round(data[secao].apontado).toLocaleString('pt-BR')}h
-                </span>
-              </div>
-            </div>
-          );
-        })
-      ) : (
-        <p style={{ textAlign: 'center', color: '#bbb', fontStyle: 'italic', paddingTop: '50px' }}>
-          (Carregando dados de horas...)
-        </p>
-      )}
-    </div>
-  );
+    return (
+        <div style={chartPanelStyle}>
+            <h3 style={chartTitleStyle}>Horas Planejadas vs Apontadas - {currentYear}</h3>
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                    data={chartData} 
+                    layout="vertical"
+                    margin={{ top: 5, right: 20, left: 20, bottom: 20 }}
+                >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" unit="h" tickFormatter={(value) => new Intl.NumberFormat('pt-BR').format(value)} />
+                    <YAxis type="category" dataKey="name" width={60} />
+                    <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(0, 0, 0, 0.05)'}}/>
+                    <Legend wrapperStyle={{ paddingTop: '20px' }}/>
+                    <Bar dataKey="planejado" name="Horas Planejadas" fill={styles.wegBlue} />
+                    <Bar dataKey="apontado" name="Horas Apontadas">
+                        {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.apontado > entry.planejado ? styles.wegRed : styles.wegGreen} />
+                        ))}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
 };
 
 
 // --- Componente Principal do Dashboard ---
 const PMODashboard = () => {
-  const [secaoData, setSecaoData] = useState({ SGI: '...', TIN: '...', SEG: '...' });
-  const [equipesData, setEquipesData] = useState({ SGI: '...', TIN: '...', SEG: '...' });
+  const [projetosPorSecao, setProjetosPorSecao] = useState([]);
+  const [equipesPorSecao, setEquipesPorSecao] = useState([]);
   const [horasData, setHorasData] = useState({});
   const [statusProjetosData, setStatusProjetosData] = useState({});
   const [loading, setLoading] = useState(true);
@@ -276,27 +292,13 @@ const PMODashboard = () => {
         const horasData = await horasResponse.json();
         const statusProjetosData = await statusProjetosResponse.json();
 
-        setSecaoData({
-          SGI: projetosData.SGI || 0,
-          TIN: projetosData.TIN || 0,
-          SEG: projetosData.SEG || 0,
-        });
-
-        setEquipesData({
-          SGI: equipesData.SGI || 0,
-          TIN: equipesData.TIN || 0,
-          SEG: equipesData.SEG || 0,
-        });
-
+        setProjetosPorSecao(Object.keys(projetosData).map(key => ({ secao: key, total_projetos: projetosData[key] || 0 })));
+        setEquipesPorSecao(Object.keys(equipesData).map(key => ({ secao: key, total_equipes: equipesData[key] || 0 })));
         setHorasData(horasData);
         setStatusProjetosData(statusProjetosData);
 
       } catch (err) {
         setError(err.message);
-        setSecaoData({ SGI: 'Erro', TIN: 'Erro', SEG: 'Erro' });
-        setEquipesData({ SGI: 'Erro', TIN: 'Erro', SEG: 'Erro' });
-        setHorasData({});
-        setStatusProjetosData({});
       } finally {
         setLoading(false);
       }
@@ -305,62 +307,36 @@ const PMODashboard = () => {
     fetchData();
   }, []);
 
-
-
-
+  if (loading) return <p style={{ textAlign: 'center', padding: '20px' }}>Carregando dashboard...</p>;
+  if (error) return <p style={{ textAlign: 'center', padding: '20px', color: 'red' }}>Erro ao carregar dados: {error}</p>;
 
   return (
-    <Box
-      sx={{
-        width: '100%',
-        minHeight: '100vh',
-        backgroundColor: styles.dashboardBg,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: '100%',
-          p: 3, // padding de 24px (theme.spacing(3))
-        }}
-      >
-        {/* Seção 1: Cartões de Visão Geral */}
-        <Box
-          component="section"
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 3,
-            mb: 3,
-          }}
-        >
-          <DashboardCard title="SGI" value={loading ? '...' : secaoData.SGI} unit="projetos" />
-          <DashboardCard title="TIN" value={loading ? '...' : secaoData.TIN} unit="projetos" />
-          <DashboardCard title="SEG" value={loading ? '...' : secaoData.SEG} unit="projetos" />
-          <DashboardCard title="Total Equipes SGI" value={loading ? '...' : equipesData.SGI} unit="equipes" />
-          <DashboardCard title="Total Equipes TIN" value={loading ? '...' : equipesData.TIN} unit="equipes" />
-          <DashboardCard title="Total Equipes SEG" value={loading ? '...' : equipesData.SEG} unit="equipes" />
-        </Box>
+    <Box sx={{ flexGrow: 1, backgroundColor: styles.lightGrey, p: { xs: 2, md: 3 } }}>
+      {/* Linha de Cartões */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '25px', marginBottom: '30px' }}>
+          {projetosPorSecao.map(secao => (
+              <DashboardCard 
+                  key={secao.secao} 
+                  title={`Projetos Ativos ${secao.secao}`} 
+                  value={secao.total_projetos} 
+                  unit="projetos"
+              />
+          ))}
+          {equipesPorSecao.map(secao => (
+              <DashboardCard 
+                  key={secao.secao} 
+                  title={`Equipes Ativas ${secao.secao}`} 
+                  value={secao.total_equipes} 
+                  unit="equipes"
+              />
+          ))}
+      </div>
 
-        {/* Seção 2: Gráficos Principais */}
-        <Box
-          component="section"
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-            gap: 3,
-            mb: 3,
-          }}
-        >
+      {/* Linha de Gráficos */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', md: '2fr 1fr', gap: '30px' }}>
           <ProjectStatusChart data={statusProjetosData} />
           <HoursComparisonChart data={horasData} />
-        </Box>
-
-
-      </Box>
+      </div>
     </Box>
   );
 };
