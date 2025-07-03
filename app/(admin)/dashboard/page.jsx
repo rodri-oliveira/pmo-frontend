@@ -118,11 +118,14 @@ const ProjectStatusChart = ({ data }) => {
     };
 
     const statusColors = {
-        'Em andamento': styles.wegBlue,
         'Concluído': styles.wegGreen,
-        'Backlog': styles.mediumGrey,
+        'Em andamento': styles.wegBlue,
         'Não Iniciado': styles.wegYellow,
-        'Atrasado/Em Risco': styles.wegRed,
+        'Cancelado': styles.wegRed,       // Vermelho para cancelado
+        'Parado': '#757575',            // Cinza Escuro para inativo
+        'Backlog': '#678c99',           // Azul acinzentado para planejamento
+        'Aguardando': styles.mediumGrey,    // Cinza Médio para espera
+        'Atrasado/Em Risco': '#FF9900', // Laranja para atrasado
     };
 
     // Extrai todos os status possíveis para garantir que a legenda e as barras sejam consistentes
