@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
 
 // --- Variáveis de Estilo ---
 const styles = {
@@ -170,12 +170,14 @@ const ProjectStatusChart = ({ data }) => {
                     margin={{ top: 5, right: 20, left: 20, bottom: 20 }}
                 >
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" unit="%" domain={[0, 100]} />
+                    <XAxis type="number" unit="%" domain={[0, 100]} tickFormatter={(tick) => Math.round(tick)} />
                     <YAxis type="category" dataKey="name" width={60} />
                     <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(0, 0, 0, 0.05)'}}/>
                     <Legend wrapperStyle={{ paddingTop: '20px' }}/>
                     {allStatusNames.map(statusName => (
-                        <Bar key={statusName} dataKey={statusName} stackId="a" fill={statusColors[statusName] || styles.mediumGrey} name={statusName} />
+                        <Bar key={statusName} dataKey={statusName} stackId="a" fill={statusColors[statusName] || styles.mediumGrey} name={statusName}>
+                            <LabelList dataKey={statusName} position="center" formatter={(value) => value > 5 ? `${Math.round(value)}%` : ''} style={{ fill: 'white', fontWeight: 'bold' }} />
+                        </Bar>
                     ))}
                 </BarChart>
             </ResponsiveContainer>
@@ -251,11 +253,14 @@ const HoursComparisonChart = ({ data }) => {
                     <YAxis type="category" dataKey="name" width={60} />
                     <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(0, 0, 0, 0.05)'}}/>
                     <Legend wrapperStyle={{ paddingTop: '20px' }}/>
-                    <Bar dataKey="planejado" name="Horas Planejadas" fill={styles.wegBlue} />
+                    <Bar dataKey="planejado" name="Horas Planejadas" fill={styles.wegBlue}>
+                        <LabelList dataKey="planejado" position="insideRight" offset={10} formatter={(value) => `${Math.round(value).toLocaleString('pt-BR')}h`} style={{ fill: 'white', fontWeight: 'bold' }} />
+                    </Bar>
                     <Bar dataKey="apontado" name="Horas Apontadas">
                         {chartData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.apontado > entry.planejado ? styles.wegRed : styles.wegGreen} />
                         ))}
+                        <LabelList dataKey="apontado" position="insideRight" offset={10} formatter={(value) => `${Math.round(value).toLocaleString('pt-BR')}h`} style={{ fill: 'white', fontWeight: 'bold' }} />
                     </Bar>
                 </BarChart>
             </ResponsiveContainer>

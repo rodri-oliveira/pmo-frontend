@@ -231,12 +231,7 @@ export default function Sidebar() {
         </List>
       </Box>
       
-      <Divider sx={{ mt: 'auto', mb: 0, backgroundColor: '#dee2e6' }} />
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Typography variant="caption" sx={{ color: textColorSecondary }}>
-          © {new Date().getFullYear()} WEG S.A.
-        </Typography>
-      </Box>
+
     </Drawer>
   );
 }
