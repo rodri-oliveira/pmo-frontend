@@ -380,7 +380,7 @@ export default function VisaoGestorPage() {
     <Grid container spacing={3} mb={4}>
       {Object.entries(kpis).map(([key, value]) => (
         <Grid item xs={12} sm={6} md={2.4} key={key}>
-          <Card><CardContent>
+          <Card sx={{ bgcolor: 'grey.100' }}><CardContent>
             <Typography variant="body2" color="text.secondary" gutterBottom>{key}</Typography>
             <Typography variant="h5" component="div">{value}</Typography>
           </CardContent></Card>
@@ -390,7 +390,7 @@ export default function VisaoGestorPage() {
   );
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth={false} sx={{ mt: 4, mb: 4, paddingX: { xs: 2, sm: 3 } }}>
       <Typography variant="h4" gutterBottom>Visão do Gestor</Typography>
 
       <Paper sx={{ p: 2, mb: 4 }}>
