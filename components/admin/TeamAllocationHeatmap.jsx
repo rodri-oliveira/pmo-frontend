@@ -18,10 +18,10 @@ const TeamAllocationHeatmap = ({ data, meses, mesNomes }) => {
   }
 
   return (
-    <Paper sx={{ p: 2, mt: 4 }}>
+    <Paper sx={{ p: 2, mt: 4, width: '100%' }}>
       <Typography variant="h6" gutterBottom>Mapa de Calor de Alocação da Equipe</Typography>
       <TableContainer>
-        <Table stickyHeader size="small">
+        <Table stickyHeader size="small" sx={{ width: '100%' }}>
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold' }}>Recurso</TableCell>
