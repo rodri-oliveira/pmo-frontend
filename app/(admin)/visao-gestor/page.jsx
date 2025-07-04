@@ -16,9 +16,13 @@ import {
   CircularProgress,
   Alert,
   Autocomplete,
-  TextField
+  TextField,
+  Modal,
+  Fade,
+  Backdrop
 } from '@mui/material';
 import { apiGet } from '../../../services/api';
+import TeamAllocationHeatmap from '../../../components/admin/TeamAllocationHeatmap';
 import EChart from '../../../components/Echarts/Echarts';
 
 // Nomes dos meses para os gráficos
@@ -41,7 +45,7 @@ export default function VisaoGestorPage() {
   const [apiData, setApiData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // States for filters
   const [ano, setAno] = useState(new Date().getFullYear());
   const [mesInicio, setMesInicio] = useState(1);
@@ -50,10 +54,20 @@ export default function VisaoGestorPage() {
   const [secoesList, setSecoesList] = useState([]);
   const [equipesList, setEquipesList] = useState([]);
   const [recursosList, setRecursosList] = useState([]);
+  const [projetosList, setProjetosList] = useState([]);
 
   const [selectedSecao, setSelectedSecao] = useState(null);
   const [selectedEquipe, setSelectedEquipe] = useState(null);
   const [selectedRecurso, setSelectedRecurso] = useState(null);
+  const [selectedProjeto, setSelectedProjeto] = useState(null);
+
+  // State for drill-down modal
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // State for heatmap
+  const [teamHeatmapData, setTeamHeatmapData] = useState(null);
+  const [isHeatmapLoading, setIsHeatmapLoading] = useState(false);
+  const [selectedMonthData, setSelectedMonthData] = useState(null);
 
   // 1. Fetch initial sections
   useEffect(() => {
@@ -73,6 +87,11 @@ export default function VisaoGestorPage() {
   useEffect(() => {
     if (!selectedSecao) {
       setEquipesList([]);
+      setRecursosList([]);
+      setProjetosList([]);
+      setSelectedEquipe(null);
+      setSelectedRecurso(null);
+      setSelectedProjeto(null);
       return;
     }
     const fetchEquipes = async () => {
@@ -85,34 +104,36 @@ export default function VisaoGestorPage() {
       }
     };
     fetchEquipes();
-    // Reset subsequent filters
     setSelectedEquipe(null);
-    setRecursosList([]);
     setSelectedRecurso(null);
+    setSelectedProjeto(null);
   }, [selectedSecao]);
 
-  // 3. Fetch resources when a team is selected
+  // 3. Fetch resources and projects when a team is selected
   useEffect(() => {
     if (!selectedEquipe) {
       setRecursosList([]);
+      setProjetosList([]);
+      setSelectedRecurso(null);
+      setSelectedProjeto(null);
       return;
     }
-    const fetchRecursos = async () => {
+    const fetchRecursosEProjetos = async () => {
       try {
         const params = { secao_id: selectedSecao.id, equipe_id: selectedEquipe.id };
         const data = await apiGet('/filtros/filtros-populados', params);
         setRecursosList(data.recursos || []);
+        
       } catch (err) {
-        console.error("Falha ao buscar recursos:", err);
+        console.error("Falha ao buscar recursos e projetos:", err);
       }
     };
-    fetchRecursos();
-    // Reset subsequent filter
+    fetchRecursosEProjetos();
     setSelectedRecurso(null);
+    setSelectedProjeto(null);
   }, [selectedEquipe, selectedSecao]);
 
-
-  // Fetch dashboard data when filters change
+  // Fetch dashboard data
   const fetchData = useCallback(async () => {
     if (!selectedRecurso) {
       setApiData(null);
@@ -133,8 +154,105 @@ export default function VisaoGestorPage() {
   }, [ano, mesInicio, mesFim, selectedRecurso]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (selectedRecurso) {
+        fetchData();
+    }
+  }, [fetchData, selectedRecurso]);
+
+  // 4. Populate projects list when data is available for a resource
+  // 4. Populate projects list when data is available for a resource
+  useEffect(() => {
+    if (apiData && apiData.disponibilidade_mensal) {
+      // Correção: Acessar alocacoes_detalhadas e, em seguida, o objeto projeto.
+      const allProjects = apiData.disponibilidade_mensal.flatMap(month => month.alocacoes_detalhadas.map(detalhe => detalhe.projeto) || []);
+      const uniqueProjects = Array.from(
+        new Map(allProjects.filter(p => p && p.id && p.nome).map(p => [p.id, {id: p.id, nome: p.nome}]))
+        .values()
+      );
+      console.log('Projetos encontrados para o filtro:', uniqueProjects);
+      setProjetosList(uniqueProjects);
+    } else {
+      setProjetosList([]);
+    }
+    setSelectedProjeto(null);
+  }, [apiData]);
+
+  const handleChartClick = (params) => {
+    if (!params || !apiData || !apiData.disponibilidade_mensal) return;
+
+    if (params.componentType === 'series' && params.seriesName === 'Horas Alocadas') {
+      const monthIndex = params.dataIndex;
+      const clickedMonthData = apiData.disponibilidade_mensal[monthIndex];
+
+      // Correção: Verificar em 'alocacoes_detalhadas'
+      if (clickedMonthData && clickedMonthData.alocacoes_detalhadas && clickedMonthData.alocacoes_detalhadas.length > 0) {
+        setSelectedMonthData(clickedMonthData);
+        setModalOpen(true);
+      } else {
+        console.log('Nenhum detalhe de projeto para exibir para este mês.');
+      }
+    }
+  };
+
+  const pieChartOptions = useMemo(() => {
+    // Correção: Verificar 'alocacoes_detalhadas'
+    if (!selectedMonthData || !selectedMonthData.alocacoes_detalhadas) return null;
+    return {
+      title: {
+        text: `Detalhamento de Projetos - ${mesNomes[selectedMonthData.mes]}`,
+        left: 'center'
+      },
+      tooltip: { trigger: 'item', formatter: '{b}: {c}h ({d}%)' },
+      legend: { orient: 'vertical', left: 'left', top: '15%' },
+      series: [{
+        name: 'Alocação',
+        type: 'pie',
+        radius: '50%',
+        center: ['60%', '50%'],
+        // Correção: Mapear 'alocacoes_detalhadas' para extrair os dados corretos
+        data: selectedMonthData.alocacoes_detalhadas.map(detalhe => ({ 
+          value: detalhe.horas_planejadas, 
+          name: detalhe.projeto.nome 
+        })).filter(p => p.value > 0),
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }]
+    };
+  }, [selectedMonthData]);
+
+  // Efeito para buscar dados do mapa de calor da equipe
+  useEffect(() => {
+    const fetchHeatmapData = async () => {
+      if (selectedEquipe) {
+        setIsHeatmapLoading(true);
+        setTeamHeatmapData(null); // Limpa dados anteriores
+        try {
+          const params = {
+            equipe_id: selectedEquipe.id,
+            ano: ano,
+            mes_inicio: mesInicio,
+            mes_fim: mesFim,
+          };
+          const response = await apiGet('/dashboard/disponibilidade-equipe', params);
+          setTeamHeatmapData(response);
+        } catch (error) {
+          console.error('Erro ao buscar dados do mapa de calor:', error);
+          setTeamHeatmapData(null);
+        } finally {
+          setIsHeatmapLoading(false);
+        }
+      } else {
+        setTeamHeatmapData(null); // Limpa os dados se nenhuma equipe for selecionada
+      }
+    };
+
+    fetchHeatmapData();
+  }, [selectedEquipe, ano, mesInicio, mesFim]);
 
   // Process data for KPIs and charts
   const { kpis, barChartOptions } = useMemo(() => {
@@ -142,125 +260,137 @@ export default function VisaoGestorPage() {
       return { kpis: {}, barChartOptions: null };
     }
 
-    const monthlyData = apiData.disponibilidade_mensal;
-    
+    let monthlyData = apiData.disponibilidade_mensal;
+
+    if (selectedProjeto) {
+      monthlyData = monthlyData.map(month => {
+        // Correção: buscar em 'alocacoes_detalhadas' e usar a estrutura correta do objeto.
+        const projetoInfo = month.alocacoes_detalhadas.find(detalhe => detalhe.projeto.id === selectedProjeto.id);
+        // Correção: usar 'horas_planejadas'
+        const horasAlocadasProjeto = projetoInfo ? projetoInfo.horas_planejadas : 0;
+        return {
+          ...month,
+          total_horas_planejadas: horasAlocadasProjeto,
+          percentual_alocacao: month.capacidade_rh > 0 ? ((horasAlocadasProjeto / month.capacidade_rh) * 100).toFixed(1) + '%' : '0.0%'
+        };
+      });
+    }
+
     const capacidadeTotal = monthlyData.reduce((acc, item) => acc + item.capacidade_rh, 0);
     const horasAlocadas = monthlyData.reduce((acc, item) => acc + item.total_horas_planejadas, 0);
     const superalocadosCount = monthlyData.filter(item => parsePercent(item.percentual_alocacao) > 100).length;
     const taxaMedia = capacidadeTotal > 0 ? (horasAlocadas / capacidadeTotal) * 100 : 0;
 
     const kpisData = {
-        'Capacidade Total': `${capacidadeTotal}h`,
-        'Horas Alocadas': `${horasAlocadas}h`,
-        'Saldo de Horas': `${capacidadeTotal - horasAlocadas}h`,
-        'Taxa de Alocação Média': `${taxaMedia.toFixed(1)}%`,
-        'Meses com Superalocação': superalocadosCount,
+      'Capacidade Total': `${capacidadeTotal.toFixed(0)}h`,
+      'Horas Alocadas': `${horasAlocadas.toFixed(0)}h`,
+      'Saldo de Horas': `${(capacidadeTotal - horasAlocadas).toFixed(0)}h`,
+      'Taxa de Alocação Média': `${taxaMedia.toFixed(1)}%`,
+      'Meses com Superalocação': superalocadosCount,
     };
 
     const barChartOptionsData = {
-        tooltip: {
-            trigger: 'axis',
-            axisPointer: { type: 'shadow' }
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: { data: ['Capacidade', 'Horas Alocadas'] },
+      xAxis: { type: 'category', data: monthlyData.map(item => mesNomes[item.mes]) },
+      yAxis: { type: 'value', name: 'Horas' },
+      series: [
+        {
+          name: 'Capacidade',
+          type: 'bar',
+          label: {
+            show: true,
+            position: 'top',
+            formatter: '{c}h',
+            fontSize: 10,
+            color: '#333'
+          },
+          itemStyle: {
+            color: '#a9a9a9' // DarkGray for capacity
+          },
+          data: monthlyData.map(item => Math.round(item.capacidade_rh)),
         },
-        legend: {
-            data: ['Capacidade', 'Horas Alocadas']
-        },
-        xAxis: {
-            type: 'category',
-            data: monthlyData.map(item => mesNomes[item.mes])
-        },
-        yAxis: { type: 'value', name: 'Horas' },
-        series: [
-            {
-                name: 'Horas Alocadas',
-                type: 'bar',
-                data: monthlyData.map(item => ({
-                    value: item.total_horas_planejadas,
-                    itemStyle: {
-                        color: getBarColor(parsePercent(item.percentual_alocacao))
-                    }
-                }))
-            },
-            {
-                name: 'Capacidade',
-                type: 'line',
-                data: monthlyData.map(item => item.capacidade_rh),
-                symbol: 'none',
-                lineStyle: {
-                    color: '#555',
-                    width: 2,
-                    type: 'dashed'
-                }
-            }
-        ]
+        {
+          name: 'Horas Alocadas',
+          type: 'bar',
+          label: {
+            show: true,
+            position: 'top',
+            formatter: '{c}h',
+            fontSize: 10,
+            color: '#333'
+          },
+          data: monthlyData.map(item => ({
+            value: Math.round(item.total_horas_planejadas),
+            itemStyle: { color: getBarColor(parsePercent(item.percentual_alocacao)) },
+          })),
+        }
+      ],
     };
 
     return { kpis: kpisData, barChartOptions: barChartOptionsData };
-  }, [apiData]);
+  }, [apiData, selectedProjeto]);
 
   const renderKPIs = () => (
     <Grid container spacing={3} mb={4}>
-        {Object.entries(kpis).map(([key, value]) => (
-            <Grid item xs={12} sm={6} md={2.4} key={key}>
-                <Card>
-                    <CardContent>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                            {key}
-                        </Typography>
-                        <Typography variant="h5" component="div">
-                            {value}
-                        </Typography>
-                    </CardContent>
-                </Card>
-            </Grid>
-        ))}
+      {Object.entries(kpis).map(([key, value]) => (
+        <Grid item xs={12} sm={6} md={2.4} key={key}>
+          <Card><CardContent>
+            <Typography variant="body2" color="text.secondary" gutterBottom>{key}</Typography>
+            <Typography variant="h5" component="div">{value}</Typography>
+          </CardContent></Card>
+        </Grid>
+      ))}
     </Grid>
   );
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Visão do Gestor
-      </Typography>
+      <Typography variant="h4" gutterBottom>Visão do Gestor</Typography>
 
-      {/* Filtros */}
       <Paper sx={{ p: 2, mb: 4 }}>
         <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-                <Autocomplete
-                    options={secoesList}
-                    getOptionLabel={(option) => option.nome || ''}
-                    value={selectedSecao}
-                    onChange={(event, newValue) => {
-                        setSelectedSecao(newValue);
-                    }}
-                    renderInput={(params) => <TextField {...params} label="Selecione a Seção" />}
-                />
-            </Grid>
-            <Grid item xs={12} md={4}>
-                <Autocomplete
-                    options={equipesList}
-                    getOptionLabel={(option) => option.nome || ''}
-                    value={selectedEquipe}
-                    onChange={(event, newValue) => {
-                        setSelectedEquipe(newValue);
-                    }}
-                    disabled={!selectedSecao}
-                    renderInput={(params) => <TextField {...params} label="Selecione a Equipe" />}
-                />
-            </Grid>
-            <Grid item xs={12} md={4}>
-                <Autocomplete
-                    options={recursosList}
-                    getOptionLabel={(option) => option.nome || ''}
-                    value={selectedRecurso}
-                    onChange={(event, newValue) => {
-                        setSelectedRecurso(newValue);
-                    }}
-                    disabled={!selectedEquipe}
-                    renderInput={(params) => <TextField {...params} label="Selecione o Recurso" />}
-                />
-            </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Autocomplete options={secoesList} getOptionLabel={(o) => o.nome || ''} value={selectedSecao} onChange={(_, v) => setSelectedSecao(v)} renderInput={(p) => <TextField {...p} label="Seção" />} />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Autocomplete options={equipesList} getOptionLabel={(o) => o.nome || ''} value={selectedEquipe} onChange={(_, v) => setSelectedEquipe(v)} disabled={!selectedSecao} renderInput={(p) => <TextField {...p} label="Equipe" />} />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Autocomplete options={recursosList} getOptionLabel={(o) => o.nome || ''} value={selectedRecurso} onChange={(_, v) => setSelectedRecurso(v)} disabled={!selectedEquipe} renderInput={(p) => <TextField {...p} label="Recurso" />} />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Autocomplete options={projetosList} getOptionLabel={(o) => o.nome || ''} value={selectedProjeto} onChange={(_, v) => setSelectedProjeto(v)} disabled={!selectedRecurso} renderInput={(p) => <TextField {...p} label="Projeto (Opcional)" />} />
+          </Grid>
+        </Grid>
+      </Paper>
+
+      <Paper sx={{ p: 2, mb: 4 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={4}>
+            <FormControl fullWidth>
+              <InputLabel>Ano</InputLabel>
+              <Select value={ano} label="Ano" onChange={(e) => setAno(e.target.value)}>
+                {[...Array(5)].map((_, i) => <MenuItem key={i} value={new Date().getFullYear() - i}>{new Date().getFullYear() - i}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <FormControl fullWidth>
+              <InputLabel>Mês Início</InputLabel>
+              <Select value={mesInicio} label="Mês Início" onChange={(e) => setMesInicio(e.target.value)}>
+                {Object.entries(mesNomes).map(([num, nome]) => <MenuItem key={num} value={parseInt(num)}>{nome}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <FormControl fullWidth>
+              <InputLabel>Mês Fim</InputLabel>
+              <Select value={mesFim} label="Mês Fim" onChange={(e) => setMesFim(e.target.value)}>
+                {Object.entries(mesNomes).map(([num, nome]) => <MenuItem key={num} value={parseInt(num)}>{nome}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Grid>
         </Grid>
       </Paper>
 
@@ -277,13 +407,60 @@ export default function VisaoGestorPage() {
           <Grid container spacing={4}>
             <Grid item xs={12}>
               <Paper sx={{ p: 2, height: 400 }}>
-                <Typography variant="h6" gutterBottom>Alocação vs. Capacidade Mensal</Typography>
-                {barChartOptions && <EChart option={barChartOptions} />}
+                <Typography variant="h6" gutterBottom>
+                  Alocação vs. Capacidade Mensal {selectedProjeto ? `(${selectedProjeto.nome})` : ''}
+                </Typography>
+                {barChartOptions && <EChart option={barChartOptions} onEvents={{ 'click': handleChartClick }} />}
               </Paper>
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 1, gap: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}><Box sx={{ width: 12, height: 12, bgcolor: '#d32f2f', mr: 1 }} /> <Typography variant="caption">Superalocação (&gt;100%)</Typography></Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}><Box sx={{ width: 12, height: 12, bgcolor: '#388e3c', mr: 1 }} /> <Typography variant="caption">Alocação Ideal (85-100%)</Typography></Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}><Box sx={{ width: 12, height: 12, bgcolor: '#1976d2', mr: 1 }} /> <Typography variant="caption">Alocação Normal (&lt;85%)</Typography></Box>
+              </Box>
             </Grid>
+
+            {/* Team Heatmap Section */}
+            {selectedEquipe && (
+              <Grid item xs={12}>
+                {isHeatmapLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
+                ) : (
+                  <TeamAllocationHeatmap 
+                    data={teamHeatmapData} 
+                    meses={Array.from({ length: mesFim - mesInicio + 1 }, (_, i) => mesInicio + i)}
+                    mesNomes={mesNomes}
+                  />
+                )}
+              </Grid>
+            )}
           </Grid>
         </>
       )}
+
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{ timeout: 500 }}
+      >
+        <Fade in={modalOpen}>
+          <Box sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '60vw',
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 4,
+            height: '70vh'
+          }}>
+            {pieChartOptions && <EChart option={pieChartOptions} style={{ height: '100%', width: '100%' }} />}
+          </Box>
+        </Fade>
+      </Modal>
     </Container>
   );
 }
