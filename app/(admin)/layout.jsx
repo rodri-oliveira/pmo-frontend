@@ -1,6 +1,9 @@
 "use client";
 
+"use client";
+
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
 import Header from '@/components/admin/Header';
@@ -9,15 +12,20 @@ import Toolbar from '@mui/material/Toolbar';
 import Footer from '@/components/admin/Footer'; // Importando o novo rodapé
 
 export default function AdminLayout({ children }) {
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
+  const handleGestorViewClick = () => {
+    router.push('/visao-gestor');
+  };
+
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <Header handleDrawerToggle={handleDrawerToggle} />
+      <Header handleDrawerToggle={handleDrawerToggle} onGestorViewClick={handleGestorViewClick} />
       <Sidebar />
       <Box
         component="div" // Wrapper for main content and footer
