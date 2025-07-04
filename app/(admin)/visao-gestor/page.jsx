@@ -31,6 +31,11 @@ const mesNomes = {
     7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'
 };
 
+const mesNomesCompleto = {
+    1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
+    7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+};
+
 // Função para converter a string de porcentagem para número
 const parsePercent = (percentString) => parseFloat(String(percentString).replace('%', ''));
 
@@ -177,14 +182,13 @@ export default function VisaoGestorPage() {
     setSelectedProjeto(null);
   }, [apiData]);
 
-  const handleChartClick = (params) => {
+  const handleChartClick = useCallback((params) => {
     if (!params || !apiData || !apiData.disponibilidade_mensal) return;
 
     if (params.componentType === 'series' && params.seriesName === 'Horas Alocadas') {
       const monthIndex = params.dataIndex;
       const clickedMonthData = apiData.disponibilidade_mensal[monthIndex];
 
-      // Correção: Verificar em 'alocacoes_detalhadas'
       if (clickedMonthData && clickedMonthData.alocacoes_detalhadas && clickedMonthData.alocacoes_detalhadas.length > 0) {
         setSelectedMonthData(clickedMonthData);
         setModalOpen(true);
@@ -192,35 +196,76 @@ export default function VisaoGestorPage() {
         console.log('Nenhum detalhe de projeto para exibir para este mês.');
       }
     }
-  };
+  }, [apiData]);
 
   const pieChartOptions = useMemo(() => {
-    // Correção: Verificar 'alocacoes_detalhadas'
     if (!selectedMonthData || !selectedMonthData.alocacoes_detalhadas) return null;
+
+    const chartData = selectedMonthData.alocacoes_detalhadas
+      .map(detalhe => ({
+        value: detalhe.horas_planejadas,
+        name: `${detalhe.projeto.id} - ${detalhe.projeto.nome}`
+      }))
+      .filter(p => p.value > 0);
+
+    const totalHoras = chartData.reduce((sum, item) => sum + item.value, 0);
+
     return {
       title: {
-        text: `Detalhamento de Projetos - ${mesNomes[selectedMonthData.mes]}`,
-        left: 'center'
+        text: `Detalhamento de Projetos - ${mesNomesCompleto[selectedMonthData.mes]}`,
+        subtext: `Total: ${totalHoras.toFixed(1)}h`,
+        left: 'center',
+        top: '2%',
+        textStyle: {
+            fontSize: 22,
+            fontWeight: 'bold'
+        },
+        subtextStyle: {
+            fontSize: 16
+        }
       },
-      tooltip: { trigger: 'item', formatter: '{b}: {c}h ({d}%)' },
-      legend: { orient: 'vertical', left: 'left', top: '15%' },
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}:<br/>{c}h ({d}%)'
+      },
+      legend: {
+        orient: 'horizontal',
+        bottom: '2%',
+        type: 'scroll'
+      },
       series: [{
         name: 'Alocação',
         type: 'pie',
-        radius: '50%',
-        center: ['60%', '50%'],
-        // Correção: Mapear 'alocacoes_detalhadas' para extrair os dados corretos
-        data: selectedMonthData.alocacoes_detalhadas.map(detalhe => ({ 
-          value: detalhe.horas_planejadas, 
-          name: detalhe.projeto.nome 
-        })).filter(p => p.value > 0),
+        radius: ['30%', '50%'], // Even smaller radius for more label space
+        center: ['50%', '50%'],
+        itemStyle: {
+            borderRadius: 8,
+            borderColor: '#fff',
+            borderWidth: 2
+        },
+        label: {
+            show: true,
+            position: 'outside',
+            formatter: '{b}: {d}%',
+            fontWeight: 'bold',
+            fontSize: 14,
+            // The critical fix: force all labels to show, even if they overlap.
+            avoidLabelOverlap: false 
+        },
+        labelLine: {
+            show: true,
+            length: 20,
+            length2: 55, // Significantly longer line to spread out labels
+            smooth: true
+        },
         emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
-        }
+            itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+            }
+        },
+        data: chartData,
       }]
     };
   }, [selectedMonthData]);
@@ -450,12 +495,13 @@ export default function VisaoGestorPage() {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '60vw',
+            width: '85vw',
+            maxWidth: '1200px',
+            height: '80vh',
             bgcolor: 'background.paper',
             border: '2px solid #000',
             boxShadow: 24,
             p: 4,
-            height: '70vh'
           }}>
             {pieChartOptions && <EChart option={pieChartOptions} style={{ height: '100%', width: '100%' }} />}
           </Box>
