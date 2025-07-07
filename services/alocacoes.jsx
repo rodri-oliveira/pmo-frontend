@@ -42,3 +42,10 @@ export const getProjetos = (searchTerm = '') => {
 // Buscar alocação por ID
 export const getAlocacaoById = (id) => apiGet(`/alocacoes/${id}`);
 
+// Adiciona ou atualiza as horas planejadas para uma alocação
+// Adiciona ou atualiza as horas planejadas para uma alocação
+export const planejamentoHoras = (data) => {
+  // O endpoint correto, conforme a documentação, é para batch e não aninhado
+  return apiPost(`/planejamento-horas/`, data);
+};
+

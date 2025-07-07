@@ -80,7 +80,8 @@ import {
   createAlocacao,
   updateAlocacao,
   deleteAlocacao,
-} from "../../services/alocacoes";
+  planejamentoHoras, // Importa a nova função
+} from "../../services/alocacoes.jsx";
 
 
 // Importações dos Modais (lazy loaded para melhorar performance)
@@ -520,17 +521,21 @@ export default function GerenciamentoCascade() {
       // Determinar o ano. Usa o ano da primeira hora planejada existente ou o ano atual como fallback.
       const ano = alocacao?.horas_planejadas[0]?.ano || new Date().getFullYear();
 
-      // O backend espera um ARRAY de objetos no formato {ano, mes, horas_planejadas}
+      // O backend espera um ARRAY de objetos, cada um com alocacao_id
       const payload = (horasEditadas || [])
-        .filter(h => h.ano && h.mes && Number(h.horas) > 0)
+        .filter(h => h.ano && h.mes && h.horas !== '' && h.horas !== null && h.horas !== undefined)
         .map(h => ({
+          alocacao_id: alocacaoId, // Adiciona o ID da alocação em cada item
           ano: h.ano,
           mes: h.mes,
-          horas_planejadas: Number(h.horas)
+          horas_planejadas: Number(h.horas) || 0
         }));
 
       console.log('Payload enviado para planejamentoHoras:', payload); // DEBUG
-      await planejamentoHoras(projetoId, alocacaoId, payload);
+
+      // A API espera um objeto por vez, não um array.
+      // Usamos Promise.all para enviar todas as requisições em paralelo.
+      await Promise.all(payload.map(item => planejamentoHoras(item)));
       
       setNotification({
         open: true,
