@@ -76,11 +76,20 @@ function HorasPlanejadasModal({ open, onClose, onSave, alocacao, projetoId }) {
 
   const handleAdd = () => {
     const lastEntry = horas[horas.length - 1];
-    const nextDate = new Date(lastEntry ? `${lastEntry.ano}-${lastEntry.mes}-01` : new Date());
+    
+    // Inicia com a data atual se não houver entradas, ou com a data da última entrada.
+    // O construtor do Date usa mês 0-indexed, por isso `lastEntry.mes - 1`.
+    const currentDate = lastEntry ? new Date(lastEntry.ano, lastEntry.mes - 1, 1) : new Date();
+
+    // Se houver uma última entrada, avança para o próximo mês.
     if (lastEntry) {
-      nextDate.setMonth(nextDate.getMonth() + 1);
+      currentDate.setMonth(currentDate.getMonth() + 1);
     }
-    setHoras([...horas, { ano: nextDate.getFullYear(), mes: nextDate.getMonth() + 1, horas: 0, id: null }]);
+    
+    const nextYear = currentDate.getFullYear();
+    const nextMonth = currentDate.getMonth() + 1; // Converte de volta para 1-indexed
+
+    setHoras([...horas, { ano: nextYear, mes: nextMonth, horas: 0, id: null }]);
     setIsDirty(true);
   };
 
