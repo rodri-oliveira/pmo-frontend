@@ -14,6 +14,11 @@ import {
   IconButton,
   Button,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  OutlinedInput,
+  Select,
+  TextField,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import AutocompleteSecaoFiltro from './AutocompleteSecaoFiltro';
@@ -42,6 +47,8 @@ export default function RelatorioPlanejadoRealizado() {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(emptyData);
   const [colunasMeses, setColunasMeses] = useState([]);
+  const [mesInicio, setMesInicio] = useState('');
+  const [mesFim, setMesFim] = useState('');
 
   const handleGerarRelatorio = async () => {
     if (!recurso?.id) return;
@@ -51,7 +58,8 @@ export default function RelatorioPlanejadoRealizado() {
       const apiData = await getRelatorioPlanejadoRealizadoV2({
         recurso_id: recurso.id,
         status: '', // ou "Em andamento" se quiser filtrar
-        // mes_inicio/mes_fim podem vir de um date picker futuramente
+        mes_inicio: mesInicio,
+        mes_fim: mesFim,
       });
       // Mapeia snake_case para camelCase para evitar refactor grande na renderização
       const linhasResumo = apiData.linhas_resumo.map(l => ({
@@ -69,7 +77,7 @@ export default function RelatorioPlanejadoRealizado() {
       }));
       const data = { linhasResumo, projetos };
 
-            // Define colunas de meses e garante até dez/26
+      // Define colunas de meses e garante até dez/26
       const allMeses = new Set();
       linhasResumo.forEach(l => Object.keys(l.meses).forEach(m => allMeses.add(m)));
       projetos.forEach(p => Object.keys(p.meses).forEach(m => allMeses.add(m)));
@@ -111,6 +119,26 @@ export default function RelatorioPlanejadoRealizado() {
         <AutocompleteSecaoFiltro value={secao} onChange={v => { setSecao(v); setEquipe(null); setRecurso(null); }} />
         <AutocompleteEquipeFiltro value={equipe} onChange={v => { setEquipe(v); setRecurso(null); }} secaoId={secao?.id} />
         <AutocompleteRecursoFiltro value={recurso} onChange={setRecurso} equipeId={equipe?.id} />
+        <FormControl sx={{ m: 1, minWidth: 120 }}>
+          <TextField
+            label="Mês Início"
+            type="number"
+            value={mesInicio}
+            onChange={(e) => setMesInicio(e.target.value)}
+            InputProps={{ inputProps: { min: 1, max: 12 } }}
+            sx={{ width: 120 }}
+          />
+        </FormControl>
+        <FormControl sx={{ m: 1, minWidth: 120 }}>
+          <TextField
+            label="Mês Fim"
+            type="number"
+            value={mesFim}
+            onChange={(e) => setMesFim(e.target.value)}
+            InputProps={{ inputProps: { min: 1, max: 12 } }}
+            sx={{ width: 120 }}
+          />
+        </FormControl>
         <Button
           variant="contained"
           color="primary"
@@ -124,100 +152,97 @@ export default function RelatorioPlanejadoRealizado() {
 
       <Box sx={{ display: 'grid' }}>
         <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '70vh', overflow: 'auto' }}>
-        <Table stickyHeader sx={{ tableLayout: 'fixed' }} size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ width: 390, fontWeight: 'bold', pl: 1, whiteSpace: 'nowrap', position: 'sticky', left: 0, top: 0, zIndex: 12, background: '#f5f5f5' }}>Projeto/Melhorias</TableCell>
-              <TableCell sx={{ width: 100, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Status</TableCell>
-              <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Esf. Plan.</TableCell>
-              {colunasMeses.map(mes => (
-                <React.Fragment key={mes}>
-                  <TableCell sx={{ width: 65, fontWeight: 'bold', textAlign: 'center', p: 0.25 }}>{formatMesLabel(mes)}</TableCell>
-                  <TableCell sx={{ width: 52, fontWeight: 'bold', backgroundColor: '#e0e0e0', textAlign: 'center', p: 0.25 }}>Hs.</TableCell>
-                </React.Fragment>
-              ))}
-              <TableCell sx={{ width: '2%', p:0 }}>
-                <IconButton size="small" onClick={() => alert('Adicionar coluna (em breve)')}> 
-                  <AddIcon fontSize="small" />
-                </IconButton>
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {/* Linhas de Resumo */}
-            {reportData.linhasResumo.map((linha, index) => {
-              // top para cada linha sticky
-              const stickyTop = `${36 * (index + 1)}px`;
-              const stickyZ = 11;
-              // Apenas a última linha sticky recebe border-bottom
-              const borderBottom = index === 2 ? '1px solid #e0e0e0' : undefined;
-              return (
-                <TableRow key={linha.label} sx={{ backgroundColor: index === 2 ? '#e3f2fd' : 'inherit' }}>
-                  {/* Primeira coluna sticky na horizontal e vertical */}
-                  <TableCell
-                    sx={{
-                      fontWeight: 'bold',
-                      paddingLeft: '16px',
-                      position: 'sticky',
-                      left: 0,
-                      top: stickyTop,
-                      zIndex: stickyZ + 1,
-                      background: index === 2 ? '#e3f2fd' : '#fff',
-                      borderBottom,
-                    }}
-                  >
-                    {linha.label}
-                  </TableCell>
-                  {/* Demais colunas sticky só na vertical */}
-                  <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}>{linha.esforcoPlanejado?.toFixed(2)}</TableCell>
-                  {colunasMeses.map(mes => (
-                    <React.Fragment key={mes}>
-                      <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}>{linha.meses[mes]?.planejado?.toFixed(2)}</TableCell>
-                      <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, backgroundColor: '#f5f5f5', borderBottom }}></TableCell>
-                    </React.Fragment>
-                  ))}
-                  <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>
-                </TableRow>
-              );
-            })}
+          <Table stickyHeader sx={{ tableLayout: 'fixed' }} size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ width: 390, fontWeight: 'bold', pl: 1, whiteSpace: 'nowrap', position: 'sticky', left: 0, top: 0, zIndex: 12, background: '#f5f5f5' }}>Projeto/Melhorias</TableCell>
+                <TableCell sx={{ width: 100, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Status</TableCell>
+                <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Esf. Plan.</TableCell>
+                {colunasMeses.map(mes => (
+                  <React.Fragment key={mes}>
+                    <TableCell sx={{ width: 65, fontWeight: 'bold', textAlign: 'center', p: 0.25 }}>{formatMesLabel(mes)}</TableCell>
+                    <TableCell sx={{ width: 52, fontWeight: 'bold', backgroundColor: '#e0e0e0', textAlign: 'center', p: 0.25 }}>Hs.</TableCell>
+                  </React.Fragment>
+                ))}
+                <TableCell sx={{ width: '2%', p:0 }}>
+                  <IconButton size="small" onClick={() => alert('Adicionar coluna (em breve)')}> 
+                    <AddIcon fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {/* Linhas de Resumo */}
+              {reportData.linhasResumo.map((linha, index) => {
+                const stickyTop = `${36 * (index + 1)}px`;
+                const stickyZ = 11;
+                const borderBottom = index === 2 ? '1px solid #e0e0e0' : undefined;
+                return (
+                  <TableRow key={linha.label} sx={{ backgroundColor: index === 2 ? '#e3f2fd' : 'inherit' }}>
+                    <TableCell
+                      sx={{
+                        fontWeight: 'bold',
+                        paddingLeft: '16px',
+                        position: 'sticky',
+                        left: 0,
+                        top: stickyTop,
+                        zIndex: stickyZ + 1,
+                        background: index === 2 ? '#e3f2fd' : '#fff',
+                        borderBottom,
+                      }}
+                    >
+                      {linha.label}
+                    </TableCell>
+                    <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}>{linha.esforcoPlanejado?.toFixed(2)}</TableCell>
+                    {colunasMeses.map(mes => (
+                      <React.Fragment key={mes}>
+                        <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}>{linha.meses[mes]?.planejado?.toFixed(2)}</TableCell>
+                        <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, backgroundColor: '#f5f5f5', borderBottom }}></TableCell>
+                      </React.Fragment>
+                    ))}
+                    <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>
+                  </TableRow>
+                );
+              })}
 
-            {/* Linhas de Projetos */}
-            {reportData.projetos.map((projeto, idx) => {
-              // Penúltima linha: não sticky
-              const isLast = idx === reportData.projetos.length - 1;
-              return (
-                <TableRow key={projeto.nome}>
-                  <TableCell
-                    sx={
-                      !isLast
-                        ? {
-                            position: 'sticky',
-                            left: 0,
-                            zIndex: 1,
-                            background: '#fff',
-                            paddingLeft: '16px',
-                          }
-                        : { paddingLeft: '16px' }
-                    }
-                  >
-                    {projeto.nome}
-                  </TableCell>
-                  <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.status}</TableCell>
-                  <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.esforcoPlanejado?.toFixed(2)}</TableCell>
-                  {colunasMeses.map(mes => (
-                    <React.Fragment key={mes}>
-                      <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.meses[mes]?.planejado?.toFixed(2)}</TableCell>
-                      <TableCell sx={{ backgroundColor: '#f5f5f5', textAlign: 'center' }}>{projeto.meses[mes]?.realizado?.toFixed(2)}</TableCell>
-                    </React.Fragment>
-                  ))}
-                  <TableCell></TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              {/* Linhas de Projetos */}
+              {reportData.projetos.map((projeto, idx) => {
+                const isLast = idx === reportData.projetos.length - 1;
+                return (
+                  <TableRow key={projeto.id}>
+                    <TableCell
+                      sx={
+                        !isLast
+                          ? {
+                              position: 'sticky',
+                              left: 0,
+                              zIndex: 1,
+                              background: '#fff',
+                              paddingLeft: '16px',
+                            }
+                          : { paddingLeft: '16px' }
+                      }
+                    >
+                      {projeto.nome}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.status}</TableCell>
+                    <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.esforcoPlanejado?.toFixed(2)}</TableCell>
+                    {colunasMeses.map(mes => [
+                      <TableCell key={`${mes}-plan`} sx={{ textAlign: 'center', p: 0.25 }}>
+                        {projeto.meses[mes]?.planejado?.toFixed(2)}
+                      </TableCell>,
+                      <TableCell key={`${mes}-real`} sx={{ backgroundColor: '#f5f5f5', textAlign: 'center', p: 0.25 }}>
+                        {projeto.meses[mes]?.realizado?.toFixed(2)}
+                      </TableCell>
+                    ])}
+                    <TableCell></TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
     </Paper>
   );
