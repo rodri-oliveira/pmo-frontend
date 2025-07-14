@@ -68,13 +68,7 @@ export default function Header({ handleDrawerToggle, onGestorViewClick }) {
             <Typography component={Link} href="/dashboard" sx={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>
               Dashboard
             </Typography>
-            <Button
-              variant="contained"
-              sx={{ backgroundColor: '#fff', color: '#00579d', fontWeight: 600, '&:hover': { backgroundColor: '#f5f5f5' } }}
-              onClick={onGestorViewClick}
-            >
-              Visão do Gestor
-            </Button>
+
           </Box>
         </Toolbar>
       </AppBar>

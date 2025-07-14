@@ -33,7 +33,14 @@ const textColorPrimary = 'rgba(0, 0, 0, 0.87)';
 const textColorSecondary = 'rgba(0, 0, 0, 0.6)';
 
 const menuItems = [
-  { text: 'Dashboard', href: '/dashboard', icon: <DashboardIcon sx={{ color: wegBlue }} /> },
+  { text: 'Página Inicial', href: '/dashboard', icon: <DashboardIcon sx={{ color: wegBlue }} /> },
+  {
+    text: 'Dashboards',
+    icon: <BarChartIcon sx={{ color: wegBlue }} />,
+    subItems: [
+      { text: 'Controle de Capacidade e Alocação', href: '/visao-gestor', icon: <AssessmentIcon sx={{ color: wegBlue }} /> },
+    ]
+  },
   {
     text: 'Relatórios',
     icon: <BarChartIcon sx={{ color: wegBlue }} />,
@@ -178,7 +185,7 @@ export default function Sidebar() {
               const isParentActive = item.subItems.some(subItem => 
                 subItem.href && pathname === `${subItem.href}`
               );
-              const isOpen = openMenus[item.text] || isParentActive;
+              const isOpen = openMenus[item.text] !== undefined ? openMenus[item.text] : isParentActive;
 
               return (
                 <React.Fragment key={item.text}>
