@@ -65,6 +65,7 @@ export default function RelatorioPlanejadoRealizado() {
       const linhasResumo = apiData.linhas_resumo.map(l => ({
         label: l.label,
         esforcoPlanejado: l.esforco_planejado,
+        esforcoEstimado: l.esforco_estimado, // Adicionado para exibir na linha de resumo
         meses: l.meses,
       }));
       const projetos = apiData.projetos.map(p => ({
@@ -157,6 +158,8 @@ export default function RelatorioPlanejadoRealizado() {
               <TableRow>
                 <TableCell sx={{ width: 390, fontWeight: 'bold', pl: 1, whiteSpace: 'nowrap', position: 'sticky', left: 0, top: 0, zIndex: 12, background: '#f5f5f5' }}>Projeto/Melhorias</TableCell>
                 <TableCell sx={{ width: 100, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Status</TableCell>
+                <TableCell sx={{ width: 80, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Ação</TableCell>
+                <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Esf. Estim.</TableCell>
                 <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Esf. Plan.</TableCell>
                 {colunasMeses.map(mes => (
                   <React.Fragment key={mes}>
@@ -193,7 +196,9 @@ export default function RelatorioPlanejadoRealizado() {
                     >
                       {linha.label}
                     </TableCell>
-                    <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>
+                    <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>{/* Status */}
+                    <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>{/* Ação */}
+                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}>{linha.esforcoEstimado?.toFixed(2)}</TableCell>{/* Esf. Estim. */}
                     <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}>{linha.esforcoPlanejado?.toFixed(2)}</TableCell>
                     {colunasMeses.map(mes => (
                       <React.Fragment key={mes}>
@@ -227,6 +232,8 @@ export default function RelatorioPlanejadoRealizado() {
                       {projeto.nome}
                     </TableCell>
                     <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.status}</TableCell>
+                    <TableCell sx={{ textAlign: 'center', p: 0 }}>{/* Ação */}</TableCell>
+                    <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.esforcoEstimado?.toFixed(2)}</TableCell>
                     <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.esforcoPlanejado?.toFixed(2)}</TableCell>
                     {colunasMeses.map(mes => [
                       <TableCell key={`${mes}-plan`} sx={{ textAlign: 'center', p: 0.25 }}>
