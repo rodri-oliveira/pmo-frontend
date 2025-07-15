@@ -18,6 +18,7 @@ import {
   InputLabel,
   OutlinedInput,
   Select,
+  MenuItem,
   TextField,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -47,8 +48,27 @@ export default function RelatorioPlanejadoRealizado() {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(emptyData);
   const [colunasMeses, setColunasMeses] = useState([]);
-  const [mesInicio, setMesInicio] = useState('');
-  const [mesFim, setMesFim] = useState('');
+  const [status, setStatus] = useState('');
+  const [mesInicioMes, setMesInicioMes] = useState('');
+  const [mesInicioAno, setMesInicioAno] = useState('');
+  const [mesFimMes, setMesFimMes] = useState('');
+  const [mesFimAno, setMesFimAno] = useState('');
+  const mesesOptions = [
+    { value: '01', label: 'Jan' },
+    { value: '02', label: 'Fev' },
+    { value: '03', label: 'Mar' },
+    { value: '04', label: 'Abr' },
+    { value: '05', label: 'Mai' },
+    { value: '06', label: 'Jun' },
+    { value: '07', label: 'Jul' },
+    { value: '08', label: 'Ago' },
+    { value: '09', label: 'Set' },
+    { value: '10', label: 'Out' },
+    { value: '11', label: 'Nov' },
+    { value: '12', label: 'Dez' },
+  ];
+  const currentYear = new Date().getFullYear();
+  const anosOptions = Array.from({ length: 7 }, (_, i) => currentYear - 3 + i);
 
   const handleGerarRelatorio = async () => {
     if (!recurso?.id) return;
@@ -57,9 +77,9 @@ export default function RelatorioPlanejadoRealizado() {
     try {
       const apiData = await getRelatorioPlanejadoRealizadoV2({
         recurso_id: recurso.id,
-        status: '', // ou "Em andamento" se quiser filtrar
-        mes_inicio: mesInicio,
-        mes_fim: mesFim,
+        status,
+        mes_inicio: mesInicioAno && mesInicioMes ? `${mesInicioAno}-${mesInicioMes}` : '',
+        mes_fim: mesFimAno && mesFimMes ? `${mesFimAno}-${mesFimMes}` : '',
       });
       // Mapeia snake_case para camelCase para evitar refactor grande na renderização
       const linhasResumo = apiData.linhas_resumo.map(l => ({
@@ -106,6 +126,11 @@ export default function RelatorioPlanejadoRealizado() {
     }
   };
 
+  const handleSalvarAlteracoes = () => {
+    // TODO: implementar lógica de salvar alterações
+    console.log('Salvar alterações', { secao, equipe, recurso, status, mesInicioMes, mesInicioAno, mesFimMes, mesFimAno });
+  };
+
   return (
     <Paper elevation={3} sx={{ p: 4, background: 'white', borderRadius: '8px' }}>
       <Typography variant="h4" component="h1" sx={{ mb: 1, color: wegBlue, fontWeight: 'bold' }}>
@@ -115,40 +140,105 @@ export default function RelatorioPlanejadoRealizado() {
         Visão matricial para comparação de esforço planejado versus realizado por projeto.
       </Typography>
 
-      {/* Filtros */}
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3, p: 2, border: '1px solid #ddd', borderRadius: '4px', alignItems: 'center', position: 'relative' }}>
-        <AutocompleteSecaoFiltro value={secao} onChange={v => { setSecao(v); setEquipe(null); setRecurso(null); }} />
-        <AutocompleteEquipeFiltro value={equipe} onChange={v => { setEquipe(v); setRecurso(null); }} secaoId={secao?.id} />
-        <AutocompleteRecursoFiltro value={recurso} onChange={setRecurso} equipeId={equipe?.id} />
-        <FormControl sx={{ m: 1, minWidth: 120 }}>
-          <TextField
-            label="Mês Início"
-            type="number"
-            value={mesInicio}
-            onChange={(e) => setMesInicio(e.target.value)}
-            InputProps={{ inputProps: { min: 1, max: 12 } }}
-            sx={{ width: 120 }}
+      {/* Filtros agrupados em grid profissional */}
+      <Box component={Paper} variant="outlined" sx={{ p: 2, mb: 3, background: '#f8fafc', border: '1px solid #e0e0e0' }}>
+        {/* Linha 1: Filtros principais */}
+        <Box display="grid" gridTemplateColumns={{ xs: '1fr', md: 'repeat(4, 1fr)' }} gap={2} mb={2} alignItems="center">
+          <AutocompleteSecaoFiltro
+            value={secao}
+            onChange={v => { setSecao(v); setEquipe(null); setRecurso(null); }}
+            sx={{ minWidth: 140, height: 40, '& .MuiInputBase-root': { height: 40 } }}
+            size="small"
           />
-        </FormControl>
-        <FormControl sx={{ m: 1, minWidth: 120 }}>
-          <TextField
-            label="Mês Fim"
-            type="number"
-            value={mesFim}
-            onChange={(e) => setMesFim(e.target.value)}
-            InputProps={{ inputProps: { min: 1, max: 12 } }}
-            sx={{ width: 120 }}
+          <AutocompleteEquipeFiltro
+            value={equipe}
+            onChange={v => { setEquipe(v); setRecurso(null); }}
+            secaoId={secao?.id}
+            sx={{ minWidth: 140, height: 40, '& .MuiInputBase-root': { height: 40 } }}
+            size="small"
           />
-        </FormControl>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleGerarRelatorio}
-          disabled={loading || !recurso}
-          sx={{ height: '56px' }}
-        >
-          {loading ? <CircularProgress size={24} /> : 'Gerar Relatório'}
-        </Button>
+          <AutocompleteRecursoFiltro
+            value={recurso}
+            onChange={setRecurso}
+            equipeId={equipe?.id}
+            sx={{ minWidth: 140, height: 40, '& .MuiInputBase-root': { height: 40 } }}
+            size="small"
+          />
+          <div>
+            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 0.5, ml: 0.5 }}>
+              Status
+            </Typography>
+            <FormControl sx={{ minWidth: 140, height: 40, '& .MuiInputBase-root': { height: 40 }, width: '100%' }} size="small">
+              <Select value={status} onChange={(e) => setStatus(e.target.value)} displayEmpty sx={{ height: 40, width: '100%' }}>
+                <MenuItem value=""><em>Todos</em></MenuItem>
+                <MenuItem value="Em andamento">Em andamento</MenuItem>
+                <MenuItem value="Concluído">Concluído</MenuItem>
+              </Select>
+            </FormControl>
+          </div>
+        </Box>
+        {/* Linha 2: Datas e botões */}
+        <Box display="grid" gridTemplateColumns={{ xs: '1fr', md: 'repeat(4, 1fr)' }} gap={2} alignItems="center">
+          <Box display="flex" gap={1} alignItems="center">
+            <Typography variant="subtitle2">Início</Typography>
+            <FormControl sx={{ minWidth: 80, height: 40 }} size="small">
+              <InputLabel>Mês</InputLabel>
+              <Select value={mesInicioMes} onChange={(e) => setMesInicioMes(e.target.value)} label="Mês" sx={{ height: 40 }}>
+                {mesesOptions.map((m) => (
+                  <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl sx={{ minWidth: 80, height: 40 }} size="small">
+              <InputLabel>Ano</InputLabel>
+              <Select value={mesInicioAno} onChange={(e) => setMesInicioAno(e.target.value)} label="Ano" sx={{ height: 40 }}>
+                {anosOptions.map((year) => (
+                  <MenuItem key={year} value={year}>{year}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+          <Box display="flex" gap={1} alignItems="center">
+            <Typography variant="subtitle2">Fim</Typography>
+            <FormControl sx={{ minWidth: 80, height: 40 }} size="small">
+              <InputLabel>Mês</InputLabel>
+              <Select value={mesFimMes} onChange={(e) => setMesFimMes(e.target.value)} label="Mês" sx={{ height: 40 }}>
+                {mesesOptions.map((m) => (
+                  <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl sx={{ minWidth: 80, height: 40 }} size="small">
+              <InputLabel>Ano</InputLabel>
+              <Select value={mesFimAno} onChange={(e) => setMesFimAno(e.target.value)} label="Ano" sx={{ height: 40 }}>
+                {anosOptions.map((year) => (
+                  <MenuItem key={year} value={year}>{year}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+          <Box gridColumn={{ xs: '1', md: '3 / span 2' }} display="flex" gap={2} justifyContent="flex-end" alignItems="center">
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleGerarRelatorio}
+              disabled={loading || !recurso}
+              sx={{ height: 40, minWidth: 140, fontWeight: 700 }}
+              size="small"
+            >
+              {loading ? <CircularProgress size={20} /> : 'Gerar Relatório'}
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSalvarAlteracoes}
+              sx={{ height: 40, minWidth: 140, fontWeight: 700 }}
+              size="small"
+            >
+              SALVAR ALTERAÇÕES
+            </Button>
+          </Box>
+        </Box>
       </Box>
 
       <Box sx={{ display: 'grid' }}>
