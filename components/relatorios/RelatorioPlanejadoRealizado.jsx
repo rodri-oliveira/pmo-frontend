@@ -131,6 +131,18 @@ export default function RelatorioPlanejadoRealizado() {
     console.log('Salvar alterações', { secao, equipe, recurso, status, mesInicioMes, mesInicioAno, mesFimMes, mesFimAno });
   };
 
+  const handleStatusChange = (projetoId, newStatus) => {
+    setReportData(currentData => {
+      const updatedProjetos = currentData.projetos.map(p => {
+        if (p.id === projetoId) {
+          return { ...p, status: newStatus };
+        }
+        return p;
+      });
+      return { ...currentData, projetos: updatedProjetos };
+    });
+  };
+
   return (
     <Paper elevation={3} sx={{ p: 4, background: 'white', borderRadius: '8px' }}>
       <Typography variant="h4" component="h1" sx={{ mb: 1, color: wegBlue, fontWeight: 'bold' }}>
@@ -267,19 +279,19 @@ export default function RelatorioPlanejadoRealizado() {
           <Table stickyHeader sx={{ tableLayout: 'fixed' }} size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ width: 390, fontWeight: 'bold', pl: 1, whiteSpace: 'nowrap', position: 'sticky', left: 0, top: 0, zIndex: 12, background: '#f5f5f5' }}>Projeto/Melhorias</TableCell>
-                <TableCell sx={{ width: 100, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Status</TableCell>
-                <TableCell sx={{ width: 300, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Ação</TableCell>
-                <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Esf. Estim.</TableCell>
-                <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5' }}>Esf. Plan.</TableCell>
+                <TableCell sx={{ width: 390, fontWeight: 'bold', pl: 1, whiteSpace: 'nowrap', position: 'sticky', left: 0, top: 0, zIndex: 12, background: '#f5f5f5', border: '1px solid #ddd' }}>Projeto/Melhorias</TableCell>
+                <TableCell sx={{ width: 160, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', border: '1px solid #ddd' }}>Status</TableCell>
+                <TableCell sx={{ width: 300, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', border: '1px solid #ddd' }}>Ação</TableCell>
+                <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', border: '1px solid #ddd' }}>Esf. Estim.</TableCell>
+                <TableCell sx={{ width: 108, fontWeight: 'bold', textAlign: 'center', p: 0, whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', border: '1px solid #ddd' }}>Esf. Plan.</TableCell>
                 {colunasMeses.map(mes => (
                   <React.Fragment key={mes}>
-                    <TableCell sx={{ width: 65, fontWeight: 'bold', textAlign: 'center', p: 0.25 }}>{formatMesLabel(mes)}</TableCell>
-                    <TableCell sx={{ width: 52, fontWeight: 'bold', backgroundColor: '#e0e0e0', textAlign: 'center', p: 0.25 }}>Hs.</TableCell>
+                    <TableCell sx={{ width: 65, fontWeight: 'bold', textAlign: 'center', p: 0.25, border: '1px solid #ddd' }}>{formatMesLabel(mes)}</TableCell>
+                    <TableCell sx={{ width: 52, fontWeight: 'bold', backgroundColor: '#e0e0e0', textAlign: 'center', p: 0.25, border: '1px solid #ddd' }}>Hs.</TableCell>
                   </React.Fragment>
                 ))}
-                <TableCell sx={{ width: '2%', p:0 }}>
-                  <IconButton size="small" onClick={() => alert('Adicionar coluna (em breve)')}> 
+                <TableCell sx={{ width: '2%', p: 0, border: '1px solid #ddd' }}>
+                  <IconButton size="small" onClick={() => alert('Adicionar coluna (em breve)')}>
                     <AddIcon fontSize="small" />
                   </IconButton>
                 </TableCell>
@@ -289,72 +301,79 @@ export default function RelatorioPlanejadoRealizado() {
               {/* Linhas de Resumo */}
               {reportData.linhasResumo.map((linha, index) => {
                 const stickyTop = `${36 * (index + 1)}px`;
-                const stickyZ = 11;
-                const borderBottom = index === 2 ? '1px solid #e0e0e0' : undefined;
+                const isTotalRow = index === 2;
+                const cellStyle = {
+                  border: '1px solid #ddd',
+                  position: 'sticky',
+                  top: stickyTop,
+                  zIndex: 11,
+                  background: isTotalRow ? '#e3f2fd' : '#fff',
+                  borderBottom: isTotalRow ? '2px solid #ccc' : '1px solid #ddd',
+                };
+
                 return (
-                  <TableRow key={linha.label} sx={{ backgroundColor: index === 2 ? '#e3f2fd' : 'inherit' }}>
-                    <TableCell
-                      sx={{
-                        fontWeight: 'bold',
-                        paddingLeft: '16px',
-                        position: 'sticky',
-                        left: 0,
-                        top: stickyTop,
-                        zIndex: stickyZ + 1,
-                        background: index === 2 ? '#e3f2fd' : '#fff',
-                        borderBottom,
-                      }}
-                    >
+                  <TableRow key={linha.label} sx={{ backgroundColor: isTotalRow ? '#e3f2fd' : 'inherit' }}>
+                    <TableCell sx={{ ...cellStyle, fontWeight: 'bold', paddingLeft: '16px', left: 0, zIndex: 12 }}>
                       {linha.label}
                     </TableCell>
-                    <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>{/* Status */}
-                    <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>{/* Ação */}
-                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}>{linha.esforcoEstimado?.toFixed(2)}</TableCell>{/* Esf. Estim. */}
-                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}>{linha.esforcoPlanejado?.toFixed(2)}</TableCell>
+                    <TableCell sx={cellStyle}></TableCell>{/* Status */}
+                    <TableCell sx={cellStyle}></TableCell>{/* Ação */}
+                    <TableCell sx={{ ...cellStyle, fontWeight: 'bold', textAlign: 'center' }}>{linha.esforcoEstimado?.toFixed(2)}</TableCell>
+                    <TableCell sx={{ ...cellStyle, fontWeight: 'bold', textAlign: 'center' }}>{linha.esforcoPlanejado?.toFixed(2)}</TableCell>
                     {colunasMeses.map(mes => (
                       <React.Fragment key={mes}>
-                        <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}>{linha.meses[mes]?.planejado?.toFixed(2)}</TableCell>
-                        <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, backgroundColor: '#f5f5f5', borderBottom }}></TableCell>
+                        <TableCell sx={{ ...cellStyle, fontWeight: 'bold', textAlign: 'center' }}>{linha.meses[mes]?.planejado?.toFixed(2)}</TableCell>
+                        <TableCell sx={{ ...cellStyle, backgroundColor: '#f5f5f5' }}></TableCell>
                       </React.Fragment>
                     ))}
-                    <TableCell sx={{ position: 'sticky', top: stickyTop, zIndex: stickyZ, background: index === 2 ? '#e3f2fd' : '#fff', borderBottom }}></TableCell>
+                    <TableCell sx={cellStyle}></TableCell>
                   </TableRow>
                 );
               })}
 
               {/* Linhas de Projetos */}
               {reportData.projetos.map((projeto, idx) => {
-                const isLast = idx === reportData.projetos.length - 1;
+                const projectCellStyle = {
+                  border: '1px solid #ddd',
+                  p: 0,
+                };
+
                 return (
                   <TableRow key={projeto.id}>
-                    <TableCell
-                      sx={
-                        !isLast
-                          ? {
-                              position: 'sticky',
-                              left: 0,
-                              zIndex: 1,
-                              background: '#fff',
-                              paddingLeft: '16px',
-                            }
-                          : { paddingLeft: '16px' }
-                      }
-                    >
+                    <TableCell sx={{ ...projectCellStyle, position: 'sticky', left: 0, zIndex: 1, background: '#fff', padding: '0 16px' }}>
                       {projeto.nome}
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.status}</TableCell>
-                    <TableCell sx={{ textAlign: 'center', p: 0 }}>{/* Ação */}</TableCell>
-                    <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.esforcoEstimado?.toFixed(2)}</TableCell>
-                    <TableCell sx={{ textAlign: 'center', p: 0 }}>{projeto.esforcoPlanejado?.toFixed(2)}</TableCell>
+                    <TableCell sx={{ ...projectCellStyle, padding: 0 }}>
+                      <Select
+                        value={projeto.status || ''}
+                        onChange={(e) => handleStatusChange(projeto.id, e.target.value)}
+                        variant="standard"
+                        fullWidth
+                        sx={{
+                          textAlign: 'center',
+                          p: '0 8px',
+                          height: '100%',
+                          '&:before': { border: 'none' },
+                          '&:after': { border: 'none' },
+                        }}
+                      >
+                        <MenuItem value="Não Iniciado">Não Iniciado</MenuItem>
+                        <MenuItem value="Em andamento">Em andamento</MenuItem>
+                        <MenuItem value="Concluído">Concluído</MenuItem>
+                      </Select>
+                    </TableCell>
+                    <TableCell sx={{ ...projectCellStyle, textAlign: 'center' }}>{/* Ação */}</TableCell>
+                    <TableCell sx={{ ...projectCellStyle, textAlign: 'center' }}>{projeto.esforcoEstimado?.toFixed(2)}</TableCell>
+                    <TableCell sx={{ ...projectCellStyle, textAlign: 'center' }}>{projeto.esforcoPlanejado?.toFixed(2)}</TableCell>
                     {colunasMeses.map(mes => [
-                      <TableCell key={`${mes}-plan`} sx={{ textAlign: 'center', p: 0.25 }}>
+                      <TableCell key={`${mes}-plan`} sx={{ ...projectCellStyle, textAlign: 'center', p: 0.25 }}>
                         {projeto.meses[mes]?.planejado?.toFixed(2)}
                       </TableCell>,
-                      <TableCell key={`${mes}-real`} sx={{ backgroundColor: '#f5f5f5', textAlign: 'center', p: 0.25 }}>
+                      <TableCell key={`${mes}-real`} sx={{ ...projectCellStyle, backgroundColor: '#f5f5f5', textAlign: 'center', p: 0.25 }}>
                         {projeto.meses[mes]?.realizado?.toFixed(2)}
                       </TableCell>
                     ])}
-                    <TableCell></TableCell>
+                    <TableCell sx={projectCellStyle}></TableCell>
                   </TableRow>
                 );
               })}
