@@ -165,11 +165,32 @@ export default function RelatorioPlanejadoRealizado() {
             size="small"
           />
           <div>
-            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 0.5, ml: 0.5 }}>
+            <Typography
+              component="label"
+              sx={{ display: 'block', marginBottom: '4px', fontWeight: 600, fontSize: 14, color: '#00579D' }}
+            >
               Status
             </Typography>
-            <FormControl sx={{ minWidth: 140, height: 40, '& .MuiInputBase-root': { height: 40 }, width: '100%' }} size="small">
-              <Select value={status} onChange={(e) => setStatus(e.target.value)} displayEmpty sx={{ height: 40, width: '100%' }}>
+            <FormControl fullWidth size="small">
+              <Select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                displayEmpty
+                sx={{
+                  height: 40,
+                  width: '100%',
+                  background: '#fff',
+                  borderRadius: '6px',
+                  fontSize: 15,
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#E0E3E7',
+                    borderWidth: '1.5px',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#00579D',
+                  },
+                }}
+              >
                 <MenuItem value=""><em>Todos</em></MenuItem>
                 <MenuItem value="Em andamento">Em andamento</MenuItem>
                 <MenuItem value="Concluído">Concluído</MenuItem>
