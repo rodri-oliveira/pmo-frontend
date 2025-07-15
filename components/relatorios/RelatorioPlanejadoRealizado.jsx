@@ -109,7 +109,7 @@ export default function RelatorioPlanejadoRealizado() {
   return (
     <Paper elevation={3} sx={{ p: 4, background: 'white', borderRadius: '8px' }}>
       <Typography variant="h4" component="h1" sx={{ mb: 1, color: wegBlue, fontWeight: 'bold' }}>
-        Relatório: Planejado vs. Realizado
+        Planejamento
       </Typography>
       <Typography variant="subtitle1" sx={{ mb: 3, color: 'text.secondary' }}>
         Visão matricial para comparação de esforço planejado versus realizado por projeto.
