@@ -45,8 +45,8 @@ const menuItems = [
     text: 'Relatórios',
     icon: <BarChartIcon sx={{ color: wegBlue }} />,
     subItems: [
-      { text: 'Horas Apontadas', href: '/relatorios', icon: <AssessmentIcon sx={{ color: wegBlue }} /> },
-      { text: 'Planejado vs. Realizado', href: '/relatorios/planejado-vs-realizado', icon: <SyncAltIcon sx={{ color: wegBlue }} /> },
+      { text: 'Consultas e Relatórios', href: '/relatorios', icon: <AssessmentIcon sx={{ color: wegBlue }} /> },
+      { text: 'Planejamento', href: '/relatorios/planejado-vs-realizado', icon: <SyncAltIcon sx={{ color: wegBlue }} /> },
     ]
   },
   { text: 'Gerenciamento', href: '/gerenciamento', icon: <FolderIcon sx={{ color: wegBlue }} /> },
