@@ -184,7 +184,7 @@ export default function RelatorioPlanejadoRealizado() {
     }
   };
 
-  const handleStatusChange = (projetoId, newStatus) => {
+    const handleStatusChange = (projetoId, newStatus) => {
     setReportData(currentData => {
       const updatedProjetos = currentData.projetos.map(p => {
         if (p.id === projetoId) {
@@ -193,6 +193,54 @@ export default function RelatorioPlanejadoRealizado() {
         return p;
       });
       return { ...currentData, projetos: updatedProjetos };
+    });
+  };
+
+  // Função genérica para atualizar dados do projeto
+  const handleProjectDataChange = (projetoId, field, value) => {
+    setReportData(currentData => {
+      const updatedProjetos = currentData.projetos.map(p => {
+        if (p.id === projetoId) {
+          return { ...p, [field]: value };
+        }
+        return p;
+      });
+      return { ...currentData, projetos: updatedProjetos };
+    });
+  };
+
+  // Função para atualizar as horas planejadas mensais
+  const handleMonthlyHoursChange = (projetoId, mesYM, value) => {
+    setReportData(currentData => {
+      const updatedProjetos = currentData.projetos.map(p => {
+        if (p.id === projetoId) {
+          const newMeses = {
+            ...p.meses,
+            [mesYM]: { ...p.meses[mesYM], planejado: parseFloat(value) || 0 },
+          };
+
+          // Recalcula o esforço planejado total do projeto
+          const newEsforcoPlanejado = Object.values(newMeses).reduce((acc, mesData) => acc + (mesData.planejado || 0), 0);
+
+          return { ...p, meses: newMeses, esforcoPlanejado: newEsforcoPlanejado };
+        }
+        return p;
+      });
+
+      // Recalcular as linhas de resumo
+      const updatedLinhasResumo = [...currentData.linhasResumo];
+      const totalEsforcoRow = updatedLinhasResumo.find(r => r.label === 'Total de esforço (hrs)');
+      if (totalEsforcoRow) {
+        totalEsforcoRow.esforcoPlanejado = updatedProjetos.reduce((acc, proj) => acc + (proj.esforcoPlanejado || 0), 0);
+        colunasMeses.forEach(mes => {
+            const totalMes = updatedProjetos.reduce((acc, proj) => acc + (proj.meses[mes]?.planejado || 0), 0);
+            if (totalEsforcoRow.meses[mes]) {
+                totalEsforcoRow.meses[mes].planejado = totalMes;
+            }
+        });
+      }
+
+      return { ...currentData, projetos: updatedProjetos, linhasResumo: updatedLinhasResumo };
     });
   };
 
@@ -415,12 +463,38 @@ export default function RelatorioPlanejadoRealizado() {
                         <MenuItem value="Concluído">Concluído</MenuItem>
                       </Select>
                     </TableCell>
-                    <TableCell sx={{ ...projectCellStyle, textAlign: 'center' }}>{projeto.acao}</TableCell>
-                    <TableCell sx={{ ...projectCellStyle, textAlign: 'center' }}>{projeto.esforcoEstimado?.toFixed(2)}</TableCell>
-                    <TableCell sx={{ ...projectCellStyle, textAlign: 'center' }}>{projeto.esforcoPlanejado?.toFixed(2)}</TableCell>
+                                        <TableCell sx={{ ...projectCellStyle, p: 0 }}>
+                      <TextField
+                        value={projeto.acao || ''}
+                        onChange={(e) => handleProjectDataChange(projeto.id, 'acao', e.target.value)}
+                        variant="standard"
+                        fullWidth
+                        sx={{ p: '0 8px', '& .MuiInput-underline:before': { border: 'none' }, '& .MuiInput-underline:hover:not(.Mui-disabled):before': { border: 'none' } }}
+                      />
+                    </TableCell>
+                                        <TableCell sx={{ ...projectCellStyle, p: 0 }}>
+                       <TextField
+                        type="number"
+                        value={projeto.esforcoEstimado || ''}
+                        onChange={(e) => handleProjectDataChange(projeto.id, 'esforcoEstimado', parseFloat(e.target.value))}
+                        variant="standard"
+                        fullWidth
+                        sx={{ textAlign: 'center', p: '0 8px', '& input': { textAlign: 'center' }, '& .MuiInput-underline:before': { border: 'none' }, '& .MuiInput-underline:hover:not(.Mui-disabled):before': { border: 'none' } }}
+                      />
+                    </TableCell>
+                                        <TableCell sx={{ ...projectCellStyle, textAlign: 'center', fontWeight: 'bold' }}>
+                      {projeto.esforcoPlanejado?.toFixed(2)}
+                    </TableCell>
                     {colunasMeses.map(mes => [
-                      <TableCell key={`${mes}-plan`} sx={{ ...projectCellStyle, textAlign: 'center', p: 0.25 }}>
-                        {projeto.meses[mes]?.planejado?.toFixed(2)}
+                                            <TableCell key={`${mes}-plan`} sx={{ ...projectCellStyle, p: 0 }}>
+                        <TextField
+                          type="number"
+                          value={projeto.meses[mes]?.planejado || ''}
+                          onChange={(e) => handleMonthlyHoursChange(projeto.id, mes, e.target.value)}
+                          variant="standard"
+                          fullWidth
+                          sx={{ p: '0 8px', '& input': { textAlign: 'center' }, '& .MuiInput-underline:before': { border: 'none' }, '& .MuiInput-underline:hover:not(.Mui-disabled):before': { border: 'none' } }}
+                        />
                       </TableCell>,
                       <TableCell key={`${mes}-real`} sx={{ ...projectCellStyle, backgroundColor: '#f5f5f5', textAlign: 'center', p: 0.25 }}>
                         {projeto.meses[mes]?.realizado?.toFixed(2)}
