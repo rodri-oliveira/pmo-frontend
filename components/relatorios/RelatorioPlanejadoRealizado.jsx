@@ -144,17 +144,15 @@ export default function RelatorioPlanejadoRealizado() {
     };
 
     const alteracoes_projetos = reportData.projetos.map(projeto => {
-      const planejamento_mensal = colunasMeses.map(mesYM => {
-        const [ano, mes] = mesYM.split('-');
-        // Apenas incluir meses do ano selecionado para o payload
-        if (ano === mesInicioAno.toString()) {
-            return {
-                mes: parseInt(mes, 10),
-                horas_planejadas: projeto.meses[mesYM]?.planejado || 0,
-            };
-        }
-        return null;
-      }).filter(Boolean); // Remove entradas nulas (meses de outros anos)
+      // Transforma o objeto de meses (ex: {'10/2024': ...}) em um array para a API
+      const planejamento_mensal = Object.keys(projeto.meses || {}).map(mesAno => {
+        const [mes, ano] = mesAno.split('/');
+        return {
+          ano: parseInt(ano, 10),
+          mes: parseInt(mes, 10),
+          horas_planejadas: projeto.meses[mesAno]?.planejado || 0,
+        };
+      });
 
       return {
         projeto_id: projeto.id,
@@ -167,7 +165,6 @@ export default function RelatorioPlanejadoRealizado() {
 
     const payload = {
       recurso_id: recurso.id,
-      ano: mesInicioAno || new Date().getFullYear(),
       alteracoes_projetos,
     };
 
