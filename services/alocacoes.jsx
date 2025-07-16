@@ -49,3 +49,7 @@ export const planejamentoHoras = (data) => {
   return apiPost(`/planejamento-horas/`, data);
 };
 
+export const salvarMatrizPlanejamento = (data) => {
+  return apiPost(`/matriz-planejamento/salvar`, data);
+};
+

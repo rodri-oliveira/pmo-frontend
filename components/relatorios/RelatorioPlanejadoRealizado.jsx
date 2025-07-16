@@ -26,6 +26,8 @@ import AutocompleteSecaoFiltro from './AutocompleteSecaoFiltro';
 import AutocompleteEquipeFiltro from './AutocompleteEquipeFiltro';
 import AutocompleteRecursoFiltro from './AutocompleteRecursoFiltro';
 import { getRelatorioPlanejadoRealizadoV2 } from '../../lib/api';
+import { salvarMatrizPlanejamento } from '../../services/alocacoes';
+import { toast } from 'react-toastify';
 
 const wegBlue = '#00579d';
 
@@ -92,6 +94,7 @@ export default function RelatorioPlanejadoRealizado() {
         id: p.id,
         nome: p.nome,
         status: p.status,
+        acao: p.acao,
         esforcoEstimado: p.esforco_estimado,
         esforcoPlanejado: p.esforco_planejado,
         meses: p.meses,
@@ -126,9 +129,59 @@ export default function RelatorioPlanejadoRealizado() {
     }
   };
 
-  const handleSalvarAlteracoes = () => {
-    // TODO: implementar lógica de salvar alterações
-    console.log('Salvar alterações', { secao, equipe, recurso, status, mesInicioMes, mesInicioAno, mesFimMes, mesFimAno });
+    const handleSalvarAlteracoes = async () => {
+    if (!recurso?.id) {
+      toast.warn('Por favor, selecione um recurso para salvar as alterações.');
+      return;
+    }
+
+    // Mapeamento de status de string para ID numérico (ajuste conforme o backend)
+    const statusMap = {
+      'Não Iniciado': 1,
+      'Em andamento': 2,
+      'Concluído': 3,
+      // Adicione outros status se necessário
+    };
+
+    const alteracoes_projetos = reportData.projetos.map(projeto => {
+      const planejamento_mensal = colunasMeses.map(mesYM => {
+        const [ano, mes] = mesYM.split('-');
+        // Apenas incluir meses do ano selecionado para o payload
+        if (ano === mesInicioAno.toString()) {
+            return {
+                mes: parseInt(mes, 10),
+                horas_planejadas: projeto.meses[mesYM]?.planejado || 0,
+            };
+        }
+        return null;
+      }).filter(Boolean); // Remove entradas nulas (meses de outros anos)
+
+      return {
+        projeto_id: projeto.id,
+        status_alocacao_id: statusMap[projeto.status] || 1, // Default para 'Não Iniciado'
+        observacao: projeto.acao || '',
+        esforco_estimado: projeto.esforcoEstimado || 0,
+        planejamento_mensal,
+      };
+    });
+
+    const payload = {
+      recurso_id: recurso.id,
+      ano: mesInicioAno || new Date().getFullYear(),
+      alteracoes_projetos,
+    };
+
+    setLoading(true);
+    try {
+      const response = await salvarMatrizPlanejamento(payload);
+      toast.success(response.message || 'Matriz de planejamento salva com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar a matriz de planejamento:', error);
+      const errorMessage = error.response?.data?.detail || 'Falha ao salvar as alterações. Tente novamente.';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleStatusChange = (projetoId, newStatus) => {
@@ -362,7 +415,7 @@ export default function RelatorioPlanejadoRealizado() {
                         <MenuItem value="Concluído">Concluído</MenuItem>
                       </Select>
                     </TableCell>
-                    <TableCell sx={{ ...projectCellStyle, textAlign: 'center' }}>{/* Ação */}</TableCell>
+                    <TableCell sx={{ ...projectCellStyle, textAlign: 'center' }}>{projeto.acao}</TableCell>
                     <TableCell sx={{ ...projectCellStyle, textAlign: 'center' }}>{projeto.esforcoEstimado?.toFixed(2)}</TableCell>
                     <TableCell sx={{ ...projectCellStyle, textAlign: 'center' }}>{projeto.esforcoPlanejado?.toFixed(2)}</TableCell>
                     {colunasMeses.map(mes => [
