@@ -163,6 +163,7 @@ export default function Relatorios() {
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [matrizEditavel, setMatrizEditavel] = useState(null); // Estado para dados editáveis
   const [error, setError] = useState('');
 
   function handleChange(e) {
@@ -179,6 +180,7 @@ export default function Relatorios() {
     const rel = RELATORIOS.find(r => r.value === selected);
     setParams({}); // Limpa filtros ao trocar tipo
     setResult(null);
+    setMatrizEditavel(null); // Limpa dados editáveis também
     setError('');
   }
 
@@ -211,67 +213,214 @@ export default function Relatorios() {
     setLoading(true);
     setError('');
     setResult(null);
+
     try {
       const rel = RELATORIOS.find(r => r.value === tipoRelatorio);
       const fixedParams = { ...params };
-      
-      // Processar todos os campos de ID que podem ser objetos do autocomplete
+
       const idFields = ['recurso_id', 'projeto_id', 'equipe_id', 'secao_id'];
-      
       idFields.forEach(field => {
-        // Se o campo for um objeto (selecionado via autocomplete), extrair o id
         if (fixedParams[field] && typeof fixedParams[field] === 'object') {
           fixedParams[field] = fixedParams[field].id;
         }
-        
-        // Se o campo estiver vazio ou não for um número válido, removê-lo
         if (!fixedParams[field] || isNaN(Number(fixedParams[field]))) {
           delete fixedParams[field];
         }
       });
-      const qs = buildQueryString(fixedParams);
-      console.log('DEBUG params:', fixedParams);
-      console.log('DEBUG qs:', qs);
-      console.log('DEBUG endpoint:', `${rel.endpoint}?${qs}`);
-      const res = await fetch(`${rel.endpoint}?${qs}`);
-      console.log('DEBUG status:', res.status, res.statusText);
-      
-      if (!res.ok) throw new Error(`Erro ao buscar relatório: ${res.status} ${res.statusText}`);
-      
-      const data = await res.json();
-      console.log('DEBUG resposta completa:', data);
-      
-      // Verificar se a resposta é válida e contém dados
-      if (Array.isArray(data)) {
-        console.log('DEBUG dados em array:', data.length, 'itens');
-        setResult(data);
-      } else if (data && data.items && Array.isArray(data.items)) {
-        console.log('DEBUG dados em data.items:', data.items.length, 'itens');
-        
-        // Verificar se é uma resposta de apontamentos individuais (quando filtra por recurso_id)
-        // Neste caso, os items contêm campos como id, recurso_id, projeto_id, etc.
-        const isIndividualItems = data.items.length > 0 && data.items[0].id !== undefined && data.items[0].recurso_id !== undefined;
-        
-        if (isIndividualItems) {
-          console.log('DEBUG detectado resposta de apontamentos individuais');
-          setResult(data.items);
+
+      // Tratamento especial para o relatório 'Planejado vs Realizado' (modo de edição)
+      if (tipoRelatorio === 'planejado-vs-realizado') {
+        const res = await fetch('/backend/v1/relatorios/planejado-vs-realizado-3', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fixedParams)
+        });
+
+        if (!res.ok) {
+          throw new Error(`Erro ao buscar dados para edição: ${res.status} ${res.statusText}`);
         }
-        // Caso normal com agrupamentos
-        else if (data.total_horas !== undefined) {
-          setResult([
-            ...data.items,
-            // Adicionar uma linha de total se houver total_horas
-            { total: true, horas: data.total_horas }
-          ]);
-        } else {
-          setResult(data.items);
-        }
-      } else {
-        console.log('DEBUG sem dados válidos na resposta');
-        setResult([]);
+        const data = await res.json();
+        setMatrizEditavel(data); // Armazena os dados brutos para edição
+        // Futuramente, aqui transformaremos 'data' em 'matriz_dados' para renderTable
+        setResult({ matriz_dados: [] }); // Placeholder para evitar erro na renderTable
+        return; // Finaliza o fluxo aqui por enquanto
       }
+
+      const qs = buildQueryString(fixedParams);
+      const res = await fetch(`${rel.endpoint}?${qs}`);
+
+      if (!res.ok) {
+        throw new Error(`Erro ao buscar relatório: ${res.status} ${res.statusText}`);
+      }
+
+      let data = await res.json();
+
+      // Tratamento para popular a linha de Horas Disponíveis (RH)
+      // Este bloco foi movido para dentro de um else if para não conflitar com a nova lógica de edição
+
+      if (tipoRelatorio === 'planejado-vs-realizado-LEGACY' && data && Array.isArray(data.matriz_dados) && data.matriz_dados.length > 1) { // Desativado temporariamente
+        const formatarDataParaAPI = (dataRaw) => {
+          if (!dataRaw || !dataRaw.includes('/')) return null;
+          const [mesStr, anoStr] = dataRaw.split('/');
+          const ano = `20${anoStr}`;
+          const meses = { 'jan': '01', 'fev': '02', 'mar': '03', 'abr': '04', 'mai': '05', 'jun': '06', 'jul': '07', 'ago': '08', 'set': '09', 'out': '10', 'nov': '11', 'dez': '12' };
+          const mes = meses[mesStr.toLowerCase()];
+          return mes ? `${ano}-${mes}` : null;
+        };
+
+        const headers = data.matriz_dados[0].slice(1);
+        const datasValidas = headers.filter(h => formatarDataParaAPI(h) !== null);
+        const data_inicio = formatarDataParaAPI(datasValidas[0]);
+        const data_fim = formatarDataParaAPI(datasValidas[datasValidas.length - 1]);
+        const recurso_id = fixedParams.recurso_id;
+
+        if (recurso_id && data_inicio && data_fim) {
+          try {
+            const horasRes = await fetch(`/backend/v1/calendario/horas-disponiveis-recurso`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ recurso_id, data_inicio, data_fim })
+            });
+
+            if (horasRes.ok) {
+              const horasData = await horasRes.json();
+              const horasMap = horasData.horas_por_mes.reduce((acc, item) => {
+                acc[item.mes] = item.horas;
+                return acc;
+              }, {});
+
+              const horasDisponiveisRow = ['Horas Disponíveis (RH)', ...headers.map(header => {
+                if (header.toLowerCase() === 'hs.') return '';
+                const chaveApi = formatarDataParaAPI(header);
+                return horasMap[chaveApi] || 0;
+              })];
+
+              const rhRowIndex = data.matriz_dados.findIndex(row => row[0] === 'Horas Disponíveis (RH)');
+              if (rhRowIndex > -1) {
+                data.matriz_dados[rhRowIndex] = horasDisponiveisRow;
+              } else {
+                const totalRowIndex = data.matriz_dados.findIndex(row => row[0].includes('Total de Esforço'));
+                if (totalRowIndex > -1) {
+                  data.matriz_dados.splice(totalRowIndex, 0, horasDisponiveisRow);
+                } else {
+                  data.matriz_dados.push(horasDisponiveisRow);
+                }
+              }
+            }
+          } catch (horasError) {
+            console.error('Exceção ao buscar horas disponíveis:', horasError);
+          }
+        }
+        setResult(data);
+      } else if (Array.isArray(data)) {
+        setResult({ matriz_dados: data });
+      } else if (data && data.items && Array.isArray(data.items)) {
+        const resultData = [...data.items];
+        if (data.total_horas !== undefined) {
+          resultData.push({ total: true, horas: data.total_horas });
+        }
+        setResult(resultData);
+      } else {
+        setResult(data);
+      }
+
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleMatrizChange = (projetoIndex, mesAno, field, value) => {
+    setMatrizEditavel(prevState => {
+        const novosProjetos = prevState.projetos.map((p, pIndex) => {
+            if (pIndex !== projetoIndex) {
+                return p;
+            }
+
+            // Deep copy do projeto para evitar mutação
+            const projetoAtualizado = JSON.parse(JSON.stringify(p));
+
+            // Se a alteração for em um campo geral do projeto (status, obs, esforço)
+            if (mesAno === null) {
+                projetoAtualizado[field] = value;
+                return projetoAtualizado;
+            }
+
+            // Se a alteração for nas horas mensais, `mesAno` será 'MM/YYYY'
+            const [mesStr, anoStr] = mesAno.split('/');
+            const mes = parseInt(mesStr, 10);
+            const ano = parseInt(anoStr, 10);
+
+            let planejamentoExistente = projetoAtualizado.planejamento_mensal.find(pm => pm.mes === mes && pm.ano === ano);
+
+            if (planejamentoExistente) {
+                planejamentoExistente[field] = value;
+            } else {
+                // Adiciona um novo planejamento se não existir para o mês/ano
+                projetoAtualizado.planejamento_mensal.push({ mes, ano, horas_planejadas: 0, [field]: value });
+            }
+
+            return projetoAtualizado;
+        });
+
+        return { ...prevState, projetos: novosProjetos };
+    });
+  };
+
+  async function handleSalvarAlteracoes() {
+    if (!matrizEditavel || !matrizEditavel.projetos || !params.recurso_id) {
+      alert('Não há dados para salvar ou nenhum recurso foi selecionado.');
+      return;
+    }
+
+    // Monta o payload na estrutura correta, garantindo a tipagem dos dados
+    const payload = {
+      recurso_id: parseInt(params.recurso_id, 10), // Pega o ID do filtro e garante que é número
+      alteracoes_projetos: matrizEditavel.projetos.map(p => ({
+        projeto_id: parseInt(p.projeto_id, 10),
+        status_alocacao_id: parseInt(p.status_alocacao_id, 10),
+        observacao: p.observacao || '', // Garante que seja string
+        esforco_estimado: parseFloat(p.esforco_estimado) || 0, // Garante que seja número
+        // Filtra e mapeia o planejamento mensal para garantir que apenas dados válidos sejam enviados
+        planejamento_mensal: p.planejamento_mensal
+          .filter(pm => pm.mes && pm.ano) // Garante que mês e ano existam
+          .map(pm => ({
+            mes: parseInt(pm.mes, 10),
+            ano: parseInt(pm.ano, 10),
+            horas_planejadas: parseFloat(pm.horas_planejadas) || 0
+          }))
+      }))
+    };
+
+    console.log('Enviando payload:', JSON.stringify(payload, null, 2));
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/backend/v1/matriz-planejamento/salvar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload) // Envia o payload formatado
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        // Formata o erro para ser legível, em vez de [object Object]
+        const errorMessage = errorData.detail 
+          ? JSON.stringify(errorData.detail, null, 2) 
+          : `Erro ao salvar alterações: ${res.status}`;
+        throw new Error(errorMessage);
+      }
+
+      alert('Alterações salvas com sucesso!');
+      // Opcional: recarregar os dados para refletir o estado salvo
+      // handleSubmit({ preventDefault: () => {} });
+
+    } catch (err) {
+      setError(err.message);
+      alert(`Erro: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -331,6 +480,134 @@ export default function Relatorios() {
 
   // Renderiza tabela dinâmica
   function renderTable() {
+    // NOVO: Renderização para a matriz de planejamento editável
+    if (matrizEditavel && matrizEditavel.projetos) {
+      const { projetos } = matrizEditavel;
+      if (!projetos || projetos.length === 0) {
+        return <div style={{ marginTop: 24, color: WEG_AZUL, fontWeight: 500, fontSize: 18 }}>Nenhum projeto encontrado para este recurso.</div>;
+      }
+
+      // Extrai todos os meses únicos para criar os cabeçalhos
+      const todosMeses = projetos.flatMap(p => p.planejamento_mensal.map(pm => `${pm.mes}/${pm.ano}`));
+      const mesesUnicos = [...new Set(todosMeses)].sort((a, b) => {
+        const [mesA, anoA] = a.split('/');
+        const [mesB, anoB] = b.split('/');
+        return anoA - anoB || mesA - mesB;
+      });
+
+      const headers = ['Projeto', 'Status', 'Observação', 'Esforço Estimado', ...mesesUnicos];
+
+      const statusOptions = [
+        { id: 1, nome: 'Não Iniciado' },
+        { id: 2, nome: 'Em andamento' },
+        { id: 3, nome: 'Concluído' },
+        { id: 4, nome: 'Cancelado' },
+        { id: 5, nome: 'Pausado' },
+      ];
+
+      return (
+        <div style={{ width: '100%', overflowX: 'auto', borderRadius: '12px', boxShadow: '0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8 }}>
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 1200 }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
+              <tr style={{ background: WEG_AZUL, color: WEG_BRANCO }}>
+                {headers.map((header, idx) => (
+                  <th key={idx} style={{ padding: '14px', fontWeight: 800, fontSize: 15, textAlign: 'center', borderBottom: '2px solid #004170' }}>{header}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {projetos.map((proj, projIndex) => {
+                const horasPorMes = proj.planejamento_mensal.reduce((acc, pm) => {
+                  acc[`${pm.mes}/${pm.ano}`] = pm.horas;
+                  return acc;
+                }, {});
+
+                return (
+                  <tr key={proj.projeto_id} style={{ background: projIndex % 2 ? '#F4F8FB' : WEG_BRANCO }}>
+                    <td style={{ padding: '8px', textAlign: 'left', fontWeight: 700, borderBottom: '1px solid #e3e7ee' }}>{proj.projeto_nome}</td>
+                    <td style={{ padding: '8px', borderBottom: '1px solid #e3e7ee' }}>
+                      <select
+                        value={proj.status_alocacao_id}
+                        onChange={(e) => handleMatrizChange(projIndex, 'status_alocacao_id', parseInt(e.target.value))}
+                        style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }}
+                      >
+                        {statusOptions.map(opt => <option key={opt.id} value={opt.id}>{opt.nome}</option>)}
+                      </select>
+                    </td>
+                    <td style={{ padding: '8px', borderBottom: '1px solid #e3e7ee' }}>
+                      <input
+                        type="text"
+                        value={proj.observacao || ''}
+                        onChange={(e) => handleMatrizChange(projIndex, 'observacao', e.target.value)}
+                        style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }}
+                      />
+                    </td>
+                    <td style={{ padding: '8px', borderBottom: '1px solid #e3e7ee' }}>
+                      <input
+                        type="number"
+                        value={proj.esforco_estimado || ''}
+                        onChange={(e) => handleMatrizChange(projIndex, 'esforco_estimado', parseFloat(e.target.value) || 0)}
+                        style={{ width: '80px', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }}
+                      />
+                    </td>
+                    {mesesUnicos.map(mesAno => {
+                      const mesIndex = proj.planejamento_mensal.findIndex(pm => `${pm.mes}/${pm.ano}` === mesAno);
+                      return (
+                        <td key={mesAno} style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #e3e7ee' }}>
+                          {mesIndex !== -1 ? (
+                            <input
+                              type="number"
+                              value={proj.planejamento_mensal[mesIndex].horas_planejadas}
+                              onChange={(e) => handleMatrizChange(projIndex, mesAno, 'horas_planejadas', parseFloat(e.target.value) || 0)}
+                              style={{ width: '70px', padding: '8px', border: '1px solid #ccc', borderRadius: 4, textAlign: 'center' }}
+                            />
+                          ) : (
+                            <span style={{ color: '#999' }}>-</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    // Tratamento para relatórios de matriz (LEGACY)
+    if (result && result.matriz_dados && result.matriz_dados.length > 0) {
+      const matriz = result.matriz_dados;
+      const headers = matriz[0];
+      const body = matriz.slice(1);
+
+      return (
+        <div style={{width:'100%', overflowX:'auto', borderRadius: '12px', boxShadow:'0 3px 16px #0002', background: WEG_BRANCO, marginTop: 8}}>
+          <table style={{width:'100%', borderCollapse:'separate', borderSpacing:0, minWidth:700}}>
+            <thead style={{position: 'sticky', top: 0, zIndex: 2}}>
+              <tr style={{background:WEG_AZUL, color:WEG_BRANCO}}>
+                {headers.map((header, idx) => (
+                  <th key={idx} style={{ padding:'14px 14px', fontWeight:800, fontSize:15, textAlign:'center', borderBottom: '2px solid #004170' }}>{header}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {body.map((row, rowIdx) => (
+                <tr key={rowIdx} style={{background: rowIdx % 2 ? '#F4F8FB' : WEG_BRANCO}}>
+                  {row.map((cell, cellIdx) => (
+                    <td key={cellIdx} style={{ padding:'11px 14px', textAlign:'center', fontSize: 15, borderBottom: '1px solid #e3e7ee', color: '#232b36', fontWeight: cellIdx === 0 ? 700 : 500 }}>
+                      {typeof cell === 'number' ? formatNumber(cell) : cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
     if (!result || !Array.isArray(result) || result.length === 0) {
       console.log('DEBUG renderTable: sem dados para exibir');
       return (
@@ -342,11 +619,9 @@ export default function Relatorios() {
 
     console.log('DEBUG renderTable: dados para exibir', result);
     
-    // Filtra linhas de total especiais (adicionadas manualmente)
     const dataRows = result.filter(row => !row.total);
     const totalRows = result.filter(row => row.total);
     
-    // Verificar se temos dados para exibir
     if (dataRows.length === 0) {
       console.log('DEBUG renderTable: sem dados após filtrar linhas de total');
       return (
@@ -356,8 +631,6 @@ export default function Relatorios() {
       );
     }
     
-    // Descobre as colunas dinamicamente a partir dos dados retornados
-    // Ignora propriedades especiais como 'total'
     let columns = Object.keys(dataRows[0] || {}).filter(col => col !== 'total');
     console.log('DEBUG colunas detectadas:', columns);
 
@@ -614,18 +887,43 @@ return (
         fontSize: 17,
         cursor: 'pointer',
         boxShadow: '0 3px 10px #0002',
-        marginLeft: 18,
         letterSpacing: 0.5
       }}
     >
       Gerar Relatório
     </button>
+
+    {tipoRelatorio === 'planejado-vs-realizado' && (
+      <button
+        type="button" // Importante ser type="button" para não submeter o form
+        onClick={handleSalvarAlteracoes}
+        disabled={loading || !matrizEditavel}
+        style={{
+          height: 44,
+          minWidth: 170,
+          padding: '0 32px',
+          background: '#007A4D', // Um verde para diferenciar
+          color: WEG_BRANCO,
+          border: 'none',
+          borderRadius: 8,
+          fontWeight: 800,
+          fontSize: 17,
+          cursor: 'pointer',
+          boxShadow: '0 3px 10px #0002',
+          marginLeft: 12, // Espaçamento
+          letterSpacing: 0.5,
+          opacity: (loading || !matrizEditavel) ? 0.6 : 1
+        }}
+      >
+        Salvar Alterações
+      </button>
+    )}
   </div>
       </form>
 
       {/* Feedbacks */}
       {loading && <div style={{color: WEG_AZUL, marginTop:12, fontWeight:600}}>Carregando...</div>}
-      {error && <div style={{color:'#D32F2F', marginTop:12, fontWeight:600}}>{error}</div>}
+      {error && <div style={{color: '#D32F2F', background: '#FFEBEE', border: '1px solid #D32F2F', borderRadius: 8, padding: '12px 16px', marginTop:12, fontWeight:600}}>Erro: {error}</div>}
 
       {/* Tabela de resultados */}
       <div style={{marginTop:32}}>
@@ -633,7 +931,7 @@ return (
       </div>
 
       {/* Mensagem para nenhum resultado */}
-      {(!loading && result && Array.isArray(result) && result.length === 0) && (
+      {(!loading && !matrizEditavel && result && Array.isArray(result) && result.length === 0) && (
         <div style={{marginTop:24, color:WEG_AZUL, fontWeight:500, fontSize:18}}>
           Nenhum resultado encontrado para os filtros selecionados.
         </div>

@@ -94,6 +94,7 @@ export default function RelatorioPlanejadoRealizado() {
       const projetos = apiData.projetos.map(p => ({
         id: p.id,
         nome: p.nome,
+        alocacao_id: p.alocacao_id,
         status: p.status,
         acao: p.acao,
         esforcoEstimado: p.esforco_estimado,
@@ -146,7 +147,9 @@ export default function RelatorioPlanejadoRealizado() {
 
     const alteracoes_projetos = reportData.projetos.map(projeto => {
       // Transforma o objeto de meses (ex: {'10/2024': ...}) em um array para a API
-      const planejamento_mensal = Object.keys(projeto.meses || {}).map(mesAno => {
+      const planejamento_mensal = Object.keys(projeto.meses)
+        .filter(mesAno => mesAno.includes('/')) // Garante que apenas chaves de data sejam processadas
+        .map(mesAno => {
         const [mes, ano] = mesAno.split('/');
         return {
           ano: parseInt(ano, 10),
@@ -157,6 +160,7 @@ export default function RelatorioPlanejadoRealizado() {
 
       return {
         projeto_id: projeto.id,
+        alocacao_id: projeto.alocacao_id, // Adicionado conforme requisito do backend
         status_alocacao_id: statusMap[projeto.status] || 1, // Default para 'Não Iniciado'
         observacao: projeto.acao || '',
         esforco_estimado: projeto.esforcoEstimado || 0,
@@ -168,6 +172,8 @@ export default function RelatorioPlanejadoRealizado() {
       recurso_id: recurso.id,
       alteracoes_projetos,
     };
+
+
 
     setLoading(true);
     try {
@@ -182,10 +188,11 @@ export default function RelatorioPlanejadoRealizado() {
     }
   };
 
-    const handleStatusChange = (projetoId, newStatus) => {
+  const handleStatusChange = (projetoId, newStatus) => {
     setReportData(currentData => {
       const updatedProjetos = currentData.projetos.map(p => {
         if (p.id === projetoId) {
+          // Retorna o projeto com todas as suas propriedades originais mais o status atualizado
           return { ...p, status: newStatus };
         }
         return p;
@@ -199,7 +206,9 @@ export default function RelatorioPlanejadoRealizado() {
     setReportData(currentData => {
       const updatedProjetos = currentData.projetos.map(p => {
         if (p.id === projetoId) {
-          return { ...p, [field]: value };
+          // Garante que todas as propriedades existentes sejam mantidas
+          const updatedProject = { ...p, [field]: value };
+          return updatedProject;
         }
         return p;
       });
@@ -207,37 +216,36 @@ export default function RelatorioPlanejadoRealizado() {
     });
   };
 
-  // Função para atualizar as horas planejadas mensais
-  const handleMonthlyHoursChange = (projetoId, mesYM, value) => {
+  const handleHourChange = (projetoId, mesYM, value) => {
     setReportData(currentData => {
+      // 1. Atualiza o projeto específico, garantindo que o `...p` preserve o alocacao_id
       const updatedProjetos = currentData.projetos.map(p => {
         if (p.id === projetoId) {
           const newMeses = {
             ...p.meses,
             [mesYM]: { ...p.meses[mesYM], planejado: parseFloat(value) || 0 },
           };
-
-          // Recalcula o esforço planejado total do projeto
           const newEsforcoPlanejado = Object.values(newMeses).reduce((acc, mesData) => acc + (mesData.planejado || 0), 0);
-
           return { ...p, meses: newMeses, esforcoPlanejado: newEsforcoPlanejado };
         }
         return p;
       });
 
-      // Recalcular as linhas de resumo
-      const updatedLinhasResumo = [...currentData.linhasResumo];
-      const totalEsforcoRow = updatedLinhasResumo.find(r => r.label === 'Total de esforço (hrs)');
-      if (totalEsforcoRow) {
-        totalEsforcoRow.esforcoPlanejado = updatedProjetos.reduce((acc, proj) => acc + (proj.esforcoPlanejado || 0), 0);
-        colunasMeses.forEach(mes => {
+      // 2. Recalcula as linhas de resumo de forma imutável, com base nos projetos já atualizados
+      const updatedLinhasResumo = currentData.linhasResumo.map(linha => {
+        if (linha.label.includes('Total')) { // Pega todas as linhas de total
+          const newTotalEsforcoPlanejado = updatedProjetos.reduce((acc, proj) => acc + (proj.esforcoPlanejado || 0), 0);
+          const newMeses = { ...linha.meses };
+          colunasMeses.forEach(mes => {
             const totalMes = updatedProjetos.reduce((acc, proj) => acc + (proj.meses[mes]?.planejado || 0), 0);
-            if (totalEsforcoRow.meses[mes]) {
-                totalEsforcoRow.meses[mes].planejado = totalMes;
-            }
-        });
-      }
+            newMeses[mes] = { ...newMeses[mes], planejado: totalMes };
+          });
+          return { ...linha, esforcoPlanejado: newTotalEsforcoPlanejado, meses: newMeses };
+        }
+        return linha;
+      });
 
+      // 3. Retorna o novo estado completo e limpo
       return { ...currentData, projetos: updatedProjetos, linhasResumo: updatedLinhasResumo };
     });
   };
@@ -488,7 +496,7 @@ export default function RelatorioPlanejadoRealizado() {
                         <TextField
                           type="number"
                           value={projeto.meses[mes]?.planejado || ''}
-                          onChange={(e) => handleMonthlyHoursChange(projeto.id, mes, e.target.value)}
+                          onChange={(e) => handleHourChange(projeto.id, mes, e.target.value)}
                           variant="standard"
                           fullWidth
                           sx={{ p: '0 8px', '& input': { textAlign: 'center' }, '& .MuiInput-underline:before': { border: 'none' }, '& .MuiInput-underline:hover:not(.Mui-disabled):before': { border: 'none' } }}
