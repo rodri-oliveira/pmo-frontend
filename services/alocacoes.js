@@ -31,7 +31,7 @@ export const salvarMatrizPlanejamento = (data) => {
  * @returns {Promise<object>} Os dados do relatório.
  */
 export const getRelatorioPlanejadoRealizado = (filters) => {
-  return apiPost('/relatorios/planejado-vs-realizado-3', filters);
+  return apiPost('/relatorios/planejado-vs-realizado2', filters);
 };
 
 /**

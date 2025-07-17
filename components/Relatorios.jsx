@@ -41,7 +41,7 @@ const RELATORIOS = [
   {
     label: 'Planejado vs Realizado',
     value: 'planejado-vs-realizado',
-    endpoint: '/backend/v1/relatorios/planejado-vs-realizado-3',
+    endpoint: '/backend/v1/relatorios/planejado-vs-realizado2',
     exemplos: [
       { label: 'Comparativo de todos os recursos em 2025', params: { ano: 2025 } },
       { label: 'Comparativo por mês (maio de 2025)', params: { ano: 2025, mes: 5 } },
