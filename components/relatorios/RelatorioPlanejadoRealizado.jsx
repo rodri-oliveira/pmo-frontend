@@ -26,7 +26,7 @@ import AutocompleteSecaoFiltro from './AutocompleteSecaoFiltro';
 import AutocompleteEquipeFiltro from './AutocompleteEquipeFiltro';
 import AutocompleteRecursoFiltro from './AutocompleteRecursoFiltro';
 import { getFiltrosPopulados } from '../../lib/api';
-import { getRelatorioPlanejadoRealizadoV2 } from '../../lib/api';
+import { getRelatorioPlanejadoRealizado } from '../../services/alocacoes';
 import { salvarMatrizPlanejamento } from '../../services/alocacoes';
 import { toast } from 'react-toastify';
 
@@ -46,10 +46,8 @@ const emptyData = {
 
 export default function RelatorioPlanejadoRealizado() {
   const [secao, setSecao] = useState(null);
-  const [recursos, setRecursos] = useState([]);
+  const [equipe, setEquipe] = useState(null);
   const [recurso, setRecurso] = useState(null);
-  const [alocacoes, setAlocacoes] = useState([]);
-  const [alocacaoSelecionada, setAlocacaoSelecionada] = useState(null);
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(emptyData);
   const [colunasMeses, setColunasMeses] = useState([]);
@@ -75,76 +73,17 @@ export default function RelatorioPlanejadoRealizado() {
   const currentYear = new Date().getFullYear();
   const anosOptions = Array.from({ length: 7 }, (_, i) => currentYear - 3 + i);
 
-  const fetchReportData = async () => {
-    if (!recurso || !alocacaoSelecionada) return;
-
-    setLoading(true);
-    try {
-      // Parâmetros para o novo endpoint
-      const params = {
-        recurso_id: recurso.id,
-        alocacao_id: alocacaoSelecionada.id,
-        mes_inicio: '2025-01', // Conforme especificação
-        mes_fim: '2026-12',    // Conforme especificação
-      };
-
-      const apiData = await getPlanejadoVsRealizado2(params); // Usando a nova função de serviço
-      const linhasResumo = apiData.linhas_resumo.map(lr => ({
-        label: lr.label,
-        esforcoPlanejado: lr.esforco_planejado,
-        esforcoEstimado: lr.esforco_estimado, // Adicionado para exibir na linha de resumo
-        meses: lr.meses,
-      }));
-      const projetos = apiData.projetos.map(p => ({
-        id: p.id,
-        nome: p.nome,
-        alocacao_id: p.alocacao_id,
-        status: p.status,
-        acao: p.acao,
-        esforcoEstimado: p.esforco_estimado,
-        esforcoPlanejado: p.esforco_planejado,
-        meses: p.meses,
-      }));
-      const data = { linhasResumo, projetos };
-
-      // Define colunas de meses e garante até dez/26
-      const allMeses = new Set();
-      linhasResumo.forEach(l => Object.keys(l.meses).forEach(m => allMeses.add(m)));
-      projetos.forEach(p => Object.keys(p.meses).forEach(m => allMeses.add(m)));
-
-      // Encontra mês inicial e gera até 2026-12
-      const mesesArray = Array.from(allMeses).sort();
-      const inicio = mesesArray[0] || new Date().toISOString().slice(0,7);
-      const [startY, startM] = inicio.split('-').map(Number);
-      let y = startY, m = startM;
-      while (y < 2026 || (y === 2026 && m <= 12)) {
-        const ym = `${y.toString().padStart(4,'0')}-${m.toString().padStart(2,'0')}`;
-        allMeses.add(ym);
-        m += 1;
-        if (m === 13) { m = 1; y += 1; }
-      }
-      const finalMeses = Array.from(allMeses).sort();
-      setColunasMeses(finalMeses);
-
-      setReportData(data);
-      console.log(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleGerarRelatorio = async () => {
     if (!recurso?.id) return;
 
     setLoading(true);
     try {
-      const apiData = await getRelatorioPlanejadoRealizadoV2({
+      const apiData = await getRelatorioPlanejadoRealizado({
         recurso_id: recurso.id,
         status,
         mes_inicio: mesInicioAno && mesInicioMes ? `${mesInicioAno}-${mesInicioMes}` : '',
         mes_fim: mesFimAno && mesFimMes ? `${mesFimAno}-${mesFimMes}` : '',
+        alocacao_id: null, // Pode ser ajustado conforme filtro de projeto
       });
       // Mapeia snake_case para camelCase para evitar refactor grande na renderização
       const linhasResumo = apiData.linhas_resumo.map(l => ({
