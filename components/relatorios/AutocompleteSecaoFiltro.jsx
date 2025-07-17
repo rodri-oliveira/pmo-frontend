@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 
+
 /**
  * Autocomplete para Seção usando endpoint de filtros-populados
  * Props: value, onChange
@@ -11,10 +12,10 @@ export default function AutocompleteSecaoFiltro({ value, onChange }) {
   const [loading, setLoading] = useState(false);
   const timeoutRef = useRef();
 
-  async function buscarSecoes(termo) {
+    async function buscarSecoes(termo) {
     setLoading(true);
     try {
-      const resp = await fetch(`/backend/v1/filtros/filtros-populados?entidade=secao&search=${encodeURIComponent(termo||'')}`);
+      const resp = await fetch(`/backend/filtros/filtros-populados?entidade=secao&search=${encodeURIComponent(termo||'')}`);
       const data = await resp.json();
       setSugestoes(data.secoes || []);
     } catch (e) {

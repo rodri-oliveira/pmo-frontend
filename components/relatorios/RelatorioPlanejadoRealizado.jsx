@@ -25,6 +25,7 @@ import AddIcon from '@mui/icons-material/Add';
 import AutocompleteSecaoFiltro from './AutocompleteSecaoFiltro';
 import AutocompleteEquipeFiltro from './AutocompleteEquipeFiltro';
 import AutocompleteRecursoFiltro from './AutocompleteRecursoFiltro';
+import { getFiltrosPopulados } from '../../lib/api';
 import { getRelatorioPlanejadoRealizadoV2 } from '../../lib/api';
 import { salvarMatrizPlanejamento } from '../../services/alocacoes';
 import { toast } from 'react-toastify';
@@ -129,7 +130,7 @@ export default function RelatorioPlanejadoRealizado() {
     }
   };
 
-    const handleSalvarAlteracoes = async () => {
+  const handleSalvarAlteracoes = async () => {
     if (!recurso?.id) {
       toast.warn('Por favor, selecione um recurso para salvar as alterações.');
       return;

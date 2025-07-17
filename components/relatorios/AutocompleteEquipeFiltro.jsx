@@ -23,8 +23,7 @@ export default function AutocompleteEquipeFiltro({ value, onChange, secaoId }) {
   async function buscarEquipes(termo) {
     setLoading(true);
     try {
-      let url = `/backend/v1/filtros/filtros-populados?entidade=equipe&search=${encodeURIComponent(termo||'')}`;
-      if (secaoId) url += `&secao_id=${secaoId}`;
+      const url = `/backend/filtros/filtros-populados?entidade=equipe&secao_id=${secaoId}&search=${encodeURIComponent(termo||'')}`;
       const resp = await fetch(url);
       const data = await resp.json();
       setSugestoes(data.equipes || []);

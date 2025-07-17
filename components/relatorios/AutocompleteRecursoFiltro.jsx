@@ -23,7 +23,7 @@ export default function AutocompleteRecursoFiltro({ value, onChange, equipeId })
   async function buscarRecursos(termo) {
     setLoading(true);
     try {
-      let url = `/backend/v1/filtros/filtros-populados?entidade=recurso&search=${encodeURIComponent(termo||'')}`;
+      let url = `/backend/filtros/filtros-populados?entidade=recurso&search=${encodeURIComponent(termo||'')}`;
       if (equipeId) url += `&equipe_id=${equipeId}`;
       const resp = await fetch(url);
       const data = await resp.json();
