@@ -194,8 +194,7 @@ export default function RelatorioPlanejadoRealizado() {
             };
           });
 
-        // Adiciona log para debug
-        console.log(`Projeto ${projeto.id} - Planejamento mensal:`, planejamento_mensal);
+
 
         return {
           projeto_id: projeto.id,
@@ -207,26 +206,14 @@ export default function RelatorioPlanejadoRealizado() {
         };
       });
 
-    // Verifica se há projetos com planejamento mensal vazio e adiciona log para debug
-    const projetosComPlanejamentoVazio = alteracoes_projetos.filter(p => !p.planejamento_mensal || p.planejamento_mensal.length === 0);
-    if (projetosComPlanejamentoVazio.length > 0) {
-      console.warn('Projetos com planejamento mensal vazio:', projetosComPlanejamentoVazio);
-      
-      // Adiciona log detalhado para entender a estrutura dos dados
-      projetosComPlanejamentoVazio.forEach(p => {
-        console.log(`Detalhes do projeto ${p.projeto_id} com planejamento vazio:`);
-        const projetoOriginal = reportData.projetos.find(orig => orig.id === p.projeto_id);
-        console.log('Meses disponíveis:', Object.keys(projetoOriginal?.meses || {}));
-        console.log('Estrutura completa dos meses:', projetoOriginal?.meses);
-      });
-    }
+
 
     const payload = {
       recurso_id: recurso.id,
       alteracoes_projetos,
     };
 
-    console.log('Payload a ser enviado:', payload);
+
 
     setLoading(true);
     try {

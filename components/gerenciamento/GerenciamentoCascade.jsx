@@ -81,7 +81,7 @@ import {
   updateAlocacao,
   deleteAlocacao,
   planejamentoHoras, // Importa a nova função
-} from "../../services/alocacoes.jsx";
+} from "../../services/alocacoes.js"; // Corrigido o caminho de importação
 
 
 // Importações dos Modais (lazy loaded para melhorar performance)
