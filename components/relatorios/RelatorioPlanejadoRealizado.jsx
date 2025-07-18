@@ -32,6 +32,19 @@ import { toast } from 'react-toastify';
 
 const wegBlue = '#00579d';
 
+// Mapeamento de Status baseado na tabela do banco de dados
+const statusNameToId = {
+  'Backlog': 1,
+  'Não Iniciado': 2,
+  'Em andamento': 3,
+  'Parado': 4,
+  'Concluído': 5,
+  'Cancelado': 6,
+  'Aguardando': 7,
+};
+
+const statusOptions = Object.keys(statusNameToId);
+
 function formatMesLabel(ym) {
   const [year, month] = ym.split('-');
   const date = new Date(Number(year), Number(month) - 1);
@@ -96,7 +109,7 @@ export default function RelatorioPlanejadoRealizado() {
         id: p.id,
         nome: p.nome,
         alocacao_id: p.alocacao_id,
-        status: p.status,
+        status: p.status || 'Não Iniciado', // API envia o nome, apenas garantimos um default
         acao: p.acao,
         esforcoEstimado: p.esforco_estimado,
         esforcoPlanejado: p.esforco_planejado,
@@ -138,13 +151,9 @@ export default function RelatorioPlanejadoRealizado() {
       return;
     }
 
-    // Mapeamento de status de string para ID numérico (ajuste conforme o backend)
-    const statusMap = {
-      'Não Iniciado': 1,
-      'Em andamento': 2,
-      'Concluído': 3,
-      // Adicione outros status se necessário
-    };
+
+
+
 
     const alteracoes_projetos = reportData.projetos
       // Garante que apenas projetos com alocacao_id numérico sejam enviados
@@ -191,7 +200,7 @@ export default function RelatorioPlanejadoRealizado() {
         return {
           projeto_id: projeto.id,
           alocacao_id: projeto.alocacao_id,
-          status_alocacao_id: statusMap[projeto.status] || 1, // Default para 'Não Iniciado'
+          status_alocacao_id: statusNameToId[projeto.status] || 2, // Default para 'Não Iniciado' (ID 2)
           observacao: projeto.acao || '',
           esforco_estimado: projeto.esforcoEstimado || 0,
           planejamento_mensal
@@ -508,9 +517,9 @@ export default function RelatorioPlanejadoRealizado() {
                           '&:after': { border: 'none' },
                         }}
                       >
-                        <MenuItem value="Não Iniciado">Não Iniciado</MenuItem>
-                        <MenuItem value="Em andamento">Em andamento</MenuItem>
-                        <MenuItem value="Concluído">Concluído</MenuItem>
+                        {statusOptions.map(statusName => (
+                          <MenuItem key={statusName} value={statusName}>{statusName}</MenuItem>
+                        ))}
                       </Select>
                     </TableCell>
                                         <TableCell sx={{ ...projectCellStyle, p: 0 }}>
