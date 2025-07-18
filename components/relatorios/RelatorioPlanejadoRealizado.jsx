@@ -300,7 +300,28 @@ export default function RelatorioPlanejadoRealizado() {
       </Typography>
 
       {/* Filtros agrupados em grid profissional */}
-      <Box component={Paper} variant="outlined" sx={{ p: 2, mb: 3, background: '#f8fafc', border: '1px solid #e0e0e0' }}>
+      <Box component={Paper} variant="outlined" 
+        sx={{
+          p: 2,
+          mb: 3,
+          bgcolor: 'grey.50',
+          border: 1,
+          borderColor: 'divider',
+          borderRadius: 2,
+          '& .MuiAutocomplete-root, & .MuiFormControl-root': {
+            bgcolor: 'background.paper',
+          },
+          '& .MuiInputBase-root': {
+            height: 40,
+          },
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'grey.300',
+          },
+          '& .MuiAutocomplete-root:hover .MuiOutlinedInput-notchedOutline, & .MuiFormControl-root:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
+          },
+        }}
+      >
         {/* Linha 1: Filtros principais */}
         <Box display="grid" gridTemplateColumns={{ xs: '1fr', md: 'repeat(4, 1fr)' }} gap={2} mb={2} alignItems="center">
           <AutocompleteSecaoFiltro
@@ -403,7 +424,13 @@ export default function RelatorioPlanejadoRealizado() {
               color="primary"
               onClick={handleGerarRelatorio}
               disabled={loading || !recurso}
-              sx={{ height: 40, minWidth: 140, fontWeight: 700 }}
+              sx={{
+                height: 40,
+                minWidth: 140,
+                fontWeight: 700,
+                textTransform: 'none',
+                '&:hover': { bgcolor: 'primary.dark' },
+              }}
               size="small"
             >
               {loading ? <CircularProgress size={20} /> : 'Gerar Relatório'}
@@ -412,7 +439,13 @@ export default function RelatorioPlanejadoRealizado() {
               variant="contained"
               color="primary"
               onClick={handleSalvarAlteracoes}
-              sx={{ height: 40, minWidth: 140, fontWeight: 700 }}
+              sx={{
+                height: 40,
+                minWidth: 140,
+                fontWeight: 700,
+                textTransform: 'none',
+                '&:hover': { bgcolor: 'primary.dark' },
+              }}
               size="small"
             >
               SALVAR ALTERAÇÕES
