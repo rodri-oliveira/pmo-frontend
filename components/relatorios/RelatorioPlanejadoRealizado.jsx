@@ -146,35 +146,78 @@ export default function RelatorioPlanejadoRealizado() {
       // Adicione outros status se necessário
     };
 
-    const alteracoes_projetos = reportData.projetos.map(projeto => {
-      // Transforma o objeto de meses (ex: {'10/2024': ...}) em um array para a API
-      const planejamento_mensal = Object.keys(projeto.meses)
-        .filter(mesAno => mesAno.includes('/')) // Garante que apenas chaves de data sejam processadas
-        .map(mesAno => {
-        const [mes, ano] = mesAno.split('/');
+    const alteracoes_projetos = reportData.projetos
+      // Garante que apenas projetos com alocacao_id numérico sejam enviados
+      .filter(p => Number.isInteger(parseInt(p.alocacao_id, 10)))
+      .map(projeto => {
+        // Transforma o objeto de meses em um array para a API
+        // Aceita tanto formato YYYY-MM quanto MM/YYYY
+        const planejamento_mensal = Object.keys(projeto.meses)
+          .filter(mesAno => {
+            const mesData = projeto.meses[mesAno];
+            // Verifica se é um objeto válido com propriedade planejado
+            return mesData && typeof mesData === 'object' && 
+                  // Verifica se planejado existe e é um número maior que zero
+                  'planejado' in mesData && 
+                  !isNaN(parseFloat(mesData.planejado)) && 
+                  parseFloat(mesData.planejado) > 0;
+          })
+          .map(mesAno => {
+            let mes, ano;
+            
+            // Suporta ambos os formatos: MM/YYYY ou YYYY-MM
+            if (mesAno.includes('/')) {
+              [mes, ano] = mesAno.split('/');
+            } else if (mesAno.includes('-')) {
+              [ano, mes] = mesAno.split('-');
+            } else {
+              // Formato desconhecido, usa valores padrão para evitar erro
+              console.warn(`Formato de mês/ano desconhecido: ${mesAno}`);
+              const hoje = new Date();
+              mes = hoje.getMonth() + 1;
+              ano = hoje.getFullYear();
+            }
+            
+            return {
+              ano: parseInt(ano, 10),
+              mes: parseInt(mes, 10),
+              horas_planejadas: parseFloat(projeto.meses[mesAno].planejado) || 0
+            };
+          });
+
+        // Adiciona log para debug
+        console.log(`Projeto ${projeto.id} - Planejamento mensal:`, planejamento_mensal);
+
         return {
-          ano: parseInt(ano, 10),
-          mes: parseInt(mes, 10),
-          horas_planejadas: projeto.meses[mesAno]?.planejado || 0,
+          projeto_id: projeto.id,
+          alocacao_id: projeto.alocacao_id,
+          status_alocacao_id: statusMap[projeto.status] || 1, // Default para 'Não Iniciado'
+          observacao: projeto.acao || '',
+          esforco_estimado: projeto.esforcoEstimado || 0,
+          planejamento_mensal
         };
       });
 
-      return {
-        projeto_id: projeto.id,
-        alocacao_id: projeto.alocacao_id, // Adicionado conforme requisito do backend
-        status_alocacao_id: statusMap[projeto.status] || 1, // Default para 'Não Iniciado'
-        observacao: projeto.acao || '',
-        esforco_estimado: projeto.esforcoEstimado || 0,
-        planejamento_mensal,
-      };
-    });
+    // Verifica se há projetos com planejamento mensal vazio e adiciona log para debug
+    const projetosComPlanejamentoVazio = alteracoes_projetos.filter(p => !p.planejamento_mensal || p.planejamento_mensal.length === 0);
+    if (projetosComPlanejamentoVazio.length > 0) {
+      console.warn('Projetos com planejamento mensal vazio:', projetosComPlanejamentoVazio);
+      
+      // Adiciona log detalhado para entender a estrutura dos dados
+      projetosComPlanejamentoVazio.forEach(p => {
+        console.log(`Detalhes do projeto ${p.projeto_id} com planejamento vazio:`);
+        const projetoOriginal = reportData.projetos.find(orig => orig.id === p.projeto_id);
+        console.log('Meses disponíveis:', Object.keys(projetoOriginal?.meses || {}));
+        console.log('Estrutura completa dos meses:', projetoOriginal?.meses);
+      });
+    }
 
     const payload = {
       recurso_id: recurso.id,
       alteracoes_projetos,
     };
 
-
+    console.log('Payload a ser enviado:', payload);
 
     setLoading(true);
     try {
