@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -22,28 +22,19 @@ import {
   TextField,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import SaveIcon from '@mui/icons-material/Save';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import AutocompleteSecaoFiltro from './AutocompleteSecaoFiltro';
 import AutocompleteEquipeFiltro from './AutocompleteEquipeFiltro';
 import AutocompleteRecursoFiltro from './AutocompleteRecursoFiltro';
 import { getFiltrosPopulados } from '../../lib/api';
-import { getRelatorioPlanejadoRealizado } from '../../services/alocacoes';
+import { getRelatorioPlanejadoRealizado, getStatusProjeto } from '../../services/alocacoes';
 import { salvarMatrizPlanejamento } from '../../services/alocacoes';
 import { toast } from 'react-toastify';
 
 const wegBlue = '#00579d';
 
-// Mapeamento de Status baseado na tabela do banco de dados
-const statusNameToId = {
-  'Backlog': 1,
-  'Não Iniciado': 2,
-  'Em andamento': 3,
-  'Parado': 4,
-  'Concluído': 5,
-  'Cancelado': 6,
-  'Aguardando': 7,
-};
-
-const statusOptions = Object.keys(statusNameToId);
+// Status serão carregados dinamicamente do endpoint
 
 function formatMesLabel(ym) {
   const [year, month] = ym.split('-');
@@ -65,6 +56,7 @@ export default function RelatorioPlanejadoRealizado() {
   const [reportData, setReportData] = useState(emptyData);
   const [colunasMeses, setColunasMeses] = useState([]);
   const [status, setStatus] = useState('');
+  const [statusOptions, setStatusOptions] = useState([]);
   const [mesInicioMes, setMesInicioMes] = useState('');
   const [mesInicioAno, setMesInicioAno] = useState('');
   const [mesFimMes, setMesFimMes] = useState('');
@@ -86,17 +78,54 @@ export default function RelatorioPlanejadoRealizado() {
   const currentYear = new Date().getFullYear();
   const anosOptions = Array.from({ length: 7 }, (_, i) => currentYear - 3 + i);
 
+  // Carrega os status dinamicamente do endpoint
+  useEffect(() => {
+    const carregarStatus = async () => {
+      try {
+        const response = await getStatusProjeto();
+        // Filtra apenas status ativos e ordena pela ordem de exibição
+        const statusAtivos = response.items
+          .filter(status => status.ativo)
+          .sort((a, b) => a.ordem_exibicao - b.ordem_exibicao);
+        setStatusOptions(statusAtivos);
+      } catch (error) {
+        console.error('Erro ao carregar status:', error);
+        toast.error('Erro ao carregar lista de status');
+      }
+    };
+    
+    carregarStatus();
+  }, []);
+
   const handleGerarRelatorio = async () => {
     if (!recurso?.id) return;
 
     setLoading(true);
     try {
-      const apiData = await getRelatorioPlanejadoRealizado({
+      const filtros = {
         recurso_id: recurso.id,
-        status,
         mes_inicio: mesInicioAno && mesInicioMes ? `${mesInicioAno}-${mesInicioMes}` : '',
         mes_fim: mesFimAno && mesFimMes ? `${mesFimAno}-${mesFimMes}` : '',
         alocacao_id: null, // Pode ser ajustado conforme filtro de projeto
+      };
+      
+      // Só adiciona o filtro de status se não for "Todos" (string vazia)
+      if (status && status.trim() !== '') {
+        filtros.status = status;
+      }
+      
+      console.log('🔍 Filtros enviados para o relatório:', filtros);
+      const apiData = await getRelatorioPlanejadoRealizado(filtros);
+      console.log('📊 Dados retornados da API:', apiData);
+      console.log('📋 Projetos encontrados:', apiData.projetos?.length || 0);
+      console.log('🎯 Procurando alocação ID 903...');
+      const alocacao903 = apiData.projetos?.find(p => p.alocacao_id === 903);
+      console.log('🔍 Alocação 903 encontrada?', alocacao903 ? 'SIM' : 'NÃO', alocacao903);
+      
+      // Lista todas as alocações para debug
+      console.log('📝 Todas as alocações retornadas:');
+      apiData.projetos?.forEach((p, i) => {
+        console.log(`${i + 1}: ID ${p.alocacao_id} - ${p.nome} - Status: ${p.status}`);
       });
       // Mapeia snake_case para camelCase para evitar refactor grande na renderização
       const linhasResumo = apiData.linhas_resumo.map(l => ({
@@ -372,8 +401,11 @@ export default function RelatorioPlanejadoRealizado() {
                 }}
               >
                 <MenuItem value=""><em>Todos</em></MenuItem>
-                <MenuItem value="Em andamento">Em andamento</MenuItem>
-                <MenuItem value="Concluído">Concluído</MenuItem>
+                {statusOptions.map((statusItem) => (
+                  <MenuItem key={statusItem.id} value={statusItem.nome}>
+                    {statusItem.nome}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </div>
@@ -424,31 +456,54 @@ export default function RelatorioPlanejadoRealizado() {
               color="primary"
               onClick={handleGerarRelatorio}
               disabled={loading || !recurso}
+              startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <AssessmentIcon />}
               sx={{
-                height: 40,
-                minWidth: 140,
-                fontWeight: 700,
+                height: 42,
+                minWidth: 160,
+                fontWeight: 600,
                 textTransform: 'none',
-                '&:hover': { bgcolor: 'primary.dark' },
+                borderRadius: '8px',
+                fontSize: '14px',
+                backgroundColor: wegBlue,
+                boxShadow: '0 2px 8px rgba(0, 87, 157, 0.2)',
+                '&:hover': { 
+                  backgroundColor: '#004080',
+                  boxShadow: '0 4px 12px rgba(0, 87, 157, 0.3)',
+                  transform: 'translateY(-1px)',
+                },
+                '&:disabled': {
+                  backgroundColor: '#e0e0e0',
+                  color: '#9e9e9e',
+                  boxShadow: 'none',
+                },
+                transition: 'all 0.2s ease-in-out',
               }}
-              size="small"
             >
-              {loading ? <CircularProgress size={20} /> : 'Gerar Relatório'}
+              Gerar Relatório
             </Button>
             <Button
               variant="contained"
               color="primary"
               onClick={handleSalvarAlteracoes}
+              startIcon={<SaveIcon />}
               sx={{
-                height: 40,
-                minWidth: 140,
-                fontWeight: 700,
+                height: 42,
+                minWidth: 160,
+                fontWeight: 600,
                 textTransform: 'none',
-                '&:hover': { bgcolor: 'primary.dark' },
+                borderRadius: '8px',
+                fontSize: '14px',
+                backgroundColor: wegBlue,
+                boxShadow: '0 2px 8px rgba(0, 87, 157, 0.2)',
+                '&:hover': { 
+                  backgroundColor: '#004080',
+                  boxShadow: '0 4px 12px rgba(0, 87, 157, 0.3)',
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s ease-in-out',
               }}
-              size="small"
             >
-              SALVAR ALTERAÇÕES
+              Salvar Alterações
             </Button>
           </Box>
         </Box>
@@ -537,8 +592,8 @@ export default function RelatorioPlanejadoRealizado() {
                           '&:after': { border: 'none' },
                         }}
                       >
-                        {statusOptions.map(statusName => (
-                          <MenuItem key={statusName} value={statusName}>{statusName}</MenuItem>
+                        {statusOptions.map(statusItem => (
+                          <MenuItem key={statusItem.id} value={statusItem.nome}>{statusItem.nome}</MenuItem>
                         ))}
                       </Select>
                     </TableCell>

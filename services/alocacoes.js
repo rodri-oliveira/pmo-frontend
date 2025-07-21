@@ -42,3 +42,22 @@ export const getRelatorioPlanejadoRealizado = (filters) => {
 export const getHorasDisponiveis = (params) => {
   return apiGet('/calendario/horas-disponiveis-recurso', params);
 };
+
+/**
+ * Busca todos os status de projeto disponíveis.
+ * @param {object} params - Parâmetros de paginação (skip, limit).
+ * @returns {Promise<object>} Lista de status de projeto.
+ */
+export const getStatusProjeto = (params = { skip: 0, limit: 100 }) => {
+  const url = new URL('http://localhost:8000/backend/status-projeto/');
+  if (params) {
+    Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+  }
+  return fetch(url.toString())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Not Found');
+      }
+      return response.json();
+    });
+};
