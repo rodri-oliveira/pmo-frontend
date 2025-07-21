@@ -55,7 +55,7 @@ export default function RelatorioPlanejadoRealizado() {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(emptyData);
   const [colunasMeses, setColunasMeses] = useState([]);
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(''); // Armazena o ID do status selecionado
   const [statusOptions, setStatusOptions] = useState([]);
   const [mesInicioMes, setMesInicioMes] = useState('');
   const [mesInicioAno, setMesInicioAno] = useState('');
@@ -111,7 +111,7 @@ export default function RelatorioPlanejadoRealizado() {
       
       // Só adiciona o filtro de status se não for "Todos" (string vazia)
       if (status && status.trim() !== '') {
-        filtros.status = status;
+        filtros.status_id = parseInt(status, 10); // Envia status_id como número
       }
       
       console.log('🔍 Filtros enviados para o relatório:', filtros);
@@ -402,7 +402,7 @@ export default function RelatorioPlanejadoRealizado() {
               >
                 <MenuItem value=""><em>Todos</em></MenuItem>
                 {statusOptions.map((statusItem) => (
-                  <MenuItem key={statusItem.id} value={statusItem.nome}>
+                  <MenuItem key={statusItem.id} value={statusItem.id.toString()}>
                     {statusItem.nome}
                   </MenuItem>
                 ))}
