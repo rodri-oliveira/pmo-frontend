@@ -52,7 +52,8 @@ export default function RelatorioPlanejadoRealizado() {
   const [secao, setSecao] = useState(null);
   const [equipe, setEquipe] = useState(null);
   const [recurso, setRecurso] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingRelatorio, setLoadingRelatorio] = useState(false);
+  const [loadingSalvar, setLoadingSalvar] = useState(false);
   const [reportData, setReportData] = useState(emptyData);
   const [colunasMeses, setColunasMeses] = useState([]);
   const [status, setStatus] = useState(''); // Armazena o ID do status selecionado
@@ -100,7 +101,7 @@ export default function RelatorioPlanejadoRealizado() {
   const handleGerarRelatorio = async () => {
     if (!recurso?.id) return;
 
-    setLoading(true);
+    setLoadingRelatorio(true);
     try {
       const filtros = {
         recurso_id: recurso.id,
@@ -170,7 +171,7 @@ export default function RelatorioPlanejadoRealizado() {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      setLoadingRelatorio(false);
     }
   };
 
@@ -246,7 +247,7 @@ export default function RelatorioPlanejadoRealizado() {
 
 
 
-    setLoading(true);
+    setLoadingSalvar(true);
     try {
       const response = await salvarMatrizPlanejamento(payload);
       toast.success(response.message || 'Matriz de planejamento salva com sucesso!');
@@ -255,7 +256,7 @@ export default function RelatorioPlanejadoRealizado() {
       const errorMessage = error.response?.data?.detail || 'Falha ao salvar as alterações. Tente novamente.';
       toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      setLoadingSalvar(false);
     }
   };
 
@@ -457,8 +458,8 @@ export default function RelatorioPlanejadoRealizado() {
               variant="contained"
               color="primary"
               onClick={handleGerarRelatorio}
-              disabled={loading || !recurso}
-              startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <AssessmentIcon />}
+              disabled={loadingRelatorio || !recurso}
+              startIcon={loadingRelatorio ? <CircularProgress size={16} color="inherit" /> : <AssessmentIcon />}
               sx={{
                 height: 42,
                 minWidth: 160,
@@ -474,9 +475,10 @@ export default function RelatorioPlanejadoRealizado() {
                   transform: 'translateY(-1px)',
                 },
                 '&:disabled': {
-                  backgroundColor: '#e0e0e0',
-                  color: '#9e9e9e',
-                  boxShadow: 'none',
+                  backgroundColor: loadingRelatorio ? wegBlue : '#e0e0e0',
+                  color: loadingRelatorio ? '#ffffff' : '#9e9e9e',
+                  boxShadow: loadingRelatorio ? '0 2px 8px rgba(0, 87, 157, 0.2)' : 'none',
+                  opacity: loadingRelatorio ? 0.8 : 1,
                 },
                 transition: 'all 0.2s ease-in-out',
               }}
@@ -487,7 +489,8 @@ export default function RelatorioPlanejadoRealizado() {
               variant="contained"
               color="primary"
               onClick={handleSalvarAlteracoes}
-              startIcon={<SaveIcon />}
+              disabled={loadingSalvar}
+              startIcon={loadingSalvar ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
               sx={{
                 height: 42,
                 minWidth: 160,
@@ -501,6 +504,12 @@ export default function RelatorioPlanejadoRealizado() {
                   backgroundColor: '#004080',
                   boxShadow: '0 4px 12px rgba(0, 87, 157, 0.3)',
                   transform: 'translateY(-1px)',
+                },
+                '&:disabled': {
+                  backgroundColor: loadingSalvar ? wegBlue : '#e0e0e0',
+                  color: loadingSalvar ? '#ffffff' : '#9e9e9e',
+                  boxShadow: loadingSalvar ? '0 2px 8px rgba(0, 87, 157, 0.2)' : 'none',
+                  opacity: loadingSalvar ? 0.8 : 1,
                 },
                 transition: 'all 0.2s ease-in-out',
               }}
