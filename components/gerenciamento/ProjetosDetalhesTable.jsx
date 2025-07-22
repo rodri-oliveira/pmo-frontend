@@ -21,6 +21,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import { deleteHorasPlanejadas } from '../../services/alocacoes';
 
 // Nomes dos meses para exibição amigável
 const mesesNomes = [
@@ -42,7 +43,7 @@ const style = {
   p: 4,
 };
 
-function HorasPlanejadasModal({ open, onClose, onSave, alocacao, projetoId }) {
+function HorasPlanejadasModal({ open, onClose, onSave, alocacao, projetoId, onDataChange }) {
   const [horas, setHoras] = useState([]);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -93,7 +94,27 @@ function HorasPlanejadasModal({ open, onClose, onSave, alocacao, projetoId }) {
     setIsDirty(true);
   };
 
-  const handleRemove = (index) => {
+  const handleRemove = async (index) => {
+    const horaParaRemover = horas[index];
+    
+    // Se a hora planejada já existe no backend (tem ID), chama o endpoint DELETE
+    if (horaParaRemover.id) {
+      try {
+        await deleteHorasPlanejadas(alocacao.id, horaParaRemover.ano, horaParaRemover.mes);
+        console.log(`Hora planejada deletada: ${horaParaRemover.mes}/${horaParaRemover.ano}`);
+        
+        // Força recarregamento dos dados do componente pai
+        if (onDataChange) {
+          onDataChange();
+        }
+      } catch (error) {
+        console.error('Erro ao deletar hora planejada:', error);
+        alert('Erro ao deletar hora planejada. Tente novamente.');
+        return; // Não remove da lista se houve erro na API
+      }
+    }
+    
+    // Remove da lista local
     const newHoras = horas.filter((_, i) => i !== index);
     setHoras(newHoras);
     setIsDirty(true);
@@ -154,7 +175,7 @@ function HorasPlanejadasModal({ open, onClose, onSave, alocacao, projetoId }) {
 
 
 
-function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveHoras }) {
+function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveHoras, onDataChange }) {
   const [open, setOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedAlocacao, setSelectedAlocacao] = useState(null);
@@ -177,6 +198,7 @@ function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveH
         onSave={onSaveHoras} 
         alocacao={selectedAlocacao}
         projetoId={projeto.id}
+        onDataChange={onDataChange}
       />
       <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
         <TableCell>
@@ -252,7 +274,7 @@ function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveH
 
 
 
-export default function ProjetosDetalhesTable({ projetos, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveHoras }) {
+export default function ProjetosDetalhesTable({ projetos, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveHoras, onDataChange }) {
   return (
     <TableContainer component={Paper} sx={{ maxHeight: '70vh' }}>
       <Table stickyHeader aria-label="collapsible table">
@@ -274,6 +296,7 @@ export default function ProjetosDetalhesTable({ projetos, onEditProjeto, onEditA
               onEditAlocacao={onEditAlocacao}
               onDeleteAlocacao={onDeleteAlocacao}
               onSaveHoras={onSaveHoras}
+              onDataChange={onDataChange}
             />
           ))}
         </TableBody>

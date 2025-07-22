@@ -80,7 +80,6 @@ import {
   createAlocacao,
   updateAlocacao,
   deleteAlocacao,
-  planejamentoHoras, // Importa a nova função
 } from "../../services/alocacoes.js"; // Corrigido o caminho de importação
 
 
@@ -217,7 +216,7 @@ export default function GerenciamentoCascade() {
             break;
           }
           case "secoes": {
-            const data = await getSecoes({ ...params, apenas_ativos: !showInactive });
+            const data = await getSecoes({ ...params, apenas_ativos: !showInactive, nome: filtroNome });
             const items = Array.isArray(data) ? data : data.items;
             const totalCount = Array.isArray(data)
               ? data.length
@@ -454,7 +453,7 @@ export default function GerenciamentoCascade() {
     setModalError(""); // Limpa erros anteriores
     try {
       if (currentAlocacao && currentAlocacao.id) {
-        // A lógica de encontrar o projetoId foi removida, pois a API usa a rota /alocacoes/{id}
+        // Usar a nova função updateAlocacao com endpoint correto
         await updateAlocacao(currentAlocacao.id, data);
 
         setNotification({
@@ -470,7 +469,7 @@ export default function GerenciamentoCascade() {
       }
     } catch (err) {
       const errMsg =
-        err.response?.data?.detail || "Ocorreu um erro ao atualizar a alocação.";
+        err.response?.data?.detail || err.message || "Ocorreu um erro ao atualizar a alocação.";
       setModalError(errMsg);
       setNotification({
         open: true,
@@ -977,6 +976,7 @@ export default function GerenciamentoCascade() {
               onEditAlocacao={handleEditAlocacao}
               onDeleteAlocacao={handleDeleteAlocacao}
               onSaveHoras={handleSaveHoras}
+              onDataChange={fetchData}
             />
             {total > 0 && (
               <TablePagination

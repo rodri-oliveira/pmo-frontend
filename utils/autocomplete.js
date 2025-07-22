@@ -7,14 +7,14 @@
  */
 export async function buscarTodasSecoes() {
   try {
-    console.log('Buscando todas as seções...');
-    const resp = await fetch(`/backend/v1/secoes?apenas_ativos=true`);
-    if (!resp.ok) throw new Error('Erro ao buscar seções');
+    const resp = await fetch(`http://localhost:8000/backend/v1/secoes?apenas_ativos=true`);
+    if (!resp.ok) {
+      throw new Error(`Erro ${resp.status}: ${resp.statusText}`);
+    }
     const data = await resp.json();
     const raw = Array.isArray(data) ? data : (data.items || []);
     const secoes = raw.filter(item => (item.ativo !== false) && (item.inativo !== true))
       .map(item => ({ id: item.id, nome: item.nome }));
-    console.log('Seções encontradas:', secoes);
     return secoes;
   } catch (e) {
     console.error('Erro ao buscar todas as seções:', e);
@@ -30,15 +30,11 @@ export async function buscarTodasSecoes() {
 export async function buscarSecoesPorNome(termo) {
   if (!termo || termo.length < 2) return [];
   try {
-    console.log(`Buscando seções com o termo: "${termo}"`);
-    // Novo endpoint de busca de seções
-    const resp = await fetch(`/backend/v1/secoes?nome=${encodeURIComponent(termo)}&apenas_ativos=true`);
+    const resp = await fetch(`http://localhost:8000/backend/v1/secoes?nome=${encodeURIComponent(termo)}&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar seções');
     const data = await resp.json();
-    // Sempre espera data.items
     const secoes = (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
       .map(item => ({ id: item.id, nome: item.nome }));
-    console.log(`Seções encontradas para "${termo}":`, secoes);
     return secoes;
   } catch (e) {
     console.error(`Erro ao buscar seções com termo "${termo}":`, e);
