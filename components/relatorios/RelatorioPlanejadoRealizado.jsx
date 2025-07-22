@@ -180,9 +180,11 @@ export default function RelatorioPlanejadoRealizado() {
       return;
     }
 
-
-
-
+    // Cria mapeamento dinâmico de nome do status para ID
+    const statusNameToId = {};
+    statusOptions.forEach(status => {
+      statusNameToId[status.nome] = status.id;
+    });
 
     const alteracoes_projetos = reportData.projetos
       // Garante que apenas projetos com alocacao_id numérico sejam enviados
