@@ -20,6 +20,7 @@ export const updateAlocacao = async (id, data) => {
   const cleanData = {
     recurso_id: data.recurso_id,
     projeto_id: data.projeto_id,
+    equipe_id: data.equipe_id,
     data_inicio_alocacao: data.data_inicio_alocacao,
     data_fim_alocacao: data.data_fim_alocacao,
     status_alocacao_id: data.status_alocacao_id,
