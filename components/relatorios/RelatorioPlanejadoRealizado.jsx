@@ -115,19 +115,7 @@ export default function RelatorioPlanejadoRealizado() {
         filtros.status_id = parseInt(status, 10); // Envia status_id como número
       }
       
-      console.log('🔍 Filtros enviados para o relatório:', filtros);
       const apiData = await getRelatorioPlanejadoRealizado(filtros);
-      console.log('📊 Dados retornados da API:', apiData);
-      console.log('📋 Projetos encontrados:', apiData.projetos?.length || 0);
-      console.log('🎯 Procurando alocação ID 903...');
-      const alocacao903 = apiData.projetos?.find(p => p.alocacao_id === 903);
-      console.log('🔍 Alocação 903 encontrada?', alocacao903 ? 'SIM' : 'NÃO', alocacao903);
-      
-      // Lista todas as alocações para debug
-      console.log('📝 Todas as alocações retornadas:');
-      apiData.projetos?.forEach((p, i) => {
-        console.log(`${i + 1}: ID ${p.alocacao_id} - ${p.nome} - Status: ${p.status}`);
-      });
       // Mapeia snake_case para camelCase para evitar refactor grande na renderização
       const linhasResumo = apiData.linhas_resumo.map(l => ({
         label: l.label,
