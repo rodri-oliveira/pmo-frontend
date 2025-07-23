@@ -419,13 +419,13 @@ export default function GerenciamentoCascade() {
         return;
       }
 
-      // Prepara o item para edição, incluindo a secao_id original.
-      // O modal buscará as listas de projetos/recursos com base na seção.
+      // Prepara o item para edição, mantendo os dados atuais para pré-preencher o modal
       const alocacaoParaEdicao = {
         ...alocacao,
         secao_id: projetoDaAlocacao.secao.id,
-        projeto_id: null, // Limpo para nova seleção
-        recurso_id: null, // Limpo para nova seleção
+        // Manter os IDs atuais para pré-preencher o modal
+        projeto_id: alocacao.projeto_id,
+        recurso_id: alocacao.recurso_id,
       };
       
       setCurrentAlocacao(alocacaoParaEdicao);

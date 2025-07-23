@@ -135,20 +135,99 @@ export const getStatusProjeto = (params = { skip: 0, limit: 100 }) => {
  * @param {number} idAlocacao - ID da alocação.
  * @param {number} ano - Ano das horas planejadas.
  * @param {number} mes - Mês das horas planejadas.
- * @returns {Promise<void>} Resposta da exclusão.
+ * @returns {Promise<void>}
  */
-export const deleteHorasPlanejadas = (idAlocacao, ano, mes) => {
+// Deleta horas planejadas específicas
+export const deleteHorasPlanejadas = async (idAlocacao, ano, mes) => {
   const url = `http://localhost:8000/backend/horas-planejadas/horas-planejadas/${idAlocacao}/${ano}/${mes}`;
-  return fetch(url, {
-    method: 'DELETE',
-    headers: {
-      'accept': '*/*'
-    }
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Erro ao deletar horas planejadas: ${response.status}`);
-      }
-      return response;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
+    
+    if (!response.ok) {
+      throw new Error(`Erro HTTP: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Erro ao deletar horas planejadas:', error);
+    throw error;
+  }
+};
+
+// Salva ou atualiza horas planejadas para uma alocação
+export const saveHorasPlanejadas = async (idAlocacao, horasPlanejadasList) => {
+  console.log(' Salvando horas planejadas:', { idAlocacao, horasPlanejadasList });
+  
+  try {
+    const results = [];
+    
+    // Salva cada hora planejada individualmente usando PUT
+    for (const hora of horasPlanejadasList) {
+      const alocacaoId = parseInt(idAlocacao);
+      const ano = parseInt(hora.ano);
+      const mes = parseInt(hora.mes);
+      const horas = parseFloat(hora.horas) || 0;
+      
+      // Validação dos dados
+      if (!alocacaoId || !ano || !mes || horas < 0) {
+        console.error('❌ Dados inválidos:', { alocacaoId, ano, mes, horas });
+        throw new Error(`Dados inválidos: alocacao=${alocacaoId}, ano=${ano}, mes=${mes}, horas=${horas}`);
+      }
+      
+      // URL com parâmetros (como no Swagger)
+      const url = `http://localhost:8000/backend/horas-planejadas/horas-planejadas/${alocacaoId}/${ano}/${mes}`;
+      
+      // Payload simples (só as horas)
+      const payload = {
+        horas_planejadas: horas
+      };
+      
+      console.log('📤 Enviando hora planejada:', { url, payload });
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        let errorDetails;
+        try {
+          errorDetails = await response.text();
+        } catch (e) {
+          errorDetails = 'Não foi possível ler o corpo da resposta';
+        }
+        
+        console.error('❌ Erro detalhado do backend:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: errorDetails,
+          payload: payload
+        });
+        
+        throw new Error(`Erro HTTP: ${response.status} - ${errorDetails}`);
+      }
+      
+      const result = await response.json();
+      results.push(result);
+    }
+    
+    console.log(' Todas as horas planejadas salvas com sucesso:', results);
+    return results;
+  } catch (error) {
+    console.error(' Erro ao salvar horas planejadas:', error);
+    throw error;
+  }
 };
