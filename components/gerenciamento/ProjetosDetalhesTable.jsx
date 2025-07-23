@@ -229,7 +229,6 @@ function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveH
                       <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Data Início</TableCell>
                       <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Data Fim</TableCell>
                       <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Status</TableCell>
-                      <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Horas Planejadas</TableCell>
                       <TableCell sx={{ backgroundColor: wegBlue, color: 'white', fontWeight: 'bold' }}>Ações</TableCell>
                     </TableRow>
                   </TableHead>
@@ -240,15 +239,6 @@ function Row({ projeto, onEditProjeto, onEditAlocacao, onDeleteAlocacao, onSaveH
                         <TableCell>{alocacao.data_inicio_alocacao}</TableCell>
                         <TableCell>{alocacao.data_fim_alocacao || 'Indeterminado'}</TableCell>
                         <TableCell>{alocacao.status_alocacao?.nome || 'N/A'}</TableCell>
-                        <TableCell align="center">
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => handleOpenModal(alocacao)}
-                          >
-                            Editar Horas
-                          </Button>
-                        </TableCell>
                         <TableCell>
                           <IconButton onClick={() => onEditAlocacao(alocacao)} size="small">
                             <EditIcon />

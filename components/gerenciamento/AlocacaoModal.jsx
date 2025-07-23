@@ -24,7 +24,7 @@ const initialFormState = {
   observacao: '',
 };
 
-export default function AlocacaoModal({ open, onClose, onSave, item, secoes, statusOptions }) {
+export default function AlocacaoModal({ open, onClose, onSave, item, secoes, statusOptions, onDataChange }) {
   const [formData, setFormData] = useState(initialFormState);
   const [projetosList, setProjetosList] = useState([]);
   const [projetosLoading, setProjetosLoading] = useState(false);
@@ -229,6 +229,12 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
         }
         
         console.log('✅ Tudo salvo com sucesso!');
+        
+        // Recarregar dados para atualizar a interface
+        if (onDataChange) {
+          console.log('🔄 Recarregando dados...');
+          onDataChange();
+        }
       } catch (error) {
         console.error('❌ Erro ao salvar:', error);
         // O erro já será tratado pelo componente pai
@@ -307,10 +313,7 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
     }]);
   };
 
-  const handleRemoveHoras = (index) => {
-    const newHoras = horasPlanejadasList.filter((_, i) => i !== index);
-    setHorasPlanejadasList(newHoras);
-  };
+
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
@@ -483,7 +486,7 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
                     horasPlanejadasList.map((horas, index) => (
                       <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
                         <Grid container spacing={2} alignItems="center">
-                          <Grid item xs={3}>
+                          <Grid item xs={4}>
                             <TextField
                               label="Ano"
                               type="number"
@@ -493,7 +496,7 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
                               size="small"
                             />
                           </Grid>
-                          <Grid item xs={3}>
+                          <Grid item xs={4}>
                             <Autocomplete
                               options={Array.from({length: 12}, (_, i) => ({ value: i + 1, label: mesesNomes[i] }))}
                               getOptionLabel={(option) => option.label}
@@ -504,7 +507,7 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
                               size="small"
                             />
                           </Grid>
-                          <Grid item xs={3}>
+                          <Grid item xs={4}>
                             <TextField
                               label="Horas"
                               type="number"
@@ -513,17 +516,6 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
                               fullWidth
                               size="small"
                             />
-                          </Grid>
-                          <Grid item xs={3}>
-                            <Button 
-                              variant="outlined" 
-                              color="error" 
-                              onClick={() => handleRemoveHoras(index)}
-                              size="small"
-                              fullWidth
-                            >
-                              Remover
-                            </Button>
                           </Grid>
                         </Grid>
                       </Box>
