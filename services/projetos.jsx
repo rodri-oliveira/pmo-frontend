@@ -12,18 +12,23 @@ export const getProjetos = (params = {}) => {
 
 // Buscar lista de projetos com alocações e horas
 export const getProjetosDetalhados = (params = {}) => {
+  console.log('🔍 getProjetosDetalhados - Parâmetros recebidos:', params);
+  
+  // Converter skip/limit (frontend) para page/per_page (backend)
   const finalParams = {
-    page: params.page || 1,
-    per_page: params.per_page || 10,
+    page: params.skip ? Math.floor(params.skip / (params.limit || 10)) + 1 : 1,
+    per_page: params.limit || 10,
   };
 
   if (params.search) {
     finalParams.search = params.search;
   }
-  // Garante que `ativo=false` seja enviado, mas `ativo=null/undefined` não.
-  if (params.ativo !== null && params.ativo !== undefined) {
-    finalParams.ativo = params.ativo;
+  
+  // Backend ainda usa 'ativo' ao invés de 'apenas_ativos'
+  if (params.apenas_ativos !== null && params.apenas_ativos !== undefined) {
+    finalParams.ativo = params.apenas_ativos;
   }
+  
   // Envia `com_alocacoes=true` apenas se for explicitamente true.
   if (params.com_alocacoes === true) {
     finalParams.com_alocacoes = true;
@@ -37,6 +42,7 @@ export const getProjetosDetalhados = (params = {}) => {
     finalParams.recurso = params.recurso;
   }
 
+  console.log('🔍 getProjetosDetalhados - Parâmetros finais enviados:', finalParams);
   return apiGet(`${ENDPOINT}/detalhados`, finalParams);
 };
 

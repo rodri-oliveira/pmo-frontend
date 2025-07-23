@@ -560,7 +560,9 @@ export default function GerenciamentoCascade() {
   };
 
   const handleRowsPerPageChange = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    console.log('🔍 handleRowsPerPageChange - Mudando de', rowsPerPage, 'para', newRowsPerPage);
+    setRowsPerPage(newRowsPerPage);
     setPage(0);
   };
 
