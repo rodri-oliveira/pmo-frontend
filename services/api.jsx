@@ -139,6 +139,10 @@ export const apiGet = async (endpoint, params) => {
 export const apiPost = async (endpoint, data) => {
   const url = buildUrl(endpoint);
   
+  // DEBUG: Log do payload sendo enviado
+  console.log('🚀 [apiPost] URL:', url);
+  console.log('📦 [apiPost] Payload:', JSON.stringify(data, null, 2));
+  
   try {
     const response = await fetch(url, {
       method: 'POST',

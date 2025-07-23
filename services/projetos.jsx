@@ -3,7 +3,11 @@ import { apiGet, apiPost, apiPut, apiDelete } from './api';
 const ENDPOINT = '/projetos';
 
 // Criar projeto junto com alocações
-export const createProjetoComAlocacoes = (data) => apiPost(`${ENDPOINT}/com-alocacoes`, data);
+export const createProjetoComAlocacoes = (data) => {
+  // Usa URL absoluta para garantir endpoint correto, sempre apontando para o backend na porta 8000
+  const url = 'http://localhost:8000/backend/projetos/com-alocacoes';
+  return apiPost(url, data);
+};
 
 // Buscar lista de projetos
 export const getProjetos = (params = {}) => {

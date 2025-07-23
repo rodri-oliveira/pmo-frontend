@@ -7,6 +7,6 @@ export async function getFiltrosPopulados({ secao_id = null, equipe_id = null, r
   if (equipe_id) params.equipe_id = equipe_id;
   if (recurso_id) params.recurso_id = recurso_id;
 
-  const response = await axios.get('/backend/v1/filtros/filtros-populados', { params });
+  const response = await axios.get('/backend/filtros/filtros-populados', { params });
   return response.data;
 }

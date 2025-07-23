@@ -33,7 +33,7 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
       return;
     }
     try {
-      const response = await fetch(`/backend/v1/filtros/filtros-populados?secao_id=${secaoId}`);
+      const response = await fetch(`/backend/filtros/filtros-populados?secao_id=${secaoId}`);
       if (!response.ok) throw new Error('Erro ao buscar filtros populados');
       const data = await response.json();
       setRecursos(data.recursos || []);
@@ -104,18 +104,25 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
     if (!dataToSave.codigo_empresa) delete dataToSave.codigo_empresa;
     if (!dataToSave.jira_project_key) delete dataToSave.jira_project_key;
 
-    return {
+    const finalPayload = {
       projeto: dataToSave,
       alocacoes: alocacoes.map(({ temp_id, ...rest }) => ({
         ...rest,
         ativo: true,
         recurso_id: rest.recurso_id ? parseInt(rest.recurso_id, 10) : null,
+        data_inicio_alocacao: !rest.data_inicio_alocacao ? null : rest.data_inicio_alocacao,
+        data_fim_alocacao: !rest.data_fim_alocacao ? null : rest.data_fim_alocacao,
         horas_planejadas: rest.horas_planejadas.map(p => ({
           ...p,
           horas_planejadas: p.horas_planejadas ? parseFloat(p.horas_planejadas) : 0,
         })),
       })),
     };
+    
+    // DEBUG: Log do payload final
+    console.log('🔍 [buildFinalData] Payload final:', JSON.stringify(finalPayload, null, 2));
+    
+    return finalPayload;
   };
 
   // Salva recursos mas mantém modal aberto
@@ -156,26 +163,38 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
   // Validação da etapa de alocação
   const validateAlocacoes = () => {
     if (alocacoes.length === 0) {
-      alert('Adicione pelo menos uma alocação de recurso.');
+      setErrors({ alocacoes: 'Pelo menos uma alocação é necessária.' });
       return false;
     }
-    const recursoIds = new Set();
-  for (const aloc of alocacoes) {
-      if (!aloc.recurso_id) {
-        alert('Selecione um recurso para todas as alocações.');
-        return false;
+
+    const alocacaoErrors = {};
+    let hasErrors = false;
+
+    alocacoes.forEach((alocacao, index) => {
+      const errors = {};
+      if (!alocacao.recurso_id) {
+        errors.recurso_id = 'Recurso é obrigatório.';
+        hasErrors = true;
       }
-      if (recursoIds.has(aloc.recurso_id)) {
-      alert('Este recurso já está alocado neste projeto.');
-      return false;
-    }
-    recursoIds.add(aloc.recurso_id);
-    if (!aloc.horas_planejadas || aloc.horas_planejadas.length === 0) {
-        alert('Informe horas planejadas para todas as alocações.');
-        return false;
+      if (!alocacao.equipe_id) {
+        errors.equipe_id = 'Equipe é obrigatória.';
+        hasErrors = true;
       }
-    }
-    return true;
+      if (!alocacao.data_inicio_alocacao) {
+        errors.data_inicio_alocacao = 'Data de início da alocação é obrigatória.';
+        hasErrors = true;
+      }
+      if (!alocacao.data_fim_alocacao) {
+        errors.data_fim_alocacao = 'Data de fim da alocação é obrigatória.';
+        hasErrors = true;
+      }
+      if (Object.keys(errors).length > 0) {
+        alocacaoErrors[index] = errors;
+      }
+    });
+
+    setErrors(alocacaoErrors);
+    return !hasErrors;
   };
 
   const handleAddAlocacao = () => {

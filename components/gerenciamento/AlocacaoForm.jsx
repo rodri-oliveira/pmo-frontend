@@ -92,6 +92,9 @@ const AlocacaoForm = ({ alocacao, index, onUpdate, onRemove, recursos, equipes =
     onUpdate(index, { ...alocacao, horas_planejadas: newPlanejamento });
   };
 
+  // Deduplique recursos por nome para evitar warnings de chave duplicada no Autocomplete
+  const uniqueRecursos = Array.isArray(recursos) ? recursos.filter((r, idx, arr) => arr.findIndex(o => o.nome === r.nome) === idx) : [];
+
   const selectedRecurso = (Array.isArray(recursos) && recursos.find(r => r.id === alocacao.recurso_id)) || null;
 
   return (
@@ -111,7 +114,7 @@ const AlocacaoForm = ({ alocacao, index, onUpdate, onRemove, recursos, equipes =
         </Grid>
         <Grid item xs={12} sm={6}>
   <Autocomplete
-    options={Array.isArray(recursos) && alocacao.equipe_id ? recursos.filter(r => String(r.equipe_id) === String(alocacao.equipe_id)) : []}
+    options={alocacao.equipe_id ? uniqueRecursos.filter(r => String(r.equipe_id) === String(alocacao.equipe_id)) : uniqueRecursos}
     getOptionLabel={option => option.nome || ''}
     value={selectedRecurso}
     onChange={(e, value) => handleResourceChange(value)}
