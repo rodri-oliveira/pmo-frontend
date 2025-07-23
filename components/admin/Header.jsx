@@ -83,7 +83,7 @@ export default function Header({ handleDrawerToggle, onGestorViewClick }) {
         width: { sm: `calc(100% - ${drawerWidth}px)` },
         ml: { sm: `${drawerWidth}px` },
         zIndex: 1200,
-        backgroundColor: '#fff',
+        backgroundColor: '#fafafa',
         color: '#333',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}
@@ -115,93 +115,10 @@ export default function Header({ handleDrawerToggle, onGestorViewClick }) {
           Automação PMO
         </Typography>
         
-        {/* Menu de navegação principal no topo */}
-        <Tabs 
-          value={getActiveTab()} 
-          sx={{ 
-            flexGrow: 1,
-            '& .MuiTab-root': {
-              color: '#555',
-              '&.Mui-selected': {
-                color: '#00579d',
-                fontWeight: 600
-              }
-            },
-            '& .MuiTabs-indicator': {
-              backgroundColor: '#00579d'
-            }
-          }}
-        >
-          <Tab 
-            label="Planejamento" 
-            component={Link}
-            href="/admin/planejamento/horas-recurso"
-          />
-          <Tab 
-            label="Apontamentos" 
-            component={Link}
-            href="/apontamentos/consultar-gerenciar"
-          />
-          <Tab 
-            label="Gerenciamento" 
-            component={Link}
-            href="/gerenciamento/projetos"
-          />
-          <Tab 
-            label="Administração" 
-            component={Link}
-            href="/administracao/configuracoes"
-          />
-        </Tabs>
+        {/* Abas de navegação removidas conforme solicitado */}
+        <Box sx={{ flexGrow: 1 }} />
         
-        {/* Menu do usuário */}
-        <Box sx={{ flexGrow: 0, ml: 2 }}>
-          <Tooltip title="Opções do usuário">
-            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-              <Avatar 
-                alt={session?.user?.name || "Usuário"} 
-                sx={{ 
-                  bgcolor: '#00579d',
-                  width: 40,
-                  height: 40
-                }}
-              >
-                {session?.user?.name ? session.user.name.charAt(0) : "U"}
-              </Avatar>
-            </IconButton>
-          </Tooltip>
-          <Menu
-            sx={{ mt: '45px' }}
-            id="menu-appbar"
-            anchorEl={anchorElUser}
-            anchorOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            keepMounted
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            open={Boolean(anchorElUser)}
-            onClose={handleCloseUserMenu}
-          >
-            {session?.user?.name && (
-              <MenuItem disabled>
-                <Typography textAlign="center">{session.user.name}</Typography>
-              </MenuItem>
-            )}
-            <MenuItem onClick={handleCloseUserMenu} component={Link} href="/perfil">
-              <Typography textAlign="center">Meu Perfil</Typography>
-            </MenuItem>
-            <MenuItem onClick={handleSignOut}>
-              <Typography textAlign="center" sx={{ display: 'flex', alignItems: 'center' }}>
-                <LogoutIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
-                Sair
-        </Typography>
-            </MenuItem>
-          </Menu>
-        </Box>
+        {/* Menu do usuário removido conforme solicitado */}
       </Toolbar>
     </AppBar>
   );
