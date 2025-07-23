@@ -106,7 +106,6 @@ const managementTypes = [
   { value: "secoes", label: "Seções" },
   { value: "equipes", label: "Equipes" },
   { value: "recursos", label: "Recursos" },
-  { value: "alocacoes", label: "Alocações" },
 ];
 
 export default function GerenciamentoCascade() {
@@ -121,7 +120,7 @@ export default function GerenciamentoCascade() {
   const [equipes, setEquipes] = useState([]);
   const [recursos, setRecursos] = useState([]);
   const [statusProjetos, setStatusProjetos] = useState([]);
-  const [alocacoes, setAlocacoes] = useState([]);
+
   // Lista completa de projetos da seção para o modal de alocação
   const [projetosDaSecao, setProjetosEPlanejamentoDaSecao] = useState([]);
 
@@ -263,31 +262,7 @@ export default function GerenciamentoCascade() {
             setTotal(totalCount || 0);
             break;
           }
-          case "alocacoes": {
-            const [alocData, projData, recData, statAlocData] =
-              await Promise.all([
-                getAlocacoes(params),
-                getProjetos({ limit: 1000 }),
-                getRecursos({ limit: 1000 }),
-                getStatusProjetos({ limit: 1000 }),
-              ]);
-            const items = Array.isArray(alocData) ? alocData : alocData.items;
-            const totalCount = Array.isArray(alocData)
-              ? alocData.length
-              : alocData.total || (alocData.items ? alocData.items.length : 0);
-            setAlocacoes(items || []);
-            setTotal(totalCount || 0);
-            setProjetosEPlanejamento(
-              Array.isArray(projData) ? projData : projData.items || [],
-            );
-            setRecursos(Array.isArray(recData) ? recData : recData.items || []);
-            setStatusProjetos(
-              Array.isArray(statAlocData)
-                ? statAlocData
-                : statAlocData.items || [],
-            );
-            break;
-          }
+
           default:
             break;
         }
@@ -600,7 +575,6 @@ export default function GerenciamentoCascade() {
       equipes,
       recursos,
       statusProjetos,
-      alocacoes,
     };
     const currentData = dataMap[tab] || [];
 
@@ -654,26 +628,6 @@ export default function GerenciamentoCascade() {
         { id: "nome", label: "Nome" },
         { id: "descricao", label: "Descrição" },
         { id: "acoes", label: "Ações", isAction: true, align: "right" },
-      ],
-      alocacoes: [
-        { id: "projeto_nome", label: "Projeto" },
-        { id: "recurso_nome", label: "Recurso" },
-        { id: "equipe_nome", label: "Equipe" },
-        {
-          id: "status_alocacao_id",
-          label: "Status",
-          format: (val) =>
-            statusProjetos.find((s) => s.id === val)?.nome || "N/A",
-        },
-        {
-          id: "data_inicio_alocacao",
-          label: "Início",
-          format: (val) =>
-            val
-              ? new Date(val + "T00:00:00").toLocaleDateString("pt-BR")
-              : "N/A",
-        },
-        { id: "observacao", label: "Observação" },
       ],
     };
     const currentColumns = columns[tab];

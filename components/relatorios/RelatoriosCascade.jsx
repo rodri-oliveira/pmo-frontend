@@ -69,7 +69,7 @@ const RELATORIOS = [
   {
     label: 'Planejado vs Realizado',
     value: 'cascade-planejado-vs-realizado',
-    endpoint: '/backend/v1/relatorios/planejado-vs-realizado',
+    endpoint: '/backend/v1/relatorios/planejado-vs-realizado2',
     descricao: 'Comparativo de horas planejadas e realizadas.',
     filtros: [
       { name: 'ano', placeholder: 'Ano', type: 'text' },

@@ -230,7 +230,7 @@ export default function Relatorios() {
 
       // Tratamento especial para o relatório 'Planejado vs Realizado' (modo de edição)
       if (tipoRelatorio === 'planejado-vs-realizado') {
-        const res = await fetch('/backend/v1/relatorios/planejado-vs-realizado-3', {
+        const res = await fetch('/backend/v1/relatorios/planejado-vs-realizado2', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(fixedParams)
