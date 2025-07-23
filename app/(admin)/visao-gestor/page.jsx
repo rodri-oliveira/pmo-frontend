@@ -79,7 +79,9 @@ export default function VisaoGestorPage() {
     const fetchInitialData = async () => {
       try {
         const data = await apiGet('/filtros/filtros-populados');
-        setSecoesList(data.secoes || []);
+        // Remove duplicados pelo nome para evitar chaves repetidas no Autocomplete
+        const secaoUnicas = Array.from(new Map((data.secoes || []).map(s => [s.nome, s])).values());
+        setSecoesList(secaoUnicas);
       } catch (err) {
         console.error("Falha ao buscar seções:", err);
         setError("Falha ao carregar filtros iniciais.");
@@ -103,7 +105,8 @@ export default function VisaoGestorPage() {
       try {
         const params = { secao_id: selectedSecao.id };
         const data = await apiGet('/filtros/filtros-populados', params);
-        setEquipesList(data.equipes || []);
+        const equipesUnicas = Array.from(new Map((data.equipes || []).map(e => [e.nome, e])).values());
+        setEquipesList(equipesUnicas);
       } catch (err) {
         console.error("Falha ao buscar equipes:", err);
       }
@@ -127,8 +130,10 @@ export default function VisaoGestorPage() {
       try {
         const params = { secao_id: selectedSecao.id, equipe_id: selectedEquipe.id };
         const data = await apiGet('/filtros/filtros-populados', params);
-        setRecursosList(data.recursos || []);
-        
+        const recursosUnicos = Array.from(new Map((data.recursos || []).map(r => [r.nome, r])).values());
+        const projetosUnicos = Array.from(new Map((data.projetos || []).map(p => [p.nome, p])).values());
+        setRecursosList(recursosUnicos);
+        setProjetosList(projetosUnicos);
       } catch (err) {
         console.error("Falha ao buscar recursos e projetos:", err);
       }
@@ -148,7 +153,7 @@ export default function VisaoGestorPage() {
     setError(null);
     try {
       const params = { ano, mes_inicio: mesInicio, mes_fim: mesFim, recurso_id: selectedRecurso.id };
-      const response = await apiGet('/dashboard/disponibilidade-recurso', params);
+      const response = await apiGet('http://localhost:8000/backend/dashboard/disponibilidade-recurso', params);
       setApiData(response);
     } catch (err) {
       setError('Falha ao buscar dados do dashboard: ' + err.message);
@@ -396,16 +401,16 @@ export default function VisaoGestorPage() {
       <Paper sx={{ p: 2, mb: 4 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={3}>
-            <Autocomplete options={secoesList} getOptionLabel={(o) => o.nome || ''} value={selectedSecao} onChange={(_, v) => setSelectedSecao(v)} renderInput={(p) => <TextField {...p} label="Seção" />} />
+            <Autocomplete options={secoesList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedSecao} onChange={(_, v) => setSelectedSecao(v)} renderInput={(p) => <TextField {...p} label="Seção" />} />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Autocomplete options={equipesList} getOptionLabel={(o) => o.nome || ''} value={selectedEquipe} onChange={(_, v) => setSelectedEquipe(v)} disabled={!selectedSecao} renderInput={(p) => <TextField {...p} label="Equipe" />} />
+            <Autocomplete options={equipesList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedEquipe} onChange={(_, v) => setSelectedEquipe(v)} disabled={!selectedSecao} renderInput={(p) => <TextField {...p} label="Equipe" />} />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Autocomplete options={recursosList} getOptionLabel={(o) => o.nome || ''} value={selectedRecurso} onChange={(_, v) => setSelectedRecurso(v)} disabled={!selectedEquipe} renderInput={(p) => <TextField {...p} label="Recurso" />} />
+            <Autocomplete options={recursosList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedRecurso} onChange={(_, v) => setSelectedRecurso(v)} disabled={!selectedEquipe} renderInput={(p) => <TextField {...p} label="Recurso" />} />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Autocomplete options={projetosList} getOptionLabel={(o) => o.nome || ''} value={selectedProjeto} onChange={(_, v) => setSelectedProjeto(v)} disabled={!selectedRecurso} renderInput={(p) => <TextField {...p} label="Projeto (Opcional)" />} />
+            <Autocomplete options={projetosList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedProjeto} onChange={(_, v) => setSelectedProjeto(v)} disabled={!selectedRecurso} renderInput={(p) => <TextField {...p} label="Projeto (Opcional)" />} />
           </Grid>
         </Grid>
       </Paper>
