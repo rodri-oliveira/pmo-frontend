@@ -1076,7 +1076,7 @@ export default function GerenciamentoCascade() {
           item={currentAlocacao}
           secoes={secoes}
           statusOptions={statusProjetos}
-          onDataChange={loadData}
+          onDataChange={fetchData}
         />
       )}
 

@@ -6,6 +6,7 @@ import {
   FormControl, InputLabel, Select, MenuItem, FormHelperText, Typography, Divider,
   Stepper, Step, StepLabel, Box, Alert
 } from '@mui/material';
+import SaveIcon from '@mui/icons-material/Save';
 import { getSecoes } from '../../services/secoes';
 import { getStatusProjetos } from '../../services/statusProjetos';
 import { getRecursos } from '../../services/recursos';
@@ -296,9 +297,13 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
           {activeStep === 1 && (
             <>
               <Button onClick={() => setActiveStep(0)}>Voltar</Button>
-              <Button onClick={handleSalvarRecurso}>Salvar Recurso</Button>
-              <Button onClick={handleEnviarProjeto} variant="contained" sx={{ backgroundColor: wegBlue }}>
-                Enviar
+              <Button 
+                onClick={handleEnviarProjeto} 
+                variant="contained" 
+                sx={{ backgroundColor: wegBlue }}
+                startIcon={<SaveIcon />}
+              >
+                Salvar
               </Button>
             </>
           )}
