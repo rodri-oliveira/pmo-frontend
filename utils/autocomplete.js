@@ -7,7 +7,7 @@
  */
 export async function buscarTodasSecoes() {
   try {
-    const resp = await fetch(`http://localhost:8000/backend/v1/secoes?apenas_ativos=true`);
+    const resp = await fetch(`http://localhost:8000/backend/secoes/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) {
       throw new Error(`Erro ${resp.status}: ${resp.statusText}`);
     }
@@ -30,12 +30,19 @@ export async function buscarTodasSecoes() {
 export async function buscarSecoesPorNome(termo) {
   if (!termo || termo.length < 2) return [];
   try {
-    const resp = await fetch(`http://localhost:8000/backend/v1/secoes?nome=${encodeURIComponent(termo)}&apenas_ativos=true`);
+    const resp = await fetch(`http://localhost:8000/backend/secoes/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar seções');
     const data = await resp.json();
-    const secoes = (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+    const items = data.items || [];
+    
+    // Filtra por nome (case insensitive) e status ativo
+    return items
+      .filter(item => {
+        const matchesName = item.nome.toLowerCase().includes(termo.toLowerCase());
+        const isActive = (item.ativo !== false) && (item.inativo !== true);
+        return matchesName && isActive;
+      })
       .map(item => ({ id: item.id, nome: item.nome }));
-    return secoes;
   } catch (e) {
     console.error(`Erro ao buscar seções com termo "${termo}":`, e);
     return [];
@@ -48,7 +55,7 @@ export async function buscarSecoesPorNome(termo) {
  */
 export async function buscarTodasEquipes() {
   try {
-    const resp = await fetch(`/backend/v1/equipes?apenas_ativos=true`);
+    const resp = await fetch(`/backend/equipes/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar equipes');
     const data = await resp.json();
     const raw = Array.isArray(data) ? data : (data.items || []);
@@ -69,22 +76,21 @@ export async function buscarTodasEquipes() {
 export async function buscarEquipesPorNome(termo, secaoId = null) {
   if (!termo || termo.length < 2) return [];
   try {
-    // Endpoint de busca de equipes com filtro opcional por seção
-    let url = `/backend/v1/equipes/autocomplete?search=${encodeURIComponent(termo)}`;
-    if (secaoId) {
-      url += `&secao_id=${secaoId}`;
-    }
-    
-    const resp = await fetch(url);
+    // Busca todas as equipes e filtra localmente por nome e seção
+    const resp = await fetch(`/backend/equipes/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar equipes');
     const data = await resp.json();
-    // Aceita resposta como array raiz OU objeto com items
-    return (Array.isArray(data)
-      ? data.filter(item => (item.ativo !== false) && (item.inativo !== true))
-      .map(item => ({ id: item.id, nome: item.nome }))
-      : (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
-      .map(item => ({ id: item.id, nome: item.nome }))
-    );
+    const items = data.items || [];
+    
+    // Filtra por nome (case insensitive) e opcionalmente por seção
+    return items
+      .filter(item => {
+        const matchesName = item.nome.toLowerCase().includes(termo.toLowerCase());
+        const matchesSecao = !secaoId || item.secao_id === secaoId;
+        const isActive = (item.ativo !== false) && (item.inativo !== true);
+        return matchesName && matchesSecao && isActive;
+      })
+      .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -99,10 +105,10 @@ export async function buscarEquipesPorNome(termo, secaoId = null) {
 export async function buscarEquipesPorSecao(secaoId) {
   if (!secaoId) return [];
   try {
-    const resp = await fetch(`/backend/v1/equipes?secao_id=${secaoId}&apenas_ativos=true`);
+    const resp = await fetch(`/backend/equipes/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar equipes por seção');
     const data = await resp.json();
-    return (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+    return (data.items || []).filter(item => item.secao_id === secaoId && (item.ativo !== false) && (item.inativo !== true))
       .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
@@ -116,7 +122,7 @@ export async function buscarEquipesPorSecao(secaoId) {
  */
 export async function buscarTodosRecursos() {
   try {
-    const resp = await fetch(`/backend/v1/recursos?apenas_ativos=true`);
+    const resp = await fetch(`/backend/recursos/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar recursos');
     const data = await resp.json();
     const raw = Array.isArray(data) ? data : (data.items || []);
@@ -137,22 +143,21 @@ export async function buscarTodosRecursos() {
 export async function buscarRecursosPorNome(termo, secaoId = null) {
   if (!termo || termo.length < 2) return [];
   try {
-    // Endpoint de busca de recursos com filtro opcional por seção
-    let url = `/backend/v1/recursos/autocomplete?search=${encodeURIComponent(termo)}&apenas_ativos=true`;
-    if (secaoId) {
-      url += `&secao_id=${secaoId}`;
-    }
-    
-    const resp = await fetch(url);
+    // Busca todos os recursos e filtra localmente
+    const resp = await fetch(`/backend/recursos/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar recursos');
     const data = await resp.json();
-    // Aceita resposta como array raiz OU objeto com items
-    return (Array.isArray(data)
-      ? data.filter(item => (item.ativo !== false) && (item.inativo !== true))
-      .map(item => ({ id: item.id, nome: item.nome }))
-      : (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
-      .map(item => ({ id: item.id, nome: item.nome }))
-    );
+    const items = data.items || [];
+    
+    // Filtra por nome (case insensitive) e opcionalmente por seção
+    return items
+      .filter(item => {
+        const matchesName = item.nome.toLowerCase().includes(termo.toLowerCase());
+        const matchesSecao = !secaoId || item.secao_id === secaoId;
+        const isActive = (item.ativo !== false) && (item.inativo !== true);
+        return matchesName && matchesSecao && isActive;
+      })
+      .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -167,10 +172,10 @@ export async function buscarRecursosPorNome(termo, secaoId = null) {
 export async function buscarRecursosPorSecao(secaoId) {
   if (!secaoId) return [];
   try {
-    const resp = await fetch(`/backend/v1/recursos?secao_id=${secaoId}&apenas_ativos=true&limit=1000`);
+    const resp = await fetch(`/backend/recursos/?skip=0&limit=1000&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar recursos por seção');
     const data = await resp.json();
-    return (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+    return (data.items || []).filter(item => item.secao_id === secaoId && (item.ativo !== false) && (item.inativo !== true))
       .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
@@ -182,10 +187,10 @@ export async function buscarRecursosPorSecao(secaoId) {
 export async function buscarRecursosPorEquipe(equipeId) {
   if (!equipeId) return [];
   try {
-    const resp = await fetch(`/backend/v1/recursos?equipe_id=${equipeId}&apenas_ativos=true`);
+    const resp = await fetch(`/backend/recursos/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar recursos por equipe');
     const data = await resp.json();
-    return (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+    return (data.items || []).filter(item => item.equipe_id === equipeId && (item.ativo !== false) && (item.inativo !== true))
       .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
@@ -201,10 +206,10 @@ export async function buscarRecursosPorEquipe(equipeId) {
 export async function buscarProjetosPorEquipe(equipeId) {
   if (!equipeId) return [];
   try {
-    const resp = await fetch(`/backend/v1/projetos?equipe_id=${equipeId}&apenas_ativos=true`);
+    const resp = await fetch(`/backend/projetos/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar projetos por equipe');
     const data = await resp.json();
-    return (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
+    return (data.items || []).filter(item => item.equipe_id === equipeId && (item.ativo !== false) && (item.inativo !== true))
       .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
@@ -219,7 +224,7 @@ export async function buscarProjetosPorEquipe(equipeId) {
 export async function buscarTodosProjetos() {
   try {
     // Use endpoint de listagem para listar todos
-    const resp = await fetch(`/backend/v1/projetos?apenas_ativos=true`);
+    const resp = await fetch(`/backend/projetos/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar projetos');
     const data = await resp.json();
     const raw = Array.isArray(data) ? data : (data.items || []);
@@ -240,22 +245,21 @@ export async function buscarTodosProjetos() {
 export async function buscarProjetosPorNome(termo, recursoId = null) {
   if (!termo || termo.length < 2) return [];
   try {
-    // Endpoint de busca de projetos com filtro opcional por recurso
-    let url = `/backend/v1/projetos/autocomplete?search=${encodeURIComponent(termo)}`;
-    if (recursoId) {
-      url += `&recurso_id=${recursoId}`;
-    }
-    
-    const resp = await fetch(url);
+    // Busca todos os projetos e filtra localmente
+    const resp = await fetch(`/backend/projetos/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar projetos');
     const data = await resp.json();
-    // Aceita resposta como array raiz OU objeto com items
-    return (Array.isArray(data)
-      ? data.filter(item => (item.ativo !== false) && (item.inativo !== true))
-      .map(item => ({ id: item.id, nome: item.nome }))
-      : (data.items || []).filter(item => (item.ativo !== false) && (item.inativo !== true))
-      .map(item => ({ id: item.id, nome: item.nome }))
-    );
+    const items = data.items || [];
+    
+    // Filtra por nome (case insensitive) e opcionalmente por recurso
+    return items
+      .filter(item => {
+        const matchesName = item.nome.toLowerCase().includes(termo.toLowerCase());
+        const matchesRecurso = !recursoId || item.recurso_id === recursoId;
+        const isActive = (item.ativo !== false) && (item.inativo !== true);
+        return matchesName && matchesRecurso && isActive;
+      })
+      .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);
     return [];
@@ -271,11 +275,11 @@ export async function buscarProjetosPorRecurso(recursoId) {
   if (!recursoId) return [];
   try {
     // Use endpoint de listagem com filtro por recurso
-    const resp = await fetch(`/backend/v1/projetos?recurso_id=${recursoId}&apenas_ativos=true`);
+    const resp = await fetch(`/backend/projetos/?skip=0&limit=100&apenas_ativos=true`);
     if (!resp.ok) throw new Error('Erro ao buscar projetos por recurso');
     const data = await resp.json();
-    const raw = Array.isArray(data) ? data : (data.items || []);
-    return raw.filter(item => (item.ativo !== false) && (item.inativo !== true))
+    const items = data.items || [];
+    return items.filter(item => item.recurso_id === recursoId && (item.ativo !== false) && (item.inativo !== true))
       .map(item => ({ id: item.id, nome: item.nome }));
   } catch (e) {
     console.error(e);

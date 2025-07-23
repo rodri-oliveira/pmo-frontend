@@ -168,9 +168,9 @@ export default function GerenciamentoCascade() {
       setError(null);
 
       const params = {
-        ativo: !showInactive,
-        page: page + 1, // API espera page começando em 1
-        per_page: rowsPerPage,
+        apenas_ativos: !showInactive,
+        skip: page * rowsPerPage, // API espera skip (offset)
+        limit: rowsPerPage,
         search: deferredFiltro || null,
         ...(filtroSecao && { secao_id: filtroSecao }),
         ...(filtroRecurso && { recurso: filtroRecurso }),
@@ -181,10 +181,10 @@ export default function GerenciamentoCascade() {
           case "projetos": {
             if (detailedView) {
               const data = await getProjetosDetalhados({
-                page: page + 1,
-                per_page: rowsPerPage,
+                skip: page * rowsPerPage,
+                limit: rowsPerPage,
                 search: deferredFiltro,
-                ativo: !showInactive,
+                apenas_ativos: !showInactive,
                 com_alocacoes: true,
                 ...(filtroSecao && { secao_id: filtroSecao }),
                 ...(filtroRecurso && { recurso: filtroRecurso }),
