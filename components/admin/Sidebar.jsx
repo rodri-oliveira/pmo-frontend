@@ -34,13 +34,7 @@ const textColorSecondary = 'rgba(0, 0, 0, 0.6)';
 
 const menuItems = [
   { text: 'Página Inicial', href: '/dashboard', icon: <DashboardIcon sx={{ color: wegBlue }} /> },
-  {
-    text: 'Dashboards',
-    icon: <BarChartIcon sx={{ color: wegBlue }} />,
-    subItems: [
-      { text: 'Controle de Capacidade e Alocação', href: '/visao-gestor', icon: <AssessmentIcon sx={{ color: wegBlue }} /> },
-    ]
-  },
+
   {
     text: 'Relatórios',
     icon: <BarChartIcon sx={{ color: wegBlue }} />,

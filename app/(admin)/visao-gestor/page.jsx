@@ -396,7 +396,7 @@ export default function VisaoGestorPage() {
 
   return (
     <Container maxWidth={false} sx={{ mt: 4, mb: 4, paddingX: { xs: 2, sm: 3 } }}>
-      <Typography variant="h4" gutterBottom>Visão do Gestor</Typography>
+      <Typography variant="h4" gutterBottom>Controle de Capacidade e Alocação</Typography>
 
       <Paper sx={{ p: 2, mb: 4 }}>
         <Grid container spacing={2} alignItems="center">
