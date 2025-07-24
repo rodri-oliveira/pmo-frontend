@@ -427,30 +427,38 @@ export default function GerenciamentoCascade() {
     setLoading(true);
     setModalError(""); // Limpa erros anteriores
     try {
+      let result;
       if (currentAlocacao && currentAlocacao.id) {
-        // Usar a nova função updateAlocacao com endpoint correto
-        await updateAlocacao(currentAlocacao.id, data);
-
+        // Edição: usar updateAlocacao
+        result = await updateAlocacao(currentAlocacao.id, data);
         setNotification({
           open: true,
           message: "Alocação atualizada com sucesso!",
           severity: "success",
         });
-
-        await fetchData(); // Recarrega os dados para refletir a mudança
-        handleCloseAlocacaoModal();
       } else {
-        setModalError("Nenhuma alocação selecionada para atualização.");
+        // Criação: usar createAlocacao
+        result = await createAlocacao(data);
+        setNotification({
+          open: true,
+          message: "Alocação criada com sucesso!",
+          severity: "success",
+        });
       }
+
+      await fetchData(); // Recarrega os dados para refletir a mudança
+      handleCloseAlocacaoModal();
+      return result; // Retorna o resultado para o modal
     } catch (err) {
       const errMsg =
-        err.response?.data?.detail || err.message || "Ocorreu um erro ao atualizar a alocação.";
+        err.response?.data?.detail || err.message || "Ocorreu um erro ao salvar a alocação.";
       setModalError(errMsg);
       setNotification({
         open: true,
         message: errMsg,
         severity: "error",
       });
+      throw err; // Re-throw para o modal tratar
     } finally {
       setLoading(false);
     }
@@ -911,7 +919,16 @@ export default function GerenciamentoCascade() {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => handleOpenModal()}
+            onClick={() => {
+              // Se estiver na aba projetos com visão detalhada, abre modal de alocação
+              if (tab === "projetos" && detailedView) {
+                setCurrentAlocacao(null);
+                setAlocacaoModalOpen(true);
+              } else {
+                // Caso contrário, abre modal normal (projeto, seção, etc.)
+                handleOpenModal();
+              }
+            }}
             sx={{
               m: 1,
               backgroundColor: wegBlue,
@@ -974,6 +991,7 @@ export default function GerenciamentoCascade() {
             secoes={secoes}
             statusProjetos={statusProjetos}
             apiError={modalError}
+            showAlocacaoStep={detailedView}
           />
         )) ||
           (tab === "alocacoes" && (

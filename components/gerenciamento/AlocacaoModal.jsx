@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
-  TextField, Grid, Autocomplete, CircularProgress, Box, Typography
+  TextField, Grid, Autocomplete, CircularProgress, Box, Typography, IconButton
 } from '@mui/material';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -11,6 +11,7 @@ import { getProjetos } from '../../services/projetos';
 import { getFiltrosPopulados } from '../../services/filtros';
 import AutocompleteEquipeCascade from '../relatorios/AutocompleteEquipeCascade';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { saveHorasPlanejadas } from '../../services/alocacoes';
 
 const initialFormState = {
@@ -21,6 +22,7 @@ const initialFormState = {
   data_inicio_alocacao: null,
   data_fim_alocacao: null,
   status_alocacao_id: null,
+  esforco_estimado: '',
   observacao: '',
 };
 
@@ -159,28 +161,79 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
     fetchFiltros();
   }, [formData.secao_id, formData.equipe_id, formData.recurso_id, open]);
 
-  // Busca projetos conforme digita
-  const fetchProjetosAsync = useCallback(async (inputValue) => {
-    if (!formData.secao_id || !inputValue) {
+  // Busca projetos da seção selecionada
+  const fetchProjetosAsync = useCallback(async (inputValue = '') => {
+    if (!formData.secao_id) {
       // Mantém o projeto atual na lista se existir
       setProjetosList(prev => (prev.some(p => p.id === item?.projeto?.id) ? prev : []));
       return;
     }
+    
     setProjetosLoading(true);
     try {
       const projetosResp = await getProjetos({
-        secao_id: formData.secao_id,
         apenas_ativos: true,
         nome: inputValue,
-        per_page: 20
+        per_page: 100  // Aumenta limite para garantir que pegamos todos os projetos da seção 
       });
-      setProjetosList(projetosResp.items || []);
+      
+      const todosProjetos = projetosResp.items || projetosResp || [];
+      
+      // Filtrar projetos pela seção selecionada no frontend
+      const projetosFiltrados = todosProjetos.filter(projeto => 
+        projeto.secao_id === formData.secao_id
+      );
+      
+      // Se estamos editando e o projeto atual não está na lista filtrada, adiciona ele
+      if (item?.projeto && !projetosFiltrados.some(p => p.id === item.projeto.id)) {
+        projetosFiltrados.unshift(item.projeto);
+      }
+      
+      setProjetosList(projetosFiltrados);
     } catch (error) {
+      console.error('Erro ao buscar projetos:', error);
       setProjetosList([]);
     } finally {
       setProjetosLoading(false);
     }
-  }, [formData.secao_id, item]);
+  }, [formData.secao_id]);
+
+  // Carrega projetos automaticamente quando a seção é selecionada
+  useEffect(() => {
+    if (formData.secao_id && open && !item?.id) {
+      fetchProjetosAsync('');
+    }
+  }, [formData.secao_id, open, item?.id, fetchProjetosAsync]);
+
+  // Gera horas planejadas automaticamente quando as datas são definidas
+  useEffect(() => {
+    if (formData.data_inicio_alocacao && formData.data_fim_alocacao && !item?.id) {
+      const startDate = new Date(formData.data_inicio_alocacao);
+      const endDate = new Date(formData.data_fim_alocacao);
+      
+      if (startDate <= endDate) {
+        const horasGeradas = [];
+        const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        
+        while (currentDate <= endDate) {
+          horasGeradas.push({
+            ano: currentDate.getFullYear(),
+            mes: currentDate.getMonth() + 1, // getMonth() retorna 0-11, queremos 1-12
+            horas: 0,
+            id: null
+          });
+          currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+        
+        setHorasPlanejadasList(horasGeradas);
+      }
+    } else if (!formData.data_inicio_alocacao || !formData.data_fim_alocacao) {
+      // Limpa horas planejadas se as datas forem removidas (apenas para nova alocação)
+      if (!item?.id) {
+        setHorasPlanejadasList([]);
+      }
+    }
+  }, [formData.data_inicio_alocacao, formData.data_fim_alocacao, item?.id]);
 
   const validate = () => {
     const newErrors = {};
@@ -198,45 +251,44 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
         ...formData,
         data_inicio_alocacao: formData.data_inicio_alocacao?.toISOString().split('T')[0],
         data_fim_alocacao: formData.data_fim_alocacao?.toISOString().split('T')[0] || null,
+        esforco_estimado: formData.esforco_estimado ? parseFloat(formData.esforco_estimado) : null,
       };
       // Remove secao_id, pois não faz parte do modelo de dados da Alocacao
       delete dataToSave.secao_id;
       
       try {
         // 1. Salvar alocação primeiro
-        console.log('📤 Salvando alocação...');
-        await onSave(dataToSave);
+        const savedAlocacao = await onSave(dataToSave);
         
-        // 2. Se for edição e tiver horas planejadas, salvar separadamente
-        if (item?.id && horasPlanejadasList.length > 0) {
+        // 2. Se tiver horas planejadas, salvar separadamente
+        if (horasPlanejadasList.length > 0) {
           const horasValidas = horasPlanejadasList.filter(h => h.horas > 0);
           if (horasValidas.length > 0) {
-            console.log('📤 Salvando horas planejadas...', horasValidas);
-            try {
-              await saveHorasPlanejadas(item.id, horasValidas);
-              console.log('✅ Horas planejadas salvas com sucesso!');
-            } catch (horasError) {
-              console.error('❌ Erro detalhado ao salvar horas planejadas:', {
-                error: horasError,
-                message: horasError.message,
-                stack: horasError.stack,
-                alocacaoId: item.id,
-                horas: horasValidas
-              });
-              throw horasError; // Re-throw para o catch externo
+            // Para nova alocação, usar o ID retornado; para edição, usar o ID existente
+            const alocacaoId = item?.id || savedAlocacao?.id;
+            
+            if (alocacaoId) {
+              try {
+                await saveHorasPlanejadas(alocacaoId, horasValidas);
+              } catch (horasError) {
+                console.error('Erro ao salvar horas planejadas:', {
+                  error: horasError,
+                  message: horasError.message,
+                  alocacaoId: alocacaoId,
+                  horas: horasValidas
+                });
+                throw horasError; // Re-throw para o catch externo
+              }
             }
           }
         }
         
-        console.log('✅ Tudo salvo com sucesso!');
-        
         // Recarregar dados para atualizar a interface
         if (onDataChange) {
-          console.log('🔄 Recarregando dados...');
           onDataChange();
         }
       } catch (error) {
-        console.error('❌ Erro ao salvar:', error);
+        console.error('Erro ao salvar:', error);
         // O erro já será tratado pelo componente pai
       }
     }
@@ -311,6 +363,11 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
       horas: 0, 
       id: null 
     }]);
+  };
+
+  const handleRemoveHoras = (index) => {
+    const newHoras = horasPlanejadasList.filter((_, i) => i !== index);
+    setHorasPlanejadasList(newHoras);
   };
 
 
@@ -396,10 +453,16 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
                   inputValue={projetoInput}
                   onInputChange={(e, value, reason) => {
                     setProjetoInput(value);
-                    if (reason === 'input' && value.length >= 2) {
+                    if (reason === 'input') {
                       fetchProjetosAsync(value);
                     } else if (reason === 'clear') {
                       setProjetosList(prev => (prev.some(p => p.id === item?.projeto?.id) ? prev : []));
+                    }
+                  }}
+                  onFocus={() => {
+                    // Carrega projetos da seção quando o campo recebe foco
+                    if (formData.secao_id && projetosList.length === 0) {
+                      fetchProjetosAsync('');
                     }
                   }}
                   filterOptions={(x) => x}
@@ -447,7 +510,23 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
                 />
               </Grid>
 
-              {/* Linha 4: Status da Alocação */}
+              {/* Linha 4: Esforço Estimado */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" component="label" sx={{ mb: 0.5, display: 'block', fontWeight: 'medium' }}>Esforço Estimado (horas)</Typography>
+                <TextField
+                  fullWidth
+                  type="number"
+                  value={formData.esforco_estimado}
+                  onChange={(e) => setFormData(prev => ({ ...prev, esforco_estimado: e.target.value }))}
+                  placeholder="Ex: 120.50"
+                  inputProps={{
+                    step: "0.01",
+                    min: "0"
+                  }}
+                />
+              </Grid>
+
+              {/* Linha 5: Status da Alocação */}
               <Grid item xs={12}>
                 <Typography variant="subtitle2" component="label" sx={{ mb: 0.5, display: 'block', fontWeight: 'medium' }}>Status da Alocação</Typography>
                 <Autocomplete
@@ -476,17 +555,24 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
               </Grid>
 
               {/* Linha 6: Horas Planejadas */}
-              {item?.id && (
+              {(item?.id || horasPlanejadasList.length > 0) && (
                 <Grid item xs={12}>
                   <Typography variant="h6" sx={{ mb: 2, mt: 2, fontWeight: 'bold' }}>
                     Horas Planejadas
                   </Typography>
                   
+                  {!item?.id && horasPlanejadasList.length > 0 && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      💡 Os períodos foram gerados automaticamente com base nas datas de início e fim da alocação. 
+                      Defina as horas planejadas para cada mês conforme necessário.
+                    </Typography>
+                  )}
+                  
                   {horasPlanejadasList.length > 0 ? (
                     horasPlanejadasList.map((horas, index) => (
                       <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
                         <Grid container spacing={2} alignItems="center">
-                          <Grid item xs={4}>
+                          <Grid item xs={3}>
                             <TextField
                               label="Ano"
                               type="number"
@@ -496,7 +582,7 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
                               size="small"
                             />
                           </Grid>
-                          <Grid item xs={4}>
+                          <Grid item xs={3}>
                             <Autocomplete
                               options={Array.from({length: 12}, (_, i) => ({ value: i + 1, label: mesesNomes[i] }))}
                               getOptionLabel={(option) => option.label}
@@ -516,6 +602,16 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
                               fullWidth
                               size="small"
                             />
+                          </Grid>
+                          <Grid item xs={2} sx={{ display: 'flex', justifyContent: 'center' }}>
+                            <IconButton
+                              onClick={() => handleRemoveHoras(index)}
+                              color="error"
+                              size="small"
+                              title="Excluir período"
+                            >
+                              <DeleteIcon />
+                            </IconButton>
                           </Grid>
                         </Grid>
                       </Box>

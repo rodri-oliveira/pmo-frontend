@@ -14,7 +14,7 @@ import AlocacaoForm from './AlocacaoForm';
 
 const wegBlue = '#00579d';
 
-export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, statusProjetos, apiError = '' }) {
+export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, statusProjetos, apiError = '', showAlocacaoStep = true }) {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
   const [recursos, setRecursos] = useState([]);
@@ -106,19 +106,20 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
     if (!dataToSave.jira_project_key) delete dataToSave.jira_project_key;
 
     const finalPayload = {
-      projeto: dataToSave,
-      alocacoes: alocacoes.map(({ temp_id, ...rest }) => ({
-        ...rest,
-        ativo: true,
-        recurso_id: rest.recurso_id ? parseInt(rest.recurso_id, 10) : null,
-        data_inicio_alocacao: !rest.data_inicio_alocacao ? null : rest.data_inicio_alocacao,
-        data_fim_alocacao: !rest.data_fim_alocacao ? null : rest.data_fim_alocacao,
-        horas_planejadas: rest.horas_planejadas.map(p => ({
-          ...p,
-          horas_planejadas: p.horas_planejadas ? parseFloat(p.horas_planejadas) : 0,
-        })),
+    projeto: dataToSave,
+    // Só inclui alocações se a etapa de alocação estiver habilitada
+    alocacoes: showAlocacaoStep ? alocacoes.map(({ temp_id, ...rest }) => ({
+      ...rest,
+      ativo: true,
+      recurso_id: rest.recurso_id ? parseInt(rest.recurso_id, 10) : null,
+      data_inicio_alocacao: !rest.data_inicio_alocacao ? null : rest.data_inicio_alocacao,
+      data_fim_alocacao: !rest.data_fim_alocacao ? null : rest.data_fim_alocacao,
+      horas_planejadas: rest.horas_planejadas.map(p => ({
+        ...p,
+        horas_planejadas: p.horas_planejadas ? parseFloat(p.horas_planejadas) : 0,
       })),
-    };
+    })) : [],
+  };
     
     // DEBUG: Log do payload final
     console.log('🔍 [buildFinalData] Payload final:', JSON.stringify(finalPayload, null, 2));
@@ -135,7 +136,8 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
 
   // Envia projeto (fecha modal)
   const handleEnviarProjeto = () => {
-    if (!validate() || !validateAlocacoes()) return;
+    // Só valida alocações se a etapa de alocação estiver habilitada
+    if (!validate() || (showAlocacaoStep && !validateAlocacoes())) return;
     const finalData = buildFinalData();
     onSave(finalData, false); // Fechar modal após salvar
   };
@@ -290,9 +292,20 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
         <Button onClick={onClose}>Cancelar</Button>
         <Box sx={{ flex: '1 1 auto' }} />
         {activeStep === 0 && (
-            <Button onClick={handleAvancar} variant="contained" sx={{ backgroundColor: wegBlue }}>
-              Avançar
-            </Button>
+            showAlocacaoStep ? (
+              <Button onClick={handleAvancar} variant="contained" sx={{ backgroundColor: wegBlue }}>
+                Avançar
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleEnviarProjeto} 
+                variant="contained" 
+                sx={{ backgroundColor: wegBlue }}
+                startIcon={<SaveIcon />}
+              >
+                Salvar
+              </Button>
+            )
           )}
           {activeStep === 1 && (
             <>
