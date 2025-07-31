@@ -63,6 +63,7 @@ export default function IntegracaoJiraPage() {
         
         if (data.status === 'completed') {
           setSyncStatus('completed');
+          localStorage.removeItem('jiraSync');
           clearInterval(pollingInterval.current);
           setSnackbar({
             open: true,
@@ -79,6 +80,7 @@ export default function IntegracaoJiraPage() {
           }
         } else if (data.status === 'error') {
           setSyncStatus('error');
+          localStorage.removeItem('jiraSync');
           clearInterval(pollingInterval.current);
           setSnackbar({
             open: true,
@@ -94,6 +96,10 @@ export default function IntegracaoJiraPage() {
   
   // Iniciar polling quando sincronização começar
   const startPolling = (url) => {
+    // Persistir URL no localStorage para retomar em caso de navegação
+    if (url) {
+      localStorage.setItem('jiraSync', JSON.stringify({ url, startedAt: Date.now() }));
+    }
     setStatusUrl(url);
     setSyncStatus('running');
     setSyncProgress({ current: 0, total: 0, message: 'Iniciando sincronização...' });
@@ -103,6 +109,23 @@ export default function IntegracaoJiraPage() {
     }, 3000); // Verificar a cada 3 segundos
   };
   
+  // Retomar polling salvo no localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('jiraSync');
+    if (saved) {
+      try {
+        const { url } = JSON.parse(saved);
+        if (url) {
+          console.log('[JIRA] Retomando polling salvo', url);
+          startPolling(url);
+        }
+      } catch (e) {
+        console.warn('[JIRA] Erro ao parsear jiraSync', e);
+        localStorage.removeItem('jiraSync');
+      }
+    }
+  }, []);
+
   // Limpar polling ao desmontar componente
   useEffect(() => {
     return () => {
