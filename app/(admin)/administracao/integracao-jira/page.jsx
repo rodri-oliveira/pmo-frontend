@@ -22,6 +22,7 @@ export default function IntegracaoJiraPage() {
   const [syncStatus, setSyncStatus] = useState(null); // null, 'running', 'completed', 'error'
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, message: '' });
   const [syncId, setSyncId] = useState(null);
+  const [statusUrl, setStatusUrl] = useState(null);
   const pollingInterval = useRef(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -40,12 +41,12 @@ export default function IntegracaoJiraPage() {
 
 
   // Função para verificar status da sincronização
-  const checkSyncStatus = async (syncId) => {
+  const checkSyncStatus = async (url) => {
     try {
       const token = session?.accessToken;
       if (!token) return;
       
-      const response = await fetch(`/backend/sincronizacoes-jira/status/${syncId}`, {
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -55,8 +56,8 @@ export default function IntegracaoJiraPage() {
       if (response.ok) {
         const data = await response.json();
         setSyncProgress({
-          current: data.processed || 0,
-          total: data.total || 0,
+          current: data.processed_count || 0,
+          total: data.total_count || 0,
           message: data.message || 'Processando...'
         });
         
@@ -65,14 +66,14 @@ export default function IntegracaoJiraPage() {
           clearInterval(pollingInterval.current);
           setSnackbar({
             open: true,
-            message: `Sincronização concluída! ${data.processed || 0} registros processados.`,
+            message: `Sincronização concluída! ${data.processed_count || 0} registros processados.`,
             severity: 'success'
           });
           
           // Notificação do navegador se disponível
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Sincronização JIRA Concluída', {
-              body: `${data.processed || 0} registros foram processados com sucesso.`,
+              body: `${data.processed_count || 0} registros foram processados com sucesso.`,
               icon: '/favicon.ico'
             });
           }
@@ -92,13 +93,13 @@ export default function IntegracaoJiraPage() {
   };
   
   // Iniciar polling quando sincronização começar
-  const startPolling = (syncId) => {
-    setSyncId(syncId);
+  const startPolling = (url) => {
+    setStatusUrl(url);
     setSyncStatus('running');
     setSyncProgress({ current: 0, total: 0, message: 'Iniciando sincronização...' });
     
     pollingInterval.current = setInterval(() => {
-      checkSyncStatus(syncId);
+      checkSyncStatus(url);
     }, 3000); // Verificar a cada 3 segundos
   };
   
@@ -190,9 +191,9 @@ export default function IntegracaoJiraPage() {
         }
         
         // Se o backend retornar um ID de sincronização, iniciar polling
-        if (data && (data.sync_id || data.sincronizacao_id)) {
-          const syncId = data.sync_id || data.sincronizacao_id;
-          startPolling(syncId);
+        if (data && data.status_url) {
+          startPolling(data.status_url);
+          if (data.sync_id) setSyncId(data.sync_id);
           setSnackbar({
             open: true,
             message: data.mensagem || `Sincronização iniciada! Acompanhe o progresso abaixo.`,
