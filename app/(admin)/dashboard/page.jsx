@@ -338,34 +338,11 @@ const PMODashboard = () => {
 
   return (
     <Box sx={{ flexGrow: 1, backgroundColor: styles.lightGrey, p: { xs: 2, md: 3 } }}>
-      {/* Header com navegação */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-        <Typography variant="h4" sx={{ color: styles.wegBlue, fontWeight: 'bold', mb: { xs: 2, md: 0 } }}>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" sx={{ color: styles.wegBlue, fontWeight: 'bold' }}>
           Dashboard PMO
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <Box 
-            component="a" 
-            href="/visao-gestor" 
-            sx={{
-              backgroundColor: styles.wegBlue,
-              color: 'white',
-              padding: '12px 24px',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              fontWeight: 'bold',
-              fontSize: '0.95rem',
-              transition: 'all 0.2s ease-in-out',
-              '&:hover': {
-                backgroundColor: '#004080',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 4px 8px rgba(0, 87, 157, 0.3)'
-              }
-            }}
-          >
-            Controle de Capacidade e Alocação
-          </Box>
-        </Box>
       </Box>
       {/* Linha de Cartões */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '25px', marginBottom: '30px' }}>

@@ -68,6 +68,7 @@ export default function VisaoGestorPage() {
 
   // State for drill-down modal
   const [modalOpen, setModalOpen] = useState(false);
+  const [chartDataType, setChartDataType] = useState('planejadas'); // 'planejadas' ou 'apontadas'
 
   // State for heatmap
   const [teamHeatmapData, setTeamHeatmapData] = useState(null);
@@ -190,11 +191,13 @@ export default function VisaoGestorPage() {
   const handleChartClick = useCallback((params) => {
     if (!params || !apiData || !apiData.disponibilidade_mensal) return;
 
-    if (params.componentType === 'series' && params.seriesName === 'Horas Alocadas') {
+    if (params.componentType === 'series' && (params.seriesName === 'Horas Alocadas' || params.seriesName === 'Horas Apontadas')) {
       const monthIndex = params.dataIndex;
       const clickedMonthData = apiData.disponibilidade_mensal[monthIndex];
 
       if (clickedMonthData && clickedMonthData.alocacoes_detalhadas && clickedMonthData.alocacoes_detalhadas.length > 0) {
+        // Define o tipo de dados baseado na barra clicada
+        setChartDataType(params.seriesName === 'Horas Apontadas' ? 'apontadas' : 'planejadas');
         setSelectedMonthData(clickedMonthData);
         setModalOpen(true);
       } else {
@@ -206,19 +209,21 @@ export default function VisaoGestorPage() {
   const pieChartOptions = useMemo(() => {
     if (!selectedMonthData || !selectedMonthData.alocacoes_detalhadas) return null;
 
+    // Usa o campo correto baseado no tipo de dados selecionado
     const chartData = selectedMonthData.alocacoes_detalhadas
       .map(detalhe => ({
-        value: detalhe.horas_planejadas,
+        value: chartDataType === 'apontadas' ? (detalhe.horas_apontadas || 0) : detalhe.horas_planejadas,
         name: `${detalhe.projeto.id} - ${detalhe.projeto.nome}`
       }))
       .filter(p => p.value > 0);
 
     const totalHoras = chartData.reduce((sum, item) => sum + item.value, 0);
+    const tipoHoras = chartDataType === 'apontadas' ? 'Horas Apontadas' : 'Horas Planejadas';
 
     return {
       title: {
         text: `Detalhamento de Projetos - ${mesNomesCompleto[selectedMonthData.mes]}`,
-        subtext: `Total: ${totalHoras.toFixed(1)}h`,
+        subtext: `${tipoHoras} - Total: ${totalHoras.toFixed(1)}h`,
         left: 'center',
         top: '2%',
         textStyle: {
@@ -273,7 +278,7 @@ export default function VisaoGestorPage() {
         data: chartData,
       }]
     };
-  }, [selectedMonthData]);
+  }, [selectedMonthData, chartDataType]);
 
   // Efeito para buscar dados do mapa de calor da equipe
   useEffect(() => {
@@ -318,9 +323,11 @@ export default function VisaoGestorPage() {
         const projetoInfo = month.alocacoes_detalhadas.find(detalhe => detalhe.projeto.id === selectedProjeto.id);
         // Correção: usar 'horas_planejadas'
         const horasAlocadasProjeto = projetoInfo ? projetoInfo.horas_planejadas : 0;
+        const horasApontadasProjeto = projetoInfo ? projetoInfo.horas_apontadas : 0;
         return {
           ...month,
           total_horas_planejadas: horasAlocadasProjeto,
+          total_horas_apontadas: horasApontadasProjeto,
           percentual_alocacao: month.capacidade_rh > 0 ? ((horasAlocadasProjeto / month.capacidade_rh) * 100).toFixed(1) + '%' : '0.0%'
         };
       });
@@ -328,12 +335,14 @@ export default function VisaoGestorPage() {
 
     const capacidadeTotal = monthlyData.reduce((acc, item) => acc + item.capacidade_rh, 0);
     const horasAlocadas = monthlyData.reduce((acc, item) => acc + item.total_horas_planejadas, 0);
+    const horasApontadas = monthlyData.reduce((acc, item) => acc + (item.total_horas_apontadas || 0), 0);
     const superalocadosCount = monthlyData.filter(item => parsePercent(item.percentual_alocacao) > 100).length;
     const taxaMedia = capacidadeTotal > 0 ? (horasAlocadas / capacidadeTotal) * 100 : 0;
 
     const kpisData = {
       'Capacidade Total': `${capacidadeTotal.toFixed(0)}h`,
       'Horas Alocadas': `${horasAlocadas.toFixed(0)}h`,
+      'Horas Apontadas': `${horasApontadas.toFixed(0)}h`,
       'Saldo de Horas': `${(capacidadeTotal - horasAlocadas).toFixed(0)}h`,
       'Taxa de Alocação Média': `${taxaMedia.toFixed(1)}%`,
       'Meses com Superalocação': superalocadosCount,
@@ -341,7 +350,7 @@ export default function VisaoGestorPage() {
 
     const barChartOptionsData = {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: { data: ['Capacidade', 'Horas Alocadas'] },
+      legend: { data: ['Capacidade', 'Horas Alocadas', 'Horas Apontadas'] },
       xAxis: { type: 'category', data: monthlyData.map(item => mesNomes[item.mes]) },
       yAxis: { type: 'value', name: 'Horas' },
       series: [
@@ -374,6 +383,21 @@ export default function VisaoGestorPage() {
             value: Math.round(item.total_horas_planejadas),
             itemStyle: { color: getBarColor(parsePercent(item.percentual_alocacao)) },
           })),
+        },
+        {
+          name: 'Horas Apontadas',
+          type: 'bar',
+          label: {
+            show: true,
+            position: 'top',
+            formatter: '{c}h',
+            fontSize: 10,
+            color: '#333'
+          },
+          itemStyle: {
+            color: '#ff9800' // Orange for tracked hours
+          },
+          data: monthlyData.map(item => Math.round(item.total_horas_apontadas || 0)),
         }
       ],
     };
