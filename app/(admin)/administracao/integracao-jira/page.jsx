@@ -88,12 +88,39 @@ export default function IntegracaoJiraPage() {
             severity: 'error'
           });
         }
+      } else if (response.status === 500) {
+        // Servidor reiniciado ou endpoint não existe mais
+        console.warn('[JIRA] Endpoint de status não encontrado (500), parando polling');
+        localStorage.removeItem('jiraSync');
+        clearInterval(pollingInterval.current);
+        setSyncStatus(null);
+        setSyncProgress({ current: 0, total: 0, message: '' });
+        setSyncId(null);
+        setStatusUrl(null);
       }
     } catch (error) {
       console.error('[JIRA] Erro ao verificar status:', error);
     }
   };
   
+  // Parar polling manualmente
+  const stopPolling = () => {
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+      pollingInterval.current = null;
+    }
+    localStorage.removeItem('jiraSync');
+    setSyncStatus(null);
+    setSyncProgress({ current: 0, total: 0, message: '' });
+    setSyncId(null);
+    setStatusUrl(null);
+    setSnackbar({
+      open: true,
+      message: 'Sincronização interrompida pelo usuário.',
+      severity: 'warning'
+    });
+  };
+
   // Iniciar polling quando sincronização começar
   const startPolling = (url) => {
     // Persistir URL no localStorage para retomar em caso de navegação
@@ -379,6 +406,17 @@ export default function IntegracaoJiraPage() {
                 }
                 size="small"
               />
+              {syncStatus === 'running' && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  onClick={stopPolling}
+                  sx={{ ml: 1 }}
+                >
+                  Parar Sincronização
+                </Button>
+              )}
             </Box>
             
             {syncStatus === 'running' && (
