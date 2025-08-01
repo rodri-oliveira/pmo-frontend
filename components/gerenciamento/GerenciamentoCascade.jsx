@@ -240,7 +240,7 @@ export default function GerenciamentoCascade() {
           }
           case "recursos": {
             const [recData, eqData] = await Promise.all([
-              getRecursos(params),
+              getRecursos({ ...params, nome: deferredFiltro }),
               getEquipes({ apenas_ativos: true }),
             ]);
             const items = Array.isArray(recData) ? recData : recData.items;
