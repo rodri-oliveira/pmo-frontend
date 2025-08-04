@@ -90,6 +90,28 @@ export default function Header({ handleDrawerToggle, onGestorViewClick }) {
             >
               Controle de Capacidade e Alocação
             </Button>
+            <Button
+              component={Link}
+              href="/indicadores-departamento"
+              sx={{
+                backgroundColor: '#00579d',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+                textTransform: 'none',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  backgroundColor: '#00447c',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 8px rgba(0, 87, 157, 0.3)'
+                }
+              }}
+            >
+              Indicadores do Departamento
+            </Button>
           </Box>
         </Toolbar>
       </AppBar>
