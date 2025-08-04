@@ -13,7 +13,11 @@ import {
   TextField,
   Grid,
   LinearProgress,
-  Chip
+  Chip,
+  FormControlLabel,
+  Checkbox,
+  Divider,
+  Stack
 } from '@mui/material';
 
 export default function IntegracaoJiraPage() {
@@ -36,6 +40,18 @@ export default function IntegracaoJiraPage() {
     anoInicio: new Date().getFullYear(),
     mesFim: new Date().getMonth() + 1,
     anoFim: new Date().getFullYear()
+  });
+
+  // Estados para a sincronização do Dashboard Jira
+  const [dashboardSyncLoading, setDashboardSyncLoading] = useState(false);
+  const [dashboardSyncStatus, setDashboardSyncStatus] = useState(null); // null, 'running', 'completed', 'error', 'partial'
+  const [dashboardSyncProgress, setDashboardSyncProgress] = useState({ secoes: [], message: '' });
+  const [selectedSections, setSelectedSections] = useState(['DTIN', 'SEG', 'SGI']); // Todas por padrão
+  const dashboardPollingInterval = useRef(null);
+  const [dashboardSnackbar, setDashboardSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
   });
 
 
@@ -119,6 +135,101 @@ export default function IntegracaoJiraPage() {
       message: 'Sincronização interrompida pelo usuário.',
       severity: 'warning'
     });
+  };
+
+  // Funções para a sincronização do Dashboard Jira
+  const handleDashboardSync = async () => {
+    if (!session?.accessToken) {
+      setDashboardSnackbar({
+        open: true,
+        message: 'Token de autenticação não encontrado. Faça login novamente.',
+        severity: 'error'
+      });
+      return;
+    }
+
+    setDashboardSyncLoading(true);
+    setDashboardSyncStatus('running');
+    setDashboardSyncProgress({ secoes: [], message: 'Iniciando sincronização...' });
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const secoes = selectedSections.length > 0 ? selectedSections.join(',') : '';
+      const url = `${baseUrl}/backend/dashboard-jira/sync/sync/flexible?secoes=${secoes}&overwrite=true`;
+      
+      console.log('[DASHBOARD_SYNC] Enviando requisição para:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.accessToken}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      console.log('[DASHBOARD_SYNC] Status da resposta:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Erro desconhecido' }));
+        throw new Error(errorData.detail || `Erro HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('[DASHBOARD_SYNC] Resposta:', data);
+      
+      // Processar resultado da sincronização
+      if (data.status === 'completed') {
+        setDashboardSyncStatus('completed');
+        setDashboardSyncProgress({
+          secoes: data.resultados || [],
+          message: data.message || 'Sincronização concluída com sucesso!'
+        });
+        setDashboardSnackbar({
+          open: true,
+          message: `Sincronização do Dashboard concluída! ${data.resultados?.length || 0} seções processadas.`,
+          severity: 'success'
+        });
+      } else if (data.status === 'partial') {
+        setDashboardSyncStatus('partial');
+        setDashboardSyncProgress({
+          secoes: data.resultados || [],
+          message: data.message || 'Sincronização parcialmente concluída'
+        });
+        setDashboardSnackbar({
+          open: true,
+          message: `Sincronização parcial: algumas seções falharam. Verifique os detalhes.`,
+          severity: 'warning'
+        });
+      } else {
+        throw new Error(data.message || 'Status de sincronização desconhecido');
+      }
+      
+    } catch (error) {
+      console.error('[DASHBOARD_SYNC] Erro:', error);
+      setDashboardSyncStatus('error');
+      setDashboardSyncProgress({ secoes: [], message: error.message });
+      setDashboardSnackbar({
+        open: true,
+        message: `Erro na sincronização do Dashboard: ${error.message}`,
+        severity: 'error'
+      });
+    } finally {
+      setDashboardSyncLoading(false);
+    }
+  };
+
+  const handleSectionToggle = (section) => {
+    setSelectedSections(prev => {
+      if (prev.includes(section)) {
+        return prev.filter(s => s !== section);
+      } else {
+        return [...prev, section];
+      }
+    });
+  };
+
+  const handleCloseDashboardSnackbar = () => {
+    setDashboardSnackbar(prev => ({ ...prev, open: false }));
   };
 
   // Iniciar polling quando sincronização começar
@@ -451,6 +562,156 @@ export default function IntegracaoJiraPage() {
           </Box>
         )}
       </Paper>
+
+      {/* Nova Seção: Sincronização do Dashboard Jira */}
+      <Paper elevation={2} sx={{ p: 3, mt: 4 }}>
+        <Typography variant="h6" gutterBottom sx={{ color: '#00579d' }}>
+          Sincronização Jira Dashboard
+        </Typography>
+        
+        <Alert severity="info" sx={{ mb: 3, mt: 2 }}>
+          Sincronize dados do Jira para os dashboards (demandas, melhorias e recursos alocados) por seção.
+        </Alert>
+        
+        {/* Seleção de Seções */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Selecione as seções para sincronizar:
+          </Typography>
+          <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+            {['DTIN', 'SEG', 'SGI'].map((section) => (
+              <FormControlLabel
+                key={section}
+                control={
+                  <Checkbox
+                    checked={selectedSections.includes(section)}
+                    onChange={() => handleSectionToggle(section)}
+                    color="primary"
+                  />
+                }
+                label={section}
+              />
+            ))}
+          </Stack>
+          {selectedSections.length === 0 && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              Nenhuma seção selecionada sincronizará todas as seções
+            </Typography>
+          )}
+        </Box>
+        
+        <Divider sx={{ my: 3 }} />
+        
+        {/* Botão de Sincronização */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+          <Button
+            variant="contained"
+            color="secondary"
+            size="large"
+            onClick={handleDashboardSync}
+            disabled={dashboardSyncLoading || dashboardSyncStatus === 'running'}
+            sx={{ 
+              minWidth: 280, 
+              py: 1.5,
+              bgcolor: '#00579d',
+              '&:hover': { bgcolor: '#00447c' }
+            }}
+          >
+            {(dashboardSyncLoading || dashboardSyncStatus === 'running') ? 
+              <CircularProgress size={24} color="inherit" /> : 
+              'Sincronizar Dashboard Jira'
+            }
+          </Button>
+        </Box>
+        
+        {/* Status da Sincronização do Dashboard */}
+        {dashboardSyncStatus && (
+          <Box sx={{ mt: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle1">Status da Sincronização Dashboard:</Typography>
+              <Chip 
+                label={
+                  dashboardSyncStatus === 'running' ? 'Em Andamento' :
+                  dashboardSyncStatus === 'completed' ? 'Concluída' :
+                  dashboardSyncStatus === 'partial' ? 'Parcial' :
+                  dashboardSyncStatus === 'error' ? 'Erro' : 'Desconhecido'
+                }
+                color={
+                  dashboardSyncStatus === 'running' ? 'warning' :
+                  dashboardSyncStatus === 'completed' ? 'success' :
+                  dashboardSyncStatus === 'partial' ? 'warning' :
+                  dashboardSyncStatus === 'error' ? 'error' : 'default'
+                }
+                size="small"
+              />
+            </Box>
+            
+            {dashboardSyncStatus === 'running' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  {dashboardSyncProgress.message}
+                </Typography>
+                <LinearProgress sx={{ height: 8, borderRadius: 4 }} />
+              </Box>
+            )}
+            
+            {(dashboardSyncStatus === 'completed' || dashboardSyncStatus === 'partial') && dashboardSyncProgress.secoes && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" gutterBottom>
+                  Resultados por seção:
+                </Typography>
+                <Stack spacing={1}>
+                  {dashboardSyncProgress.secoes.map((resultado, index) => (
+                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Chip
+                        label={resultado.secao || `Seção ${index + 1}`}
+                        size="small"
+                        variant="outlined"
+                      />
+                      <Chip
+                        label={
+                          resultado.status === 'success' ? 'Sucesso' :
+                          resultado.status === 'error' ? 'Erro' :
+                          resultado.status === 'skipped' ? 'Pulado' : 'Desconhecido'
+                        }
+                        color={
+                          resultado.status === 'success' ? 'success' :
+                          resultado.status === 'error' ? 'error' :
+                          resultado.status === 'skipped' ? 'warning' : 'default'
+                        }
+                        size="small"
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        {resultado.registros ? `${resultado.registros} registros` : 
+                         resultado.erro ? resultado.erro : 
+                         resultado.motivo ? resultado.motivo : ''}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
+            )}
+            
+            {dashboardSyncStatus === 'completed' && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {dashboardSyncProgress.message}
+              </Alert>
+            )}
+            
+            {dashboardSyncStatus === 'partial' && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                {dashboardSyncProgress.message}
+              </Alert>
+            )}
+            
+            {dashboardSyncStatus === 'error' && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                Erro na sincronização: {dashboardSyncProgress.message}
+              </Alert>
+            )}
+          </Box>
+        )}
+      </Paper>
       
       <Snackbar
         open={snackbar.open}
@@ -464,6 +725,22 @@ export default function IntegracaoJiraPage() {
           sx={{ width: '100%' }}
         >
           {snackbar.message}
+        </Alert>
+      </Snackbar>
+      
+      {/* Snackbar para Dashboard Sync */}
+      <Snackbar
+        open={dashboardSnackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseDashboardSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Alert 
+          onClose={handleCloseDashboardSnackbar} 
+          severity={dashboardSnackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {dashboardSnackbar.message}
         </Alert>
       </Snackbar>
     </Box>
