@@ -116,6 +116,8 @@ export default function RelatorioPlanejadoRealizado() {
       }
       
       const apiData = await getRelatorioPlanejadoRealizado(filtros);
+      console.log('Dados recebidos do backend:', apiData);
+      
       // Mapeia snake_case para camelCase para evitar refactor grande na renderização
       const linhasResumo = apiData.linhas_resumo.map(l => ({
         label: l.label,
@@ -123,7 +125,8 @@ export default function RelatorioPlanejadoRealizado() {
         esforcoEstimado: l.esforco_estimado, // Adicionado para exibir na linha de resumo
         meses: l.meses,
       }));
-      const projetos = apiData.projetos.map(p => ({
+      
+      let projetos = apiData.projetos.map(p => ({
         id: p.id,
         nome: p.nome,
         alocacao_id: p.alocacao_id,
@@ -133,6 +136,16 @@ export default function RelatorioPlanejadoRealizado() {
         esforcoPlanejado: p.esforco_planejado,
         meses: p.meses,
       }));
+      
+      // Filtro no frontend caso o backend não esteja filtrando corretamente
+      if (status && status.trim() !== '') {
+        const statusSelecionado = statusOptions.find(s => s.id.toString() === status.toString());
+        if (statusSelecionado) {
+          console.log('Aplicando filtro de status no frontend:', statusSelecionado.nome);
+          projetos = projetos.filter(p => p.status === statusSelecionado.nome);
+          console.log('Projetos após filtro:', projetos.length);
+        }
+      }
       const data = { linhasResumo, projetos };
 
       // Define colunas de meses e garante até dez/26
