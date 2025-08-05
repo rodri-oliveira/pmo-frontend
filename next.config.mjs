@@ -2,10 +2,13 @@
 const nextConfig = {
     output: "standalone",
     async rewrites() {
+        // Usar variável de ambiente para definir o backend URL
+        const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+        
         return [
             {
                 source: '/backend/:path*',
-                destination: 'http://localhost:8000/backend/:path*', // Proxy para o backend
+                destination: `${backendUrl}/backend/:path*`, // Proxy para o backend
             },
         ]
     },

@@ -134,10 +134,8 @@ export default function LoginPage() {
                 md={8}
                 sx={{
                     backgroundColor: "#00579d",
-                    backgroundImage: 'url(/images/login-background.jpg)',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
+                    // backgroundImage: 'url(/images/login-background.jpg)', // Imagem removida - não existe
+                    background: 'linear-gradient(135deg, #00579d 0%, #003d6b 100%)', // Gradiente como fallback
                     position: 'relative',
                     display: { xs: 'none', sm: 'block' },
                     '&::before': {
