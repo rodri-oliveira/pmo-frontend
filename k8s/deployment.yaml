@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: automacao-pmo-frontend
-          image: <URL_DA_SUA_IMAGEM_NO_REGISTRY> # IMPORTANTE: Substitua pela URL da sua imagem
+          image: ${DOCKER_IMAGE_FULL_NAME}
           ports:
             - containerPort: 3000
           envFrom:
