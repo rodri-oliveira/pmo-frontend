@@ -5,14 +5,14 @@ metadata:
   namespace: qas-automacao-pmo-tin
 data:
   # NextAuth Configuration
-  NEXTAUTH_URL: ${NEXTAUTH_URL}
-  NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+  NEXTAUTH_URL: "https://automacao-pmo-qas.weg.net"
+  NEXTAUTH_SECRET: "qas-nextauth-secreto-super-forte-seguro"
   
   # Keycloak Configuration  
-  AUTH_KEYCLOAK_ID: ${AUTH_KEYCLOAK_ID}
-  AUTH_KEYCLOAK_SECRET: ${AUTH_KEYCLOAK_SECRET}
-  AUTH_KEYCLOAK_ISSUER: ${AUTH_KEYCLOAK_ISSUER}
+  AUTH_KEYCLOAK_ID: "0a112d4c-41b2-4257-a834-bca92c4af089"
+  AUTH_KEYCLOAK_SECRET: "U2crdHqC1RmFW3o0y9n7Iqcn4wxMQR43"
+  AUTH_KEYCLOAK_ISSUER: "https://auth-qa.weg.net/realms/WEG"
   
   # Backend Configuration
-  BACKEND_URL: ${BACKEND_URL}
-  NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
+  BACKEND_URL: "http://backend-service:8000"
+  NEXT_PUBLIC_BACKEND_URL: "https://automacao-pmo-qas.weg.net/backend/v1"
