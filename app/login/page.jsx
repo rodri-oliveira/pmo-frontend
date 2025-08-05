@@ -134,7 +134,7 @@ export default function LoginPage() {
                 md={8}
                 sx={{
                     backgroundColor: "#00579d",
-                    backgroundImage: 'url(/images/login-background.jpg)',
+
                     backgroundRepeat: 'no-repeat',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',

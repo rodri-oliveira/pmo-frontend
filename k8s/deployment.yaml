@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: automacao-pmo-frontend-deployment
+  namespace: qas-automacao-pmo-tin
+  labels:
+    app: automacao-pmo-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: automacao-pmo-frontend
+  template:
+    metadata:
+      labels:
+        app: automacao-pmo-frontend
+    spec:
+      containers:
+        - name: automacao-pmo-frontend
+          image: <URL_DA_SUA_IMAGEM_NO_REGISTRY> # IMPORTANTE: Substitua pela URL da sua imagem
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: automacao-pmo-frontend-configmap
+--- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: automacao-pmo-frontend-service
+  namespace: qas-automacao-pmo-tin
+spec:
+  selector:
+    app: automacao-pmo-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
