@@ -303,11 +303,12 @@ const PMODashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        const currentYear = new Date().getFullYear(); // Ano corrente (2025)
         const [projetosResponse, equipesResponse, horasResponse, statusProjetosResponse] = await Promise.all([
-          fetch('http://localhost:8000/backend/v1/dashboard/projetos-ativos-por-secao'),
-          fetch('http://localhost:8000/backend/v1/dashboard/equipes-ativas-por-secao'),
-          fetch('http://localhost:8000/backend/v1/dashboard/horas-por-secao'),
-          fetch('http://localhost:8000/backend/v1/dashboard/status-projetos-por-secao'),
+          fetch(`http://localhost:8000/backend/v1/dashboard/projetos-ativos-por-secao?ano=${currentYear}`),
+          fetch(`http://localhost:8000/backend/v1/dashboard/equipes-ativas-por-secao?ano=${currentYear}`),
+          fetch(`http://localhost:8000/backend/v1/dashboard/horas-por-secao?ano=${currentYear}`),
+          fetch(`http://localhost:8000/backend/v1/dashboard/status-projetos-por-secao?ano=${currentYear}`),
         ]);
 
         if (!projetosResponse.ok || !equipesResponse.ok || !horasResponse.ok || !statusProjetosResponse.ok) {
