@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${K8S_DEPLOYMENT_NAME}
-  namespace: ${K8S_NAMESPACE}
+  name: automacao-pmo-frontend
+  namespace: qas-automacao-pmo-tin
   labels:
     app: automacao-pmo-frontend
 spec:
@@ -17,12 +17,12 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: ${DOCKER_IMAGE}
+        image: registry-docker.weg.net/din/tin/automacao_pmo/automacaopmofrontend:latest
         ports:
         - containerPort: 3000
         envFrom:
         - configMapRef:
-            name: ${K8S_CONFIG_MAP_NAME}
+            name: automacao-pmo-frontend-configmap
         env:
         - name: NODE_ENV
           value: "production"
@@ -49,8 +49,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${K8S_SERVICE_NAME}
-  namespace: ${K8S_NAMESPACE}
+  name: automacao-pmo-frontend-service
+  namespace: qas-automacao-pmo-tin
 spec:
   selector:
     app: automacao-pmo-frontend
