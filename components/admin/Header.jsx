@@ -65,14 +65,11 @@ export default function Header({ handleDrawerToggle, onGestorViewClick }) {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Typography component={Link} href="/dashboard" sx={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>
-              Dashboard
-            </Typography>
             <Button
               component={Link}
               href="/visao-gestor"
               sx={{
-                backgroundColor: '#00612E',
+                backgroundColor: '#00579d',
                 color: 'white',
                 padding: '8px 16px',
                 borderRadius: '6px',
@@ -82,9 +79,9 @@ export default function Header({ handleDrawerToggle, onGestorViewClick }) {
                 textTransform: 'none',
                 transition: 'all 0.2s ease-in-out',
                 '&:hover': {
-                  backgroundColor: '#004d1f',
+                  backgroundColor: '#00447c',
                   transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 8px rgba(0, 97, 46, 0.3)'
+                  boxShadow: '0 4px 8px rgba(0, 87, 157, 0.3)'
                 }
               }}
             >
