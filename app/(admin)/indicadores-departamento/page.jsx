@@ -268,79 +268,11 @@ export default function IndicadoresDepartamentoPage() {
                 label="Seção"
                 onChange={(e) => setSelectedSecao(e.target.value)}
               >
-                <MenuItem value="DTIN">Seção Tecnologia de Infraestrutura</MenuItem>
+                <MenuItem value="DTIN">TIN</MenuItem>
                 <MenuItem value="SEG">SEG</MenuItem>
                 <MenuItem value="SGI">SGI</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
-          
-          <Grid item xs={12} sm={4}>
-            <Typography variant="body2" sx={{ mb: 1, fontWeight: 'medium' }}>Data Início</Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <FormControl sx={{ minWidth: 80 }}>
-                <InputLabel>Mês</InputLabel>
-                <Select
-                  value={dataInicio.mes}
-                  onChange={(e) => setDataInicio(prev => ({ ...prev, mes: e.target.value }))}
-                  label="Mês"
-                  size="small"
-                >
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <MenuItem key={i + 1} value={i + 1}>
-                      {String(i + 1).padStart(2, '0')}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl sx={{ minWidth: 100 }}>
-                <InputLabel>Ano</InputLabel>
-                <Select
-                  value={dataInicio.ano}
-                  onChange={(e) => setDataInicio(prev => ({ ...prev, ano: e.target.value }))}
-                  label="Ano"
-                  size="small"
-                >
-                  <MenuItem value={2024}>2024</MenuItem>
-                  <MenuItem value={2025}>2025</MenuItem>
-                  <MenuItem value={2026}>2026</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-          </Grid>
-          
-          <Grid item xs={12} sm={4}>
-            <Typography variant="body2" sx={{ mb: 1, fontWeight: 'medium' }}>Data Fim</Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <FormControl sx={{ minWidth: 80 }}>
-                <InputLabel>Mês</InputLabel>
-                <Select
-                  value={dataFim.mes}
-                  onChange={(e) => setDataFim(prev => ({ ...prev, mes: e.target.value }))}
-                  label="Mês"
-                  size="small"
-                >
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <MenuItem key={i + 1} value={i + 1}>
-                      {String(i + 1).padStart(2, '0')}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl sx={{ minWidth: 100 }}>
-                <InputLabel>Ano</InputLabel>
-                <Select
-                  value={dataFim.ano}
-                  onChange={(e) => setDataFim(prev => ({ ...prev, ano: e.target.value }))}
-                  label="Ano"
-                  size="small"
-                >
-                  <MenuItem value={2024}>2024</MenuItem>
-                  <MenuItem value={2025}>2025</MenuItem>
-                  <MenuItem value={2026}>2026</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
           </Grid>
         </Grid>
       </Paper>
