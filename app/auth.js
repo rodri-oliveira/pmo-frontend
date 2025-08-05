@@ -52,6 +52,7 @@ async function refreshAccessToken(token) {
 
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     KeycloakProvider({
       clientId: process.env.AUTH_KEYCLOAK_ID,

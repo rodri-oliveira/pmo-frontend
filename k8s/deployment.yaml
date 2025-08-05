@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${K8S_DEPLOYMENT_NAME}
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: automacao-pmo-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: automacao-pmo-frontend
+  template:
+    metadata:
+      labels:
+        app: automacao-pmo-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: ${DOCKER_IMAGE}
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - configMapRef:
+            name: ${K8S_CONFIG_MAP_NAME}
+        env:
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${K8S_SERVICE_NAME}
+  namespace: ${K8S_NAMESPACE}
+spec:
+  selector:
+    app: automacao-pmo-frontend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+  type: ClusterIP
