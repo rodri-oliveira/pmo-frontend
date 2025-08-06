@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    env: {
+        CACHE_BUSTER: process.env.CACHE_BUSTER,
+    },
 
     output: "standalone",
     async rewrites() {
