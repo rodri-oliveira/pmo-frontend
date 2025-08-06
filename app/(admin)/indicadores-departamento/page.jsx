@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import html2canvas from 'html2canvas';
 import {
   Box,
   Container,
@@ -19,9 +20,11 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip
+  Chip,
+  Button
 } from '@mui/material';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 // Cores do tema WEG
 const colors = {
@@ -47,6 +50,7 @@ const chartColors = {
 };
 
 export default function IndicadoresDepartamentoPage() {
+  const reportRef = useRef(null);
   // Estados para filtros
   const [selectedSecao, setSelectedSecao] = useState('DTIN');
   const [dataInicio, setDataInicio] = useState({ mes: 1, ano: 2025 });
@@ -58,6 +62,21 @@ export default function IndicadoresDepartamentoPage() {
   const [recursosData, setRecursosData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const handleExportImage = () => {
+    if (reportRef.current) {
+      html2canvas(reportRef.current, {
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        scale: 2, // Aumenta a resolução da imagem
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'relatorio-indicadores-departamento.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+  };
 
   // Função para buscar dados
   const fetchDashboardData = useCallback(async () => {
@@ -253,9 +272,30 @@ export default function IndicadoresDepartamentoPage() {
 
   return (
     <Container maxWidth={false} sx={{ py: 3, px: 3 }}>
-      <Typography variant="h4" gutterBottom sx={{ color: colors.wegBlue, fontWeight: 'bold' }}>
-        Indicadores do Departamento
-      </Typography>
+      <Box ref={reportRef} sx={{ p: 3, backgroundColor: 'white' }}>
+      <Grid container justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+        <Grid item>
+          <Typography variant="h4" sx={{ color: colors.wegBlue, fontWeight: 'bold' }}>
+            Indicadores do Departamento
+          </Typography>
+        </Grid>
+        <Grid item>
+          <Button
+            variant="contained"
+            startIcon={<FileDownloadIcon />}
+            onClick={handleExportImage}
+            disabled={loading}
+            sx={{
+              backgroundColor: colors.wegBlue,
+              '&:hover': {
+                backgroundColor: '#004488'
+              }
+            }}
+          >
+            Exportar Imagem
+          </Button>
+        </Grid>
+      </Grid>
 
       {/* Filtros */}
       <Paper sx={{ p: 3, mb: 3 }}>
@@ -274,6 +314,7 @@ export default function IndicadoresDepartamentoPage() {
               </Select>
             </FormControl>
           </Grid>
+
         </Grid>
       </Paper>
 
@@ -371,14 +412,9 @@ export default function IndicadoresDepartamentoPage() {
                 <TableBody>
                   <TableRow>
                     <TableCell>
-                      <Chip 
-                        label="Demandas"
-                        sx={{ 
-                          backgroundColor: colors.wegTeal,
-                          color: 'white',
-                          fontWeight: 'bold'
-                        }}
-                      />
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '32px', padding: '0 12px', borderRadius: '16px', backgroundColor: colors.wegTeal, color: 'white', fontWeight: 'bold', fontSize: '0.8125rem' }}>
+                        Demandas
+                      </Box>
                     </TableCell>
                     <TableCell align="center">11</TableCell>
                     <TableCell align="center">{demandasData?.total || 0}</TableCell>
@@ -390,14 +426,9 @@ export default function IndicadoresDepartamentoPage() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      <Chip 
-                        label="Melhorias"
-                        sx={{ 
-                          backgroundColor: colors.wegTeal,
-                          color: 'white',
-                          fontWeight: 'bold'
-                        }}
-                      />
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '32px', padding: '0 12px', borderRadius: '16px', backgroundColor: colors.wegTeal, color: 'white', fontWeight: 'bold', fontSize: '0.8125rem' }}>
+                        Melhorias
+                      </Box>
                     </TableCell>
                     <TableCell align="center">101</TableCell>
                     <TableCell align="center">{melhoriasData?.total || 0}</TableCell>
@@ -409,14 +440,9 @@ export default function IndicadoresDepartamentoPage() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      <Chip 
-                        label="Recursos Alocados"
-                        sx={{ 
-                          backgroundColor: colors.wegTeal,
-                          color: 'white',
-                          fontWeight: 'bold'
-                        }}
-                      />
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '32px', padding: '0 12px', borderRadius: '16px', backgroundColor: colors.wegTeal, color: 'white', fontWeight: 'bold', fontSize: '0.8125rem' }}>
+                        Recursos Alocados
+                      </Box>
                     </TableCell>
                     <TableCell align="center">141</TableCell>
                     <TableCell align="center">{recursosData?.total || 0}</TableCell>
@@ -449,6 +475,7 @@ export default function IndicadoresDepartamentoPage() {
           </Grid>
         </Paper>
       )}
+      </Box>
     </Container>
   );
 }
