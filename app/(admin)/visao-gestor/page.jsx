@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Box,
   Container,
@@ -19,8 +19,11 @@ import {
   TextField,
   Modal,
   Fade,
-  Backdrop
+  Backdrop,
+  Button
 } from '@mui/material';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import html2canvas from 'html2canvas';
 import { apiGet } from '../../../services/api';
 import TeamAllocationHeatmap from '../../../components/admin/TeamAllocationHeatmap';
 import EChart from '../../../components/Echarts/Echarts';
@@ -47,6 +50,7 @@ const getBarColor = (percentage) => {
 };
 
 export default function VisaoGestorPage() {
+  const reportRef = useRef();
   const [apiData, setApiData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -74,6 +78,21 @@ export default function VisaoGestorPage() {
   const [teamHeatmapData, setTeamHeatmapData] = useState(null);
   const [isHeatmapLoading, setIsHeatmapLoading] = useState(false);
   const [selectedMonthData, setSelectedMonthData] = useState(null);
+
+  const handleExportImage = () => {
+    if (reportRef.current) {
+      html2canvas(reportRef.current, {
+        useCORS: true, // Para carregar imagens de outras origens, se houver
+        backgroundColor: '#ffffff', // Garante um fundo branco na imagem
+        scale: 2, // Aumenta a resolução da imagem
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'relatorio-capacidade-alocacao.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+  };
 
   // 1. Fetch initial sections
   useEffect(() => {
@@ -420,26 +439,39 @@ export default function VisaoGestorPage() {
 
   return (
     <Container maxWidth={false} sx={{ mt: 4, mb: 4, paddingX: { xs: 2, sm: 3 } }}>
-      <Typography variant="h4" gutterBottom>Controle de Capacidade e Alocação</Typography>
-
-      <Paper sx={{ p: 2, mb: 4 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={3}>
-            <Autocomplete options={secoesList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedSecao} onChange={(_, v) => setSelectedSecao(v)} renderInput={(p) => <TextField {...p} label="Seção" />} />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Autocomplete options={equipesList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedEquipe} onChange={(_, v) => setSelectedEquipe(v)} disabled={!selectedSecao} renderInput={(p) => <TextField {...p} label="Equipe" />} />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Autocomplete options={recursosList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedRecurso} onChange={(_, v) => setSelectedRecurso(v)} disabled={!selectedEquipe} renderInput={(p) => <TextField {...p} label="Recurso" />} />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Autocomplete options={projetosList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedProjeto} onChange={(_, v) => setSelectedProjeto(v)} disabled={!selectedRecurso} renderInput={(p) => <TextField {...p} label="Projeto (Opcional)" />} />
-          </Grid>
+      <Grid container justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+        <Grid item>
+          <Typography variant="h4">Controle de Capacidade e Alocação</Typography>
         </Grid>
-      </Paper>
+        <Grid item>
+          <Button
+            variant="contained"
+            startIcon={<FileDownloadIcon />}
+            onClick={handleExportImage}
+          >
+            Exportar Imagem
+          </Button>
+        </Grid>
+      </Grid>
 
-      <Paper sx={{ p: 2, mb: 4 }}>
+      <Box ref={reportRef} sx={{ bgcolor: 'background.paper' }}>
+        <Paper sx={{ p: 2, mb: 4 }}>
+          <Grid container spacing={2} alignItems="center">            <Grid item xs={12} sm={6} md={3}>
+              <Autocomplete options={secoesList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedSecao} onChange={(_, v) => setSelectedSecao(v)} renderInput={(p) => <TextField {...p} label="Seção" />} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Autocomplete options={equipesList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedEquipe} onChange={(_, v) => setSelectedEquipe(v)} disabled={!selectedSecao} renderInput={(p) => <TextField {...p} label="Equipe" />} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Autocomplete options={recursosList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedRecurso} onChange={(_, v) => setSelectedRecurso(v)} disabled={!selectedEquipe} renderInput={(p) => <TextField {...p} label="Recurso" />} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Autocomplete options={projetosList} getOptionLabel={(o) => o.nome || ''} getOptionKey={(o) => o.id} value={selectedProjeto} onChange={(_, v) => setSelectedProjeto(v)} disabled={!selectedRecurso} renderInput={(p) => <TextField {...p} label="Projeto (Opcional)" />} />
+            </Grid>
+          </Grid>
+        </Paper>
+
+        <Paper sx={{ p: 2, mb: 4 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth>
@@ -465,20 +497,20 @@ export default function VisaoGestorPage() {
               </Select>
             </FormControl>
           </Grid>
-        </Grid>
-      </Paper>
+          </Grid>
+        </Paper>
 
-      {loading && <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}><CircularProgress /></Box>}
-      {error && <Alert severity="error" sx={{ mb: 4 }}>{error}</Alert>}
-      
-      {!selectedRecurso && !loading && (
-        <Alert severity="info">Por favor, selecione uma seção, equipe e recurso para visualizar os dados.</Alert>
-      )}
+        {loading && <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}><CircularProgress /></Box>}
+        {error && <Alert severity="error" sx={{ mb: 4 }}>{error}</Alert>}
+        
+        {!selectedRecurso && !loading && (
+          <Alert severity="info">Por favor, selecione uma seção, equipe e recurso para visualizar os dados.</Alert>
+        )}
 
-      {apiData && !loading && (
-        <>
-          {renderKPIs()}
-          <Grid container spacing={4}>
+        {apiData && !loading && (
+          <>
+            {renderKPIs()}
+            <Grid container spacing={4}>
             <Grid item xs={12}>
               <Paper sx={{ p: 2, height: 400 }}>
                 <Typography variant="h6" gutterBottom>
@@ -507,9 +539,10 @@ export default function VisaoGestorPage() {
                 )}
               </Grid>
             )}
-          </Grid>
-        </>
-      )}
+            </Grid>
+          </>
+        )}
+      </Box>
 
       <Modal
         open={modalOpen}
