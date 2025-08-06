@@ -115,6 +115,7 @@ export default function RelatorioPlanejadoRealizado() {
         filtros.status_id = parseInt(status, 10); // Envia status_id como número
       }
       
+            console.log('[RelatorioPlanejadoRealizado.jsx] Filtros enviados para a API:', filtros);
       const apiData = await getRelatorioPlanejadoRealizado(filtros);
       console.log('Dados recebidos do backend:', apiData);
       

@@ -8,6 +8,7 @@ const nextConfig = {
     async rewrites() {
         // Usar variável de ambiente para definir o backend URL
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+        console.log('[next.config.js] Build/Server-side NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
         
         return [
             {
