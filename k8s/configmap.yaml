@@ -18,3 +18,5 @@ data:
   # Backend Configuration
   BACKEND_URL: "http://backend-service:8000"
   NEXT_PUBLIC_BACKEND_URL: "https://automacao-pmo-qas.weg.net/backend/v1"
+
+# obs

@@ -9,14 +9,7 @@ export const getAlocacoes = (params) => apiGet('/alocacoes', params);
 export const createAlocacao = (data) => apiPost('/alocacoes', data);
 
 // Atualiza uma alocação existente
-export const updateAlocacao = async (id, data) => {
-  const url = `http://localhost:8000/backend/alocacoes/alocacoes/${id}`;
-  console.log(' Iniciando updateAlocacao');
-  console.log(' ID da alocação:', id);
-  console.log(' URL completa:', url);
-  console.log(' Dados originais recebidos:', JSON.stringify(data, null, 2));
-  
-  // Preparar dados no formato aceito pelo backend
+export const updateAlocacao = (id, data) => {
   const cleanData = {
     recurso_id: data.recurso_id,
     projeto_id: data.projeto_id,
@@ -26,57 +19,15 @@ export const updateAlocacao = async (id, data) => {
     status_alocacao_id: data.status_alocacao_id,
     observacao: data.observacao || ""
   };
-  
-  // Remove campos nulos/undefined
+
+  // Remove campos nulos/undefined para garantir que apenas dados válidos sejam enviados
   Object.keys(cleanData).forEach(key => {
     if (cleanData[key] === null || cleanData[key] === undefined) {
       delete cleanData[key];
     }
   });
-  
-  console.log(' Dados limpos para envio:', JSON.stringify(cleanData, null, 2));
-  
-  try {
-    console.log(' Enviando requisição PUT...');
-    
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(cleanData),
-      mode: 'cors',
-    });
 
-    console.log(' Resposta recebida!');
-    console.log(' Status:', response.status);
-    console.log(' Status Text:', response.statusText);
-    console.log(' URL da resposta:', response.url);
-
-    if (!response.ok) {
-      console.error(' Resposta não OK!');
-      // Tentar ler o corpo da resposta de erro
-      try {
-        const errorBody = await response.text();
-        console.error(' Corpo da resposta de erro:', errorBody);
-      } catch (e) {
-        console.error(' Não foi possível ler corpo do erro');
-      }
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log(' Dados recebidos do backend:', JSON.stringify(result, null, 2));
-    console.log(' updateAlocacao concluída com sucesso!');
-    return result;
-  } catch (error) {
-    console.error(' Erro capturado em updateAlocacao:');
-    console.error(' Tipo do erro:', error.constructor.name);
-    console.error(' Mensagem do erro:', error.message);
-    console.error(' Stack trace:', error.stack);
-    throw error;
-  }
+  return apiPut(`/alocacoes/alocacoes/${id}`, cleanData);
 };
 
 // Exclui uma alocação
@@ -99,7 +50,7 @@ export const salvarMatrizPlanejamento = (data) => {
  * @returns {Promise<object>} Os dados do relatório.
  */
 export const getRelatorioPlanejadoRealizado = (filters) => {
-  return apiPost('/v1/relatorios/planejado-vs-realizado2', filters);
+  return apiPost('/relatorios/planejado-vs-realizado2', filters);
 };
 
 /**
