@@ -7,6 +7,7 @@ data:
   # NextAuth Configuration
   NEXTAUTH_URL: "https://automacao-pmo-qas.weg.net"
   NEXTAUTH_SECRET: "qas-nextauth-secreto-super-forte-seguro"
+  AUTH_SECRET: "qas-nextauth-secreto-super-forte-seguro"
   
   # Keycloak Configuration  
   AUTH_KEYCLOAK_ID: "0a112d4c-41b2-4257-a834-bca92c4af089"
