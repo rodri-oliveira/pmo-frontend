@@ -4,7 +4,7 @@ const nextConfig = {
     output: "standalone",
     async rewrites() {
         // Usar variável de ambiente para definir o backend URL
-        const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
         
         return [
             {
