@@ -42,7 +42,8 @@ return apiPut(`/alocacoes/${id}`, cleanData);
 };
 
 // Exclui uma alocação
-export const deleteAlocacao = (id) => apiDelete(`/alocacoes/${id}`);
+// Em DEV precisamos sair de /v1
+export const deleteAlocacao = (id) => apiDelete(`/../alocacoes/${id}`);
 
 // --- Funções Específicas para a Matriz de Planejamento ---
 

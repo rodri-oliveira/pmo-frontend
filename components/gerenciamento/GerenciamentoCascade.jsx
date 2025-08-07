@@ -470,18 +470,24 @@ export default function GerenciamentoCascade() {
 
     setLoading(true);
     try {
-      // A lógica de encontrar o projetoId foi removida, pois a API usa a rota /alocacoes/{id}
+      // Exclusão no backend
       await deleteAlocacao(alocacao.id);
 
+      // Feedback imediato de sucesso
       setNotification({
         open: true,
         message: "Alocação excluída com sucesso!",
         severity: "success",
       });
-      await fetchData(); // Recarrega os dados para refletir a exclusão
+
+      // Tenta recarregar os dados; se falhar, apenas loga (a exclusão já foi feita)
+      try {
+        await fetchData();
+      } catch (fetchErr) {
+        console.warn('Recarregar dados após delete falhou:', fetchErr);
+      }
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.detail || "Ocorreu um erro ao excluir a alocação.";
+      const errorMsg = err?.message || "Ocorreu um erro ao excluir a alocação.";
       setNotification({
         open: true,
         message: `Erro: ${errorMsg}`,
