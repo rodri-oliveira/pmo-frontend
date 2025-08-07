@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete } from '../lib/api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api';
 
 // --- API de Alocações ---
 
@@ -6,7 +6,17 @@ import { apiGet, apiPost, apiDelete } from '../lib/api';
 export const getAlocacoes = (params) => apiGet('/alocacoes', params);
 
 // Cria uma nova alocação
-export const createAlocacao = (data) => apiPost('/alocacoes', data);
+// ATENÇÃO:
+// - Em DEV, o api.js usa API_BASE_URL = "http://localhost:8000/backend/v1".
+// - Em QAS/PROD, API_BASE_URL vem de /api/config e já aponta para "https://<domínio>/backend" (SEM /v1).
+//   Portanto, NUNCA inclua "/v1" aqui ou use hacks como "../".
+//   O endpoint correto e único que o backend deve prover é:
+//   POST   /backend/alocacoes/   (criar alocação)
+//   GET    /backend/alocacoes/   (listar alocações)
+//   PUT    /backend/alocacoes/{id}
+//   DELETE /backend/alocacoes/{id}
+// Se algum ambiente precisar de versão, o backend deve redirecionar ou manter ambos.
+export const createAlocacao = (data) => apiPost('/alocacoes/', data);
 
 // Atualiza uma alocação existente
 export const updateAlocacao = (id, data) => {
@@ -27,7 +37,8 @@ export const updateAlocacao = (id, data) => {
     }
   });
 
-  return apiPut(`/alocacoes/alocacoes/${id}`, cleanData);
+  // Endpoint alinhado com createAlocacao: "/alocacoes/{id}".  O backend deve aceitar /backend/alocacoes/{id}
+return apiPut(`/alocacoes/${id}`, cleanData);
 };
 
 // Exclui uma alocação
