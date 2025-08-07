@@ -391,16 +391,21 @@ export default function VisaoGestorPage() {
         {
           name: 'Horas Alocadas',
           type: 'bar',
+          itemStyle: {
+            color: '#1976d2' // Azul padrão para todas as barras
+          },
           label: {
             show: true,
             position: 'top',
             formatter: '{c}h',
             fontSize: 10,
-            color: '#333'
+            color: params => getBarColor(parsePercent(monthlyData[params.dataIndex].percentual_alocacao)),
           },
           data: monthlyData.map(item => ({
             value: Math.round(item.total_horas_planejadas),
-            itemStyle: { color: getBarColor(parsePercent(item.percentual_alocacao)) },
+            // Cor de classificação aplicada ao label e contorno da barra
+            label: { color: getBarColor(parsePercent(item.percentual_alocacao)) },
+            itemStyle: { borderColor: getBarColor(parsePercent(item.percentual_alocacao)), borderWidth: 4, borderType: 'solid' }
           })),
         },
         {
