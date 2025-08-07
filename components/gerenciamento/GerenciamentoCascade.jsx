@@ -836,6 +836,12 @@ export default function GerenciamentoCascade() {
             </Select>
           </FormControl>
 
+          {tab === 'recursos' && total > 0 && (
+            <Typography variant="subtitle1" component="span" sx={{ ml: 2, color: 'text.secondary', alignSelf: 'center' }}>
+              ({total} recursos encontrados)
+            </Typography>
+          )}
+
           <TextField
             label="Filtrar por nome…"
             value={filtroNome}
@@ -965,7 +971,7 @@ export default function GerenciamentoCascade() {
                 onPageChange={handlePageChange}
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={handleRowsPerPageChange}
-                rowsPerPageOptions={[10, 25, 50]}
+                rowsPerPageOptions={[10, 25, 50, 100]}
               />
             )}
           </Paper>
@@ -980,7 +986,7 @@ export default function GerenciamentoCascade() {
                 onPageChange={handlePageChange}
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={handleRowsPerPageChange}
-                rowsPerPageOptions={[10, 25, 50]}
+                rowsPerPageOptions={[10, 25, 50, 100]}
               />
             )}
           </Paper>
