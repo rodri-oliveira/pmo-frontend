@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
-  TextField, FormControlLabel, Switch,
+  TextField, FormControlLabel, Switch, Alert,
 } from '@mui/material';
 
 const wegBlue = '#00579d';
 
-export default function StatusProjetoModal({ open, onClose, onSave, statusProjeto }) {
+export default function StatusProjetoModal({ open, onClose, onSave, statusProjeto, apiError }) {
   const [formData, setFormData] = useState({
     nome: '',
     descricao: '',
@@ -70,6 +70,11 @@ export default function StatusProjetoModal({ open, onClose, onSave, statusProjet
           value={formData.descricao}
           onChange={handleChange}
         />
+        {apiError && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {apiError}
+          </Alert>
+        )}
         <FormControlLabel
           control={
             <Switch

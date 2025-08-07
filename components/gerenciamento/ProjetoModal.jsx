@@ -226,8 +226,12 @@ export default function ProjetoModal({ open, onClose, onSave, projeto, secoes, s
       <DialogTitle sx={{ color: wegBlue, fontWeight: 'bold' }}>
         {isEditing ? 'Editar Projeto' : 'Novo Projeto'}
       </DialogTitle>
-      <DialogContent sx={{ pt: 1, pb: 0 }}>
-        {apiError && <Alert severity="error" sx={{ mb: 2 }}>{apiError}</Alert>}
+      <DialogContent dividers>
+        {apiError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {apiError}
+          </Alert>
+        )}
         <Stepper activeStep={activeStep} alternativeLabel sx={{ pt: 2 }}>
             {steps.map((label) => (
                 <Step key={label}>

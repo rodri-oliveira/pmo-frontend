@@ -26,7 +26,9 @@ const initialFormState = {
   observacao: '',
 };
 
-export default function AlocacaoModal({ open, onClose, onSave, item, secoes, statusOptions, onDataChange }) {
+import { Alert } from '@mui/material';
+
+export default function AlocacaoModal({ open, onClose, onSave, item, secoes, statusOptions, onDataChange, apiError }) {
   const [formData, setFormData] = useState(initialFormState);
   const [projetosList, setProjetosList] = useState([]);
   const [projetosLoading, setProjetosLoading] = useState(false);
@@ -377,6 +379,11 @@ export default function AlocacaoModal({ open, onClose, onSave, item, secoes, sta
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
         <DialogTitle>{item?.id ? 'Editar Alocação' : 'Nova Alocação'}</DialogTitle>
         <DialogContent>
+          {apiError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {apiError}
+            </Alert>
+          )}
           <Box sx={{ mt: 1 }}>
             {loading && <CircularProgress />}
           </Box>

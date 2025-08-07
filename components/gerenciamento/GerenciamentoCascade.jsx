@@ -1010,12 +1010,13 @@ export default function GerenciamentoCascade() {
               statusOptions={statusProjetos}
             />
           )) ||
-          ((tab === "secoes" || tab === "statusProjetos") && (
+          (tab === "secoes" && (
             <SecaoModal
               open={modalOpen}
               onClose={handleCloseModal}
               onSave={handleSave}
               secao={currentItem}
+              apiError={modalError}
             />
           )) ||
           (tab === "equipes" && (
@@ -1025,6 +1026,7 @@ export default function GerenciamentoCascade() {
               onSave={handleSave}
               equipe={currentItem}
               secoes={secoes}
+              apiError={modalError}
             />
           )) ||
           (tab === "recursos" && (
@@ -1034,6 +1036,7 @@ export default function GerenciamentoCascade() {
               onSave={handleSave}
               recurso={currentItem}
               equipes={equipes}
+              apiError={modalError}
             />
           )) ||
           (tab === "statusProjetos" && (
@@ -1042,6 +1045,7 @@ export default function GerenciamentoCascade() {
               onClose={handleCloseModal}
               onSave={handleSave}
               statusProjeto={currentItem}
+              apiError={modalError}
             />
           )))}
 

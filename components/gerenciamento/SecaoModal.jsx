@@ -8,7 +8,9 @@ import {
 
 const wegBlue = '#00579d';
 
-export default function SecaoModal({ open, onClose, onSave, secao }) {
+import { Alert } from '@mui/material';
+
+export default function SecaoModal({ open, onClose, onSave, secao, apiError }) {
   const [formData, setFormData] = useState({ nome: '', descricao: '', ativo: true });
 
   useEffect(() => {
@@ -66,6 +68,11 @@ export default function SecaoModal({ open, onClose, onSave, secao }) {
             value={formData.descricao}
             onChange={handleChange}
           />
+          {apiError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {apiError}
+            </Alert>
+          )}
           {isEditing && (
             <FormControlLabel
               control={

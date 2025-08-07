@@ -26,7 +26,9 @@ export async function getStatusProjetos(params = {}) {
       userMessage = errorText || userMessage;
     }
     
-    throw new Error(userMessage);
+    const err = new Error(userMessage);
+    err.status = response.status;
+    throw err;
   }
   
   return await response.json();
@@ -50,7 +52,9 @@ export async function getStatusProjeto(id) {
       userMessage = errorText || userMessage;
     }
     
-    throw new Error(userMessage);
+    const err = new Error(userMessage);
+    err.status = response.status;
+    throw err;
   }
   
   return await response.json();
@@ -82,7 +86,9 @@ export async function createStatusProjeto(data) {
       userMessage = errorText || userMessage;
     }
     
-    throw new Error(userMessage);
+    const err = new Error(userMessage);
+    err.status = response.status;
+    throw err;
   }
   
   const result = await response.json();
@@ -114,7 +120,9 @@ export async function updateStatusProjeto(id, data) {
       userMessage = errorText || userMessage;
     }
     
-    throw new Error(userMessage);
+    const err = new Error(userMessage);
+    err.status = response.status;
+    throw err;
   }
   
   return await response.json();
@@ -140,7 +148,9 @@ export async function deleteStatusProjeto(id) {
       userMessage = errorText || userMessage;
     }
     
-    throw new Error(userMessage);
+    const err = new Error(userMessage);
+    err.status = response.status;
+    throw err;
   }
   
   // DELETE pode retornar 204 (sem conteúdo)

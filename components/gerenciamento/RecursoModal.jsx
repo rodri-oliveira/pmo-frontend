@@ -7,7 +7,9 @@ import {
 
 const wegBlue = '#00579d';
 
-export default function RecursoModal({ open, onClose, onSave, recurso, equipes }) {
+import { Alert } from '@mui/material';
+
+export default function RecursoModal({ open, onClose, onSave, recurso, equipes, apiError }) {
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -69,6 +71,11 @@ export default function RecursoModal({ open, onClose, onSave, recurso, equipes }
           label={formData.ativo ? 'Recurso Ativo' : 'Recurso Inativo'}
           sx={{ mb: 1, mt: 1 }}
         />
+        {apiError && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {apiError}
+          </Alert>
+        )}
         <TextField
           autoFocus
           margin="dense"
