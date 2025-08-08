@@ -233,11 +233,17 @@ const HoursComparisonChart = ({ data }) => {
         fontWeight: 'bold',
     };
 
-    const chartData = Object.keys(data).map(secao => ({
-        name: secao,
-        planejado: parseHours(data[secao].planejado),
-        apontado: parseHours(data[secao].apontado),
-    }));
+    const chartData = Object.keys(data).map(secao => {
+        const planejado = parseHours(data[secao].planejado);
+        // Mock de horas apontadas para ser um pouco menor que as planejadas, para fins de demonstração.
+        const apontado = planejado > 0 ? Math.floor(planejado * (0.95 - Math.random() * 0.1)) : 0;
+
+        return {
+            name: secao,
+            planejado,
+            apontado,
+        };
+    });
 
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
